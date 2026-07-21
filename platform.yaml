@@ -1,0 +1,57 @@
+platform:
+  id: tn-platform
+  name: TN Platform
+  version: 1.0.0-alpha.2
+  contractVersion: 1.0.0-alpha.2
+  environment: development
+
+kernel:
+  version: 0.1.0
+  strictDependencies: true
+  shutdownTimeoutMs: 10000
+
+services:
+  - id: platform-core-api
+    name: Platform Core API
+    version: 3.2.0
+    path: services/platform-core-api
+    enabled: true
+    dependencies: []
+    capabilities:
+      - configuration
+      - service-registry
+      - health
+      - metrics
+      - events
+  - id: example-service
+    name: Example Kernel Service
+    version: 0.1.0
+    path: services/example-service
+    enabled: false
+    dependencies:
+      - platform-core-api
+    capabilities:
+      - example
+
+experiences:
+  - id: tn-studio
+    type: wordpress
+    path: experiences/wordpress/tn-game-os
+    version: 5.1.0
+
+build:
+  outputDirectory: dist
+  artifacts:
+    - id: platform-core-api
+      source: services/platform-core-api
+      filename: tn-platform-core-api-v3.2.0-kernel-mvp.zip
+    - id: tn-game-os
+      source: experiences/wordpress/tn-game-os
+      filename: tn-game-os-v5.1.0-platform-infrastructure.zip
+
+deployment:
+  api:
+    provider: render
+    healthPath: /health
+  wordpress:
+    provider: manual
