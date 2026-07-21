@@ -1,0 +1,17 @@
+
+.tng-service-manager{max-width:1450px;margin:0;padding:28px 28px 70px;color:#172033}
+.tng-service-manager *{box-sizing:border-box}
+.tng-service-manager-header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:22px}
+.tng-service-manager-header>div>span{color:#768196;font-size:10px;font-weight:850;letter-spacing:.16em}
+.tng-service-manager-header h1{margin:4px 0 5px;font-size:31px}
+.tng-service-manager-header p{margin:0;color:#68758b;font-size:15px}
+.tng-service-help{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin-bottom:18px}
+.tng-service-help article{padding:17px 18px;border:1px solid #dfe5ee;border-radius:14px;background:#fff}
+.tng-service-help strong{display:block;margin-bottom:4px;font-size:15px}.tng-service-help p{margin:0;color:#68758b;line-height:1.45}
+.tng-service-filter{display:grid;grid-template-columns:minmax(260px,1fr) 230px auto;gap:9px;margin-bottom:14px;padding:14px;border:1px solid #dfe5ee;border-radius:14px;background:#fff}
+.tng-service-filter input,.tng-service-filter select{width:100%;max-width:none}
+.tng-service-actionbar{display:flex;position:sticky;z-index:20;top:32px;align-items:center;justify-content:space-between;gap:16px;margin-bottom:12px;padding:13px 15px;border:1px solid #cfd9e9;border-radius:14px;background:rgba(255,255,255,.96);box-shadow:0 8px 22px rgba(25,39,64,.08);backdrop-filter:blur(12px)}
+.tng-service-tag-options{display:flex;flex-wrap:wrap;gap:7px}.tng-service-tag-options label{cursor:pointer}.tng-service-tag-options input{position:absolute;opacity:0}.tng-service-tag-options span{display:block;padding:7px 11px;border:1px solid #dbe2ec;border-radius:999px;background:#f8fafc;color:#526075;font-weight:700}.tng-service-tag-options input:checked+span{border-color:#91adff;background:#eaf0ff;color:#245be0;box-shadow:0 3px 10px rgba(47,102,239,.12)}
+.tng-service-apply-controls{display:flex;flex:0 0 auto;gap:8px}.tng-service-table-wrap{overflow:auto;border:1px solid #dfe5ee;border-radius:15px;background:#fff}.tng-service-table{border:0!important}.tng-service-table th,.tng-service-table td{vertical-align:middle;padding-top:13px;padding-bottom:13px}.tng-current-tags{display:flex;flex-wrap:wrap;gap:5px}.tng-current-tags span,.tng-service-mini-tag{display:inline-block;padding:3px 7px;border-radius:999px;background:#edf2f8;color:#536176;font-size:11px;font-weight:700}.tng-status{display:inline-block;padding:3px 7px;border-radius:999px;background:#eef1f5;color:#596578;font-size:11px;font-weight:750}.tng-status-publish{background:#e6f8ef;color:#168653}.tng-service-empty{padding:45px;text-align:center;color:#738096}
+@media(max-width:1000px){.tng-service-help{grid-template-columns:1fr}.tng-service-actionbar{position:static;align-items:flex-start;flex-direction:column}.tng-service-apply-controls{width:100%}.tng-service-apply-controls select{flex:1}}
+@media(max-width:700px){.tng-service-manager{padding:18px 12px 55px}.tng-service-manager-header{flex-direction:column}.tng-service-filter{grid-template-columns:1fr}.tng-service-apply-controls{flex-direction:column}.tng-service-apply-controls select,.tng-service-apply-controls button{width:100%}}

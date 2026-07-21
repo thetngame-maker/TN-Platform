@@ -1,0 +1,23 @@
+{
+  "name": "tn-platform-core-api",
+  "version": "3.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test",
+    "check:browser": "node src/check-browser.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "helmet": "^8.0.0",
+    "pino": "^9.6.0",
+    "pino-http": "^10.4.0",
+    "playwright": "1.61.1",
+    "zod": "^3.24.2"
+  }
+}

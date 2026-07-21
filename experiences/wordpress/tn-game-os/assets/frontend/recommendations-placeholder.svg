@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="600" viewBox="0 0 900 600">
+<defs><linearGradient id="g" x1="0" x2="1"><stop stop-color="#e6ebf3"/><stop offset="1" stop-color="#ccd7e7"/></linearGradient></defs>
+<rect width="900" height="600" fill="url(#g)"/>
+<circle cx="450" cy="255" r="112" fill="#fff" opacity=".65"/>
+<path d="M385 285l65-76 65 76M410 265v94h80v-94" fill="none" stroke="#70819c" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="450" y="455" text-anchor="middle" font-family="Arial,sans-serif" font-size="31" fill="#536780">TN Game Experience</text>
+</svg>

@@ -1,0 +1,304 @@
+
+.tng-recommendations{
+  width:100%;
+  padding:74px 24px 82px;
+  background:#f7f9fc;
+  color:#17213a;
+}
+.tng-recommendations-inner{
+  width:100%;
+  max-width:1280px;
+  margin:0 auto;
+}
+.tng-recommendations-heading{
+  margin-bottom:28px;
+  text-align:center;
+}
+.tng-recommendations-eyebrow{
+  display:block;
+  margin-bottom:7px;
+  color:#64748b;
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.16em;
+}
+.tng-recommendations-heading h2{
+  margin:0;
+  color:#1d2b49;
+  font-size:38px;
+  font-weight:750;
+  letter-spacing:-.025em;
+}
+.tng-recommendations-tabs-wrap{
+  display:grid;
+  grid-template-columns:38px minmax(0,1fr) 38px;
+  align-items:center;
+  gap:8px;
+  max-width:1060px;
+  margin:0 auto 34px;
+}
+.tng-recommendations-tabs{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  overflow-x:auto;
+  padding:4px 2px 9px;
+  scrollbar-width:none;
+  scroll-snap-type:x proximity;
+}
+.tng-recommendations-tabs::-webkit-scrollbar{display:none}
+.tng-recommendations-tab{
+  flex:0 0 auto;
+  display:inline-flex;
+  min-height:45px;
+  align-items:center;
+  gap:7px;
+  padding:0 15px;
+  border:1px solid #d9dee8;
+  border-radius:11px;
+  background:#fff;
+  color:#202938;
+  font:inherit;
+  font-size:14px;
+  font-weight:650;
+  cursor:pointer;
+  scroll-snap-align:center;
+  box-shadow:0 1px 2px rgba(15,23,42,.025);
+  transition:border-color .15s ease,background .15s ease,color .15s ease,box-shadow .15s ease;
+}
+.tng-recommendations-tab:hover{
+  border-color:#9eb4f8;
+}
+.tng-recommendations-tab.is-active{
+  border-color:#3f6ff0;
+  background:#3f6ff0;
+  color:#fff;
+  box-shadow:0 7px 18px rgba(63,111,240,.24);
+}
+.tng-recommendations-tab small{
+  display:inline-flex;
+  min-width:20px;
+  height:20px;
+  align-items:center;
+  justify-content:center;
+  padding:0 5px;
+  border-radius:999px;
+  background:#eef2f7;
+  color:#607086;
+  font-size:10px;
+}
+.tng-recommendations-tab.is-active small{
+  background:rgba(255,255,255,.2);
+  color:#fff;
+}
+.tng-rec-scroll{
+  display:flex;
+  width:36px;
+  height:36px;
+  align-items:center;
+  justify-content:center;
+  border:1px solid #d9dee8;
+  border-radius:50%;
+  background:#fff;
+  color:#475569;
+  font-size:24px;
+  line-height:1;
+  cursor:pointer;
+}
+.tng-rec-scroll:hover{border-color:#9eb4f8;color:#315fd5}
+.tng-recommendations-panel[hidden]{display:none!important}
+.tng-recommendations-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:24px;
+}
+.tng-rec-card{
+  min-width:0;
+  overflow:hidden;
+  border:1px solid #e1e6ef;
+  border-radius:16px;
+  background:#fff;
+  box-shadow:0 7px 24px rgba(15,23,42,.055);
+  transition:transform .18s ease,box-shadow .18s ease;
+}
+.tng-rec-card:hover{
+  transform:translateY(-3px);
+  box-shadow:0 15px 34px rgba(15,23,42,.105);
+}
+.tng-rec-card-media{
+  position:relative;
+  display:block;
+  height:265px;
+  overflow:hidden;
+  background:#e5e7eb;
+}
+.tng-rec-card-media img{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  transition:transform .3s ease;
+}
+.tng-rec-card:hover .tng-rec-card-media img{
+  transform:scale(1.025);
+}
+.tng-rec-card-type{
+  position:absolute;
+  left:15px;
+  bottom:15px;
+  max-width:calc(100% - 70px);
+  overflow:hidden;
+  padding:6px 10px;
+  border-radius:999px;
+  background:rgba(255,255,255,.94);
+  color:#1f2937;
+  font-size:11px;
+  font-weight:750;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  box-shadow:0 3px 10px rgba(0,0,0,.12);
+}
+.tng-rec-card-heart{
+  position:absolute;
+  top:14px;
+  right:15px;
+  color:#fff;
+  font-size:31px;
+  line-height:1;
+  text-shadow:0 2px 8px rgba(0,0,0,.5);
+}
+.tng-rec-card-content{
+  padding:18px;
+}
+.tng-rec-card-content h3{
+  min-height:49px;
+  margin:0 0 8px;
+  color:#111827;
+  font-size:18px;
+  font-weight:720;
+  line-height:1.35;
+}
+.tng-rec-card-content h3 a{
+  color:inherit;
+  text-decoration:none;
+}
+.tng-rec-card-location{
+  min-height:21px;
+  margin:0 0 13px;
+  overflow:hidden;
+  color:#657184;
+  font-size:13px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.tng-rec-card-rating{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  padding-bottom:14px;
+  border-bottom:1px solid #e6eaf0;
+}
+.tng-rec-card-rating span{
+  color:#f59e0b;
+  font-size:13px;
+  font-weight:750;
+}
+.tng-rec-card-rating small{
+  color:#697586;
+}
+.tng-rec-card-footer{
+  display:flex;
+  min-height:42px;
+  align-items:end;
+  justify-content:space-between;
+  gap:12px;
+  padding-top:14px;
+}
+.tng-rec-card-footer strong{
+  color:#17213a;
+  font-size:16px;
+}
+.tng-rec-card-footer span{
+  color:#3769e8;
+  font-size:12px;
+  font-weight:750;
+}
+.tng-recommendations-view-all{
+  margin-top:32px;
+  text-align:center;
+}
+.tng-recommendations-view-all a{
+  display:inline-flex;
+  min-height:45px;
+  align-items:center;
+  gap:9px;
+  padding:0 22px;
+  border:1px solid #cfd7e5;
+  border-radius:999px;
+  background:#fff;
+  color:#2859cf;
+  font-weight:720;
+  text-decoration:none;
+  box-shadow:0 4px 12px rgba(15,23,42,.035);
+}
+.tng-recommendations-view-all a:hover{
+  border-color:#8da9f4;
+  color:#1748c1;
+}
+@media(max-width:1100px){
+  .tng-recommendations-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+@media(max-width:767px){
+  .tng-recommendations{
+    padding:54px 18px 62px;
+  }
+  .tng-recommendations-heading{
+    text-align:left;
+  }
+  .tng-recommendations-heading h2{
+    font-size:31px;
+  }
+  .tng-recommendations-tabs-wrap{
+    grid-template-columns:1fr;
+    margin-bottom:25px;
+  }
+  .tng-rec-scroll{
+    display:none;
+  }
+  .tng-recommendations-tabs{
+    margin-left:-2px;
+    margin-right:-18px;
+    padding-right:18px;
+  }
+  .tng-recommendations-grid{
+    grid-template-columns:1fr;
+    gap:18px;
+  }
+  .tng-rec-card-media{
+    height:235px;
+  }
+}
+
+
+/* TN Game OS 2.4.0 manual placement safeguards */
+.tng-recommendations{
+  position:relative;
+  clear:both;
+  float:none;
+  display:block;
+  max-width:none;
+  min-height:0;
+  margin:0;
+  overflow:hidden;
+}
+.tng-recommendations *,
+.tng-recommendations *::before,
+.tng-recommendations *::after{
+  box-sizing:border-box;
+}
+.elementor-widget-tng_recommendations .elementor-widget-container,
+.wpb_wrapper > .tng-recommendations{
+  width:100%;
+}

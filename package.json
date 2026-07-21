@@ -1,0 +1,21 @@
+{
+  "name": "tn-platform",
+  "version": "1.0.0-alpha.1",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "services/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "npm run test:api && npm run test:contracts",
+    "test:api": "npm --prefix services/platform-core-api test",
+    "test:contracts": "node --test packages/contracts/test/*.test.mjs",
+    "check": "npm run check:node && npm run check:php",
+    "check:node": "node --check services/platform-core-api/src/server.js && node --check scripts/build-releases.mjs",
+    "check:php": "bash scripts/check-php.sh",
+    "build": "node scripts/build-releases.mjs",
+    "release": "npm run check && npm test && npm run build"
+  },
+  "engines": {"node": ">=20"}
+}

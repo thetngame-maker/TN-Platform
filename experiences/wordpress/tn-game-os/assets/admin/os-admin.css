@@ -1,0 +1,106 @@
+
+.tng-os-wrap{max-width:1380px}.tng-os-wrap *{box-sizing:border-box}
+.tng-os-app{padding-bottom:50px}
+.tng-os-hero,.tng-os-page-heading{display:flex;align-items:center;justify-content:space-between;gap:24px;margin:20px 0;padding:28px;border:1px solid #dcdcde;border-radius:20px;background:#fff}
+.tng-os-hero span,.tng-os-page-heading span,.tng-os-section-heading>div>span{color:#646970;font-size:10px;font-weight:800;letter-spacing:.16em}
+.tng-os-hero h1,.tng-os-page-heading h1{margin:5px 0 8px;font-size:35px;letter-spacing:-.02em}
+.tng-os-hero p,.tng-os-page-heading p{margin:0;color:#646970}
+.tng-os-app-hero{background:radial-gradient(circle at 90% 10%,rgba(37,99,235,.13),transparent 33%),linear-gradient(135deg,#fff,#f8fafc)}
+.tng-os-hero-actions{display:flex;align-items:center;gap:10px}
+.tng-os-hero-actions .button{display:inline-flex;align-items:center;gap:7px}
+.tng-os-hero-actions kbd{margin-left:7px;padding:2px 6px;border:1px solid #ccd3dc;border-radius:5px;background:#f4f5f6;font-size:10px}
+.tng-os-metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:20px 0}
+.tng-os-metrics article{padding:20px;border:1px solid #dcdcde;border-radius:16px;background:#fff}
+.tng-os-metrics strong,.tng-os-metrics span{display:block}.tng-os-metrics strong{font-size:28px}.tng-os-metrics span{margin-top:6px;color:#646970}
+.tng-os-panel,.tng-os-settings{margin:20px 0;padding:24px;border:1px solid #dcdcde;border-radius:18px;background:#fff}
+.tng-os-section-heading{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:18px}
+.tng-os-section-heading h2{margin:4px 0 0;font-size:23px}
+.tng-os-section-heading>strong{display:grid;min-width:30px;height:30px;place-items:center;border-radius:999px;background:#eef4ff;color:#2563eb}
+.tng-os-workspace-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:13px}
+.tng-os-workspace-grid>a,.tng-os-tool-grid>a{display:flex;position:relative;min-width:0;align-items:flex-start;gap:14px;padding:20px;border:1px solid #e1e6ee;border-radius:15px;background:#fafbfc;color:#1d2327;text-decoration:none;transition:.15s ease}
+.tng-os-workspace-grid>a:hover,.tng-os-tool-grid>a:hover{border-color:#91aaf0;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.07);transform:translateY(-1px)}
+.tng-os-workspace-grid>a>.dashicons,.tng-os-tool-grid>a>.dashicons{flex:0 0 38px;width:38px;height:38px;padding:8px;border-radius:10px;background:#eef4ff;color:#2563eb;font-size:22px}
+.tng-os-workspace-grid strong,.tng-os-tool-grid strong{display:block;font-size:16px}
+.tng-os-workspace-grid p,.tng-os-tool-grid p{margin:5px 0 0;color:#667085;line-height:1.45}
+.tng-os-workspace-grid i,.tng-os-tool-grid i{position:absolute;right:15px;bottom:13px;color:#98a2b3;font-style:normal}
+.tng-os-dashboard-columns{display:grid;grid-template-columns:1.2fr .8fr;gap:20px}
+.tng-os-quick-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.tng-os-quick-actions a{display:flex;align-items:center;gap:10px;padding:13px;border:1px solid #e4e7ec;border-radius:11px;color:#1d2327;text-decoration:none}
+.tng-os-quick-actions .dashicons{color:#2563eb}
+.tng-os-recent-list{display:grid}
+.tng-os-recent-list>a{display:grid;grid-template-columns:32px minmax(0,1fr) auto;align-items:center;gap:11px;padding:12px 3px;border-bottom:1px solid #edf0f3;color:#1d2327;text-decoration:none}
+.tng-os-recent-list>a>.dashicons{color:#64748b}.tng-os-recent-list strong,.tng-os-recent-list small{display:block}.tng-os-recent-list small{margin-top:3px;color:#667085}.tng-os-recent-list i{padding:4px 7px;border-radius:999px;background:#f2f4f7;color:#667085;font-size:10px;font-style:normal}
+.tng-os-notification-list{display:grid;gap:10px}
+.tng-os-notification-list article{display:grid;grid-template-columns:36px minmax(0,1fr) auto 30px;align-items:center;gap:12px;padding:14px;border:1px solid #e4e7ec;border-radius:12px;background:#fafbfc}
+.tng-os-notification-list article>.dashicons{color:#d97706}.tng-os-notification-list p{margin:3px 0 0;color:#667085}.tng-os-dismiss-notice{border:0;background:transparent;color:#98a2b3;font-size:22px;cursor:pointer}
+.tng-os-tool-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+.tng-os-workspace-header{background:linear-gradient(135deg,#fff,#f7f9fc)}
+.tng-os-warning-panel{border-color:#f3cf7c;background:#fffaf0}
+.tng-os-field{display:block;max-width:720px;padding:14px 0;border-bottom:1px solid #edf0f3}.tng-os-field span{display:block;margin-bottom:7px;font-weight:700}.tng-os-field input{width:100%;max-width:none}
+.tng-os-status{display:grid;gap:10px;max-width:900px}.tng-os-status article{display:grid;grid-template-columns:14px 1fr auto;gap:10px;padding:15px;border:1px solid #dcdcde;border-radius:12px;background:#fff}.tng-os-status i{width:10px;height:10px;margin-top:4px;border-radius:50%;background:#f59e0b}.tng-os-status i.is-good{background:#16a34a}.tng-os-status span{color:#646970}
+.tng-os-empty{padding:30px;border-radius:12px;background:#f6f7f8;color:#667085;text-align:center}
+.tng-os-command-palette[hidden]{display:none}
+.tng-os-command-palette{position:fixed;z-index:100000;inset:0}
+.tng-os-command-backdrop{position:absolute;inset:0;background:rgba(15,23,42,.52);backdrop-filter:blur(3px)}
+.tng-os-command-palette>section{position:relative;width:min(720px,calc(100% - 30px));max-height:min(680px,calc(100vh - 80px));margin:60px auto 0;overflow:hidden;border:1px solid rgba(255,255,255,.2);border-radius:18px;background:#fff;box-shadow:0 30px 80px rgba(15,23,42,.32)}
+.tng-os-command-palette header{display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;gap:10px;padding:16px;border-bottom:1px solid #e4e7ec}
+.tng-os-command-palette header input{width:100%;border:0;box-shadow:none!important;font-size:18px}
+.tng-os-command-palette header kbd{padding:4px 7px;border:1px solid #d0d5dd;border-radius:6px;background:#f9fafb;color:#667085}
+.tng-os-command-results{max-height:520px;overflow:auto;padding:8px}
+.tng-os-command-group{padding:8px 10px 5px;color:#98a2b3;font-size:10px;font-weight:800;letter-spacing:.13em}
+.tng-os-command-item{display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:11px;padding:11px;border-radius:10px;color:#1d2939;text-decoration:none}
+.tng-os-command-item:hover,.tng-os-command-item.is-selected{background:#eef4ff;color:#1d2939}
+.tng-os-command-item>.dashicons{color:#2563eb}.tng-os-command-item strong,.tng-os-command-item small{display:block}.tng-os-command-item small{margin-top:2px;color:#667085}.tng-os-command-item i{color:#98a2b3;font-style:normal}
+.tng-os-command-palette footer{display:flex;gap:18px;padding:10px 15px;border-top:1px solid #e4e7ec;background:#f9fafb;color:#667085;font-size:11px}
+#wpadminbar .tng-os-command-trigger .ab-icon:before{content:"\f179";top:2px}
+@media(max-width:1200px){.tng-os-workspace-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.tng-os-tool-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:900px){.tng-os-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.tng-os-dashboard-columns{grid-template-columns:1fr}}
+@media(max-width:782px){.tng-os-hero,.tng-os-page-heading{align-items:flex-start;flex-direction:column}.tng-os-hero-actions{flex-wrap:wrap}.tng-os-workspace-grid,.tng-os-tool-grid,.tng-os-quick-actions{grid-template-columns:1fr}.tng-os-notification-list article{grid-template-columns:32px minmax(0,1fr) 28px}.tng-os-notification-list article .button{grid-column:2}.tng-os-command-palette>section{margin-top:30px}}
+
+
+/* TN Game OS 4.0.1 — visual-only legacy menu cleanup */
+#toplevel_page_tn-game-core{
+  display:none!important;
+}
+
+
+/* TN Game OS 4.0.2 — focused admin sidebar */
+body.tng-os-focused-sidebar #adminmenu > li:not(#toplevel_page_tn-game-os):not(.tng-os-sidebar-toggle-item):not(#collapse-menu){
+  display:none!important;
+}
+body.tng-os-focused-sidebar #adminmenu .wp-menu-separator{
+  display:none!important;
+}
+.tng-os-sidebar-toggle-item{
+  display:block!important;
+  margin-top:8px!important;
+  padding:8px 7px!important;
+}
+.tng-os-sidebar-toggle-item button{
+  width:100%;
+  padding:8px 6px;
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:6px;
+  background:rgba(255,255,255,.06);
+  color:#dcdcde;
+  cursor:pointer;
+  font-size:11px;
+  line-height:1.25;
+}
+.tng-os-sidebar-toggle-item button:hover{
+  border-color:rgba(255,255,255,.35);
+  background:rgba(255,255,255,.12);
+  color:#fff;
+}
+body.folded .tng-os-sidebar-toggle-item button{
+  overflow:hidden;
+  width:34px;
+  height:34px;
+  padding:0;
+  color:transparent;
+}
+body.folded .tng-os-sidebar-toggle-item button:before{
+  content:"☰";
+  color:#dcdcde;
+  font-size:17px;
+}

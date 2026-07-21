@@ -1,0 +1,14 @@
+services:
+  concert-intelligence:
+    build: .
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      API_KEY: ${API_KEY}
+      ALLOWED_GROUPS: ${ALLOWED_GROUPS:-thecaverns}
+      BROWSER_HEADLESS: "true"
+      REQUEST_TIMEOUT_MS: 45000
+      CACHE_TTL_SECONDS: 900
+      MAX_EVENTS_PER_SYNC: 150
+    ports:
+      - "3000:3000"

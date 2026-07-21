@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import { registerService, listServices, log, listLogs, increment, metrics, platformHealth } from './src/core/platform-core.js';
+registerService({id:'test',version:'1.0.0'});
+assert.equal(listServices().some(x=>x.id==='test'), true);
+log({service:'test',event:'TestEvent',message:'hello'});
+assert.equal(listLogs({service:'test'}).length > 0, true);
+increment('tests_total');
+assert.equal(metrics().counters.some(x=>x.name==='tests_total'), true);
+assert.equal(platformHealth().status, 'healthy');
+console.log('platform-core tests passed');

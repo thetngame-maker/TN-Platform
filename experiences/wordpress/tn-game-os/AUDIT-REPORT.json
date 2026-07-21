@@ -1,0 +1,22 @@
+{
+  "version": "4.2.0",
+  "php_files_scanned": 21,
+  "confirmed_duplicate_admin_slugs_removed": [
+    "tn-game-content-wizard",
+    "tn-game-content-dashboard"
+  ],
+  "root_cause": "Both Admin::menu() and TNG_Content_Manager::register_admin_pages() registered the same submenu slugs, attaching two callbacks to the same WordPress admin page hook.",
+  "loader_protection": [
+    "require_once file loading already present",
+    "module class de-duplication",
+    "module id de-duplication"
+  ],
+  "runtime_protection": [
+    "single legacy Content Manager initialization",
+    "single legacy admin-page registration",
+    "command palette URL de-duplication",
+    "Runtime Audit diagnostic page"
+  ],
+  "shortcode_scan_notes": "No duplicate shortcode is active in the current module loader. class-destinations-widget.php contains an older tng_destinations shortcode implementation but is not loaded by class-plugin.php.",
+  "content_changes": "None"
+}

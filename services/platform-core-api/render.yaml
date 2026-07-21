@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: tn-game-concert-intelligence
+    runtime: docker
+    plan: starter
+    healthCheckPath: /health
+    envVars:
+      - key: API_KEY
+        sync: false
+      - key: ALLOWED_GROUPS
+        value: thecaverns
+      - key: BROWSER_HEADLESS
+        value: "true"
+      - key: REQUEST_TIMEOUT_MS
+        value: "45000"
+      - key: CACHE_TTL_SECONDS
+        value: "900"
+      - key: MAX_EVENTS_PER_SYNC
+        value: "150"
+      - key: PLAYWRIGHT_BROWSERS_PATH
+        value: /ms-playwright

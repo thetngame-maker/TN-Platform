@@ -1,0 +1,438 @@
+
+.tng-dp-page,.tng-dp-destinations,.tng-dp-near-me{--accent:#3268ee;color:#17213a}
+.tng-dp-page *,.tng-dp-destinations *{box-sizing:border-box}
+.tng-dp-alerts{display:grid;gap:10px;margin:0 0 20px}
+.tng-dp-alerts article{padding:14px 17px;border:1px solid #dbe3ef;border-left:5px solid var(--accent);border-radius:12px;background:#fff}
+.tng-dp-alerts article[data-severity=warning],.tng-dp-alerts article[data-severity=closure]{border-left-color:#dc2626}
+.tng-dp-intro{padding:28px;border:1px solid #e2e7ef;border-radius:18px;background:#fff}
+.tng-dp-tagline{font-size:18px;color:#64748b}
+.tng-dp-copy{font-size:16px;line-height:1.75}
+.tng-dp-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:24px}
+.tng-dp-metrics div{padding:16px;border-radius:13px;background:#f6f8fb}
+.tng-dp-metrics strong,.tng-dp-metrics span{display:block}
+.tng-dp-metrics strong{font-size:22px}
+.tng-dp-metrics span{margin-top:3px;color:#6b7280;font-size:12px}
+.tng-dp-map{position:relative;margin:24px 0;border:1px solid #e2e7ef;border-radius:18px;overflow:hidden;background:#e8eef6}
+.tng-dp-map-canvas{display:grid;min-height:360px;place-items:center;background:radial-gradient(circle at 35% 35%,#d8e8db,#cbd9c8 55%,#a8b8a7)}
+.tng-dp-map-canvas span{padding:9px 14px;border-radius:999px;background:#fff;font-weight:700}
+.tng-dp-map>a{position:absolute;right:18px;bottom:18px;padding:11px 16px;border-radius:999px;background:var(--accent);color:#fff;text-decoration:none;font-weight:700}
+.tng-dp-service-grid{display:flex;flex-wrap:wrap;gap:10px;margin:20px 0}
+.tng-dp-service-chip{display:flex;align-items:center;gap:7px;padding:10px 14px;border:1px solid #dce3ed;border-radius:999px;background:#fff}
+.tng-dp-featured,.tng-dp-sections>div,.tng-dp-tools>div,.tng-dp-near-me,.tng-dp-trip,.tng-dp-leaderboard{padding:24px;border:1px solid #e2e7ef;border-radius:18px;background:#fff}
+.tng-dp-listing-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.tng-dp-listing-card{overflow:hidden;border:1px solid #e4e9f0;border-radius:14px}
+.tng-dp-listing-image{display:block;height:170px;background:#e5e7eb}
+.tng-dp-listing-image img{width:100%;height:100%;object-fit:cover}
+.tng-dp-listing-card>div{padding:15px}
+.tng-dp-listing-card h3{margin:4px 0;font-size:17px}
+.tng-dp-listing-card a{color:inherit;text-decoration:none}
+.tng-dp-tools,.tng-dp-sections{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;margin-top:24px}
+.tng-dp-leaderboard ol{margin:0;padding:0;list-style:none}
+.tng-dp-leaderboard li{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #edf0f4}
+.tng-dp-leaderboard li span{display:flex;align-items:center;gap:9px}
+.tng-dp-passport>div{height:10px;border-radius:999px;background:#e5e7eb;overflow:hidden}
+.tng-dp-passport>div span{display:block;height:100%;background:var(--accent)}
+.tng-dp-itinerary button,.tng-dp-trip button,.tng-dp-near-me button{padding:11px 17px;border:0;border-radius:999px;background:var(--accent);color:#fff;font-weight:700}
+.tng-dp-itinerary-results ol,[data-tng-near-results] ol{padding-left:20px}
+@media(max-width:900px){.tng-dp-listing-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:650px){.tng-dp-metrics,.tng-dp-tools,.tng-dp-sections,.tng-dp-listing-grid{grid-template-columns:1fr!important}.tng-dp-map-canvas{min-height:260px}}
+
+
+/* TN Game OS 3.1.0 interactive destination tools */
+.tng-dp-panel-heading{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+  margin-bottom:8px;
+}
+.tng-dp-panel-heading span:first-child{
+  color:#718096;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.14em;
+}
+.tng-dp-panel-heading h2{
+  margin:3px 0 0;
+}
+.tng-dp-status{
+  flex:0 0 auto;
+  padding:6px 9px;
+  border-radius:999px;
+  background:#f0f4fa;
+  color:#5d6879;
+  font-size:11px;
+  font-weight:700;
+}
+.tng-dp-near-output{
+  margin-top:18px;
+}
+.tng-dp-near-group+ .tng-dp-near-group{
+  margin-top:20px;
+}
+.tng-dp-near-group h3{
+  margin:0 0 8px;
+  font-size:16px;
+}
+.tng-dp-near-group ol{
+  margin:0;
+  padding:0;
+  list-style:none;
+}
+.tng-dp-near-group li{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding:11px 0;
+  border-bottom:1px solid #edf0f4;
+}
+.tng-dp-near-group li span,
+.tng-dp-near-group li span strong,
+.tng-dp-near-group li span small{
+  display:block;
+}
+.tng-dp-near-group li a{
+  color:#17213a;
+  text-decoration:none;
+}
+.tng-dp-near-group li small{
+  margin-top:2px;
+  color:#748094;
+}
+.tng-dp-near-group li>b{
+  flex:0 0 auto;
+  color:#3268ee;
+}
+.tng-dp-add-trip{
+  margin-top:10px;
+  padding:8px 12px;
+  border:1px solid #ced8e8;
+  border-radius:999px;
+  background:#fff;
+  color:#3268ee;
+  font-size:12px;
+  font-weight:750;
+}
+.tng-dp-trip-list{
+  margin:16px 0 0;
+  padding:0;
+  list-style:none;
+}
+.tng-dp-trip-list li{
+  display:grid;
+  grid-template-columns:24px 42px minmax(0,1fr) 34px;
+  align-items:center;
+  gap:10px;
+  padding:10px 0;
+  border-bottom:1px solid #edf0f4;
+}
+.tng-dp-trip-list img{
+  width:42px;
+  height:42px;
+  border-radius:9px;
+  object-fit:cover;
+}
+.tng-dp-trip-list span,
+.tng-dp-trip-list small{
+  display:block;
+}
+.tng-dp-trip-list a{
+  color:#17213a;
+  font-weight:700;
+  text-decoration:none;
+}
+.tng-dp-trip-list small{
+  margin-top:2px;
+  color:#778296;
+}
+.tng-dp-trip-list button{
+  width:30px;
+  height:30px;
+  border:1px solid #dce3ed;
+  border-radius:50%;
+  background:#fff;
+  color:#667085;
+}
+.tng-dp-trip-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:9px;
+  margin-top:15px;
+}
+.tng-dp-trip-actions button{
+  padding:9px 14px;
+  border:0;
+  border-radius:999px;
+  background:#3268ee;
+  color:#fff;
+  font-weight:700;
+}
+.tng-dp-trip-actions button.is-secondary{
+  border:1px solid #d7dee9;
+  background:#fff;
+  color:#596579;
+}
+.tng-dp-primary-link{
+  display:inline-flex;
+  padding:10px 15px;
+  border-radius:999px;
+  background:#3268ee;
+  color:#fff;
+  font-weight:700;
+  text-decoration:none;
+}
+.tng-dp-leaderboard .tng-dp-rank{
+  display:grid;
+  width:28px;
+  height:28px;
+  place-items:center;
+  border-radius:50%;
+  background:#eff3f9;
+}
+.tng-dp-leaderboard li{
+  display:grid;
+  grid-template-columns:34px minmax(0,1fr) auto;
+}
+.tng-dp-leaderboard li.is-current-user{
+  margin:0 -10px;
+  padding-left:10px;
+  padding-right:10px;
+  border-radius:10px;
+  background:#eef4ff;
+}
+.tng-dp-player{
+  min-width:0;
+}
+.tng-dp-player>span,
+.tng-dp-player small{
+  display:block;
+}
+.tng-dp-player small{
+  margin-top:2px;
+  color:#778296;
+  font-size:11px;
+}
+.tng-dp-empty{
+  padding:20px;
+  border-radius:12px;
+  background:#f6f8fb;
+  color:#657184;
+  text-align:center;
+}
+.tng-dp-empty strong{
+  color:#17213a;
+}
+@media(max-width:650px){
+  .tng-dp-panel-heading{align-items:flex-start}
+  .tng-dp-status{white-space:nowrap}
+}
+
+
+/* TN Game OS 4.3.4 — active Top Destinations cards */
+.tng-dp-destinations{
+  --tng-dest-blue:#3268ee;
+  width:100%;
+  padding:64px 22px 72px;
+  background:#fff;
+  color:#17213a;
+}
+.tng-dp-destinations,
+.tng-dp-destinations *{
+  box-sizing:border-box;
+}
+.tng-dp-destinations-heading{
+  width:min(1180px,100%);
+  margin:0 auto 27px;
+  text-align:center;
+}
+.tng-dp-destinations-heading>span{
+  display:block;
+  margin-bottom:7px;
+  color:#758298;
+  font-size:10px;
+  font-weight:850;
+  letter-spacing:.16em;
+}
+.tng-dp-destinations-heading h2{
+  margin:0!important;
+  color:#17213a!important;
+  font-size:clamp(31px,4vw,42px)!important;
+  font-weight:760!important;
+  line-height:1.1!important;
+  letter-spacing:-.035em!important;
+}
+.tng-dp-destination-grid{
+  display:grid!important;
+  width:min(1180px,100%)!important;
+  grid-template-columns:repeat(var(--columns),minmax(0,1fr))!important;
+  gap:22px!important;
+  align-items:stretch!important;
+  margin:0 auto!important;
+}
+.tng-dp-destination-card{
+  display:block!important;
+  min-width:0!important;
+  overflow:hidden!important;
+  border:0!important;
+  border-radius:20px!important;
+  background:#dce5ef!important;
+  box-shadow:0 10px 28px rgba(21,34,57,.11)!important;
+  transition:transform .2s ease,box-shadow .2s ease!important;
+}
+.tng-dp-destination-card:hover{
+  transform:translateY(-4px)!important;
+  box-shadow:0 18px 42px rgba(21,34,57,.17)!important;
+}
+.tng-dp-destination-image{
+  position:relative!important;
+  display:block!important;
+  width:100%!important;
+  height:auto!important;
+  min-height:0!important;
+  aspect-ratio:1.28/1!important;
+  overflow:hidden!important;
+  border:0!important;
+  border-radius:20px!important;
+  background:#dce5ef!important;
+  color:#fff!important;
+  text-decoration:none!important;
+}
+.tng-dp-destination-image>img{
+  position:absolute!important;
+  inset:0!important;
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  margin:0!important;
+  object-fit:cover!important;
+  object-position:center!important;
+  transform:scale(1.001);
+  transition:transform .4s ease!important;
+}
+.tng-dp-destination-card:hover .tng-dp-destination-image>img{
+  transform:scale(1.045)!important;
+}
+.tng-dp-destination-card.has-placeholder .tng-dp-destination-image>img{
+  object-fit:cover!important;
+}
+.tng-dp-destination-card.has-placeholder:hover .tng-dp-destination-image>img{
+  transform:scale(1.015)!important;
+}
+.tng-dp-destination-shade{
+  position:absolute!important;
+  z-index:1!important;
+  inset:0!important;
+  display:block!important;
+  background:
+    linear-gradient(180deg,rgba(8,16,30,.03) 20%,rgba(8,16,30,.27) 58%,rgba(8,16,30,.92) 100%)!important;
+}
+.tng-dp-destination-copy{
+  position:absolute!important;
+  z-index:2!important;
+  right:21px!important;
+  bottom:20px!important;
+  left:21px!important;
+  display:block!important;
+  color:#fff!important;
+}
+.tng-dp-destination-label{
+  display:block!important;
+  margin:0 0 6px!important;
+  color:rgba(255,255,255,.7)!important;
+  font-size:9px!important;
+  font-weight:850!important;
+  line-height:1.2!important;
+  letter-spacing:.16em!important;
+}
+.tng-dp-destination-copy h3{
+  margin:0 0 4px!important;
+  padding:0!important;
+  color:#fff!important;
+  font-size:26px!important;
+  font-weight:780!important;
+  line-height:1.08!important;
+  letter-spacing:-.03em!important;
+  text-shadow:0 2px 12px rgba(0,0,0,.26)!important;
+}
+.tng-dp-destination-copy p{
+  margin:0!important;
+  color:rgba(255,255,255,.88)!important;
+  font-size:12px!important;
+  line-height:1.35!important;
+}
+.tng-dp-destination-pills{
+  display:flex!important;
+  flex-wrap:wrap!important;
+  gap:6px!important;
+  margin-top:12px!important;
+}
+.tng-dp-destination-pills span,
+.tng-dp-destination-coming{
+  display:inline-flex!important;
+  align-items:center!important;
+  min-height:27px!important;
+  padding:5px 8px!important;
+  border:1px solid rgba(255,255,255,.19)!important;
+  border-radius:999px!important;
+  background:rgba(16,27,46,.52)!important;
+  color:rgba(255,255,255,.92)!important;
+  backdrop-filter:blur(8px)!important;
+  font-size:10px!important;
+  font-weight:700!important;
+  line-height:1.15!important;
+}
+.tng-dp-destination-coming{
+  margin-top:12px!important;
+}
+.tng-dp-destination-arrow{
+  position:absolute!important;
+  z-index:3!important;
+  top:17px!important;
+  right:17px!important;
+  display:grid!important;
+  width:38px!important;
+  height:38px!important;
+  place-items:center!important;
+  border:1px solid rgba(255,255,255,.35)!important;
+  border-radius:50%!important;
+  background:rgba(10,20,36,.28)!important;
+  color:#fff!important;
+  backdrop-filter:blur(8px)!important;
+  font-size:19px!important;
+  line-height:1!important;
+  opacity:0!important;
+  transform:translateX(-5px)!important;
+  transition:opacity .18s ease,transform .18s ease,background .18s ease!important;
+}
+.tng-dp-destination-card:hover .tng-dp-destination-arrow{
+  opacity:1!important;
+  transform:translateX(0)!important;
+}
+.tng-dp-destination-arrow:hover{
+  background:rgba(50,104,238,.9)!important;
+}
+@media(max-width:1050px){
+  .tng-dp-destination-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+}
+@media(max-width:650px){
+  .tng-dp-destinations{
+    padding:50px 15px 60px;
+  }
+  .tng-dp-destinations-heading{
+    text-align:left;
+  }
+  .tng-dp-destination-grid{
+    grid-template-columns:1fr!important;
+    gap:17px!important;
+  }
+  .tng-dp-destination-image{
+    aspect-ratio:1.48/1!important;
+  }
+  .tng-dp-destination-arrow{
+    opacity:1!important;
+    transform:none!important;
+  }
+}
