@@ -22,8 +22,7 @@ function inferYear(monthIndex, day) {
   const now = new Date();
   let year = now.getUTCFullYear();
   const candidate = Date.UTC(year, monthIndex, day, 12);
-  const ninetyDaysAgo = now.getTime() - 90 * 86400000;
-  if (candidate < ninetyDaysAgo) year += 1;
+  if (candidate < now.getTime() - 90 * 86400000) year += 1;
   return year;
 }
 
@@ -49,90 +48,87 @@ function parseDateTime(dateText, timeText) {
   return `${year}-${pad(monthIndex + 1)}-${pad(day)}T${pad(hour)}:${pad(minute)}:00${centralOffset(monthIndex)}`;
 }
 
-function parsePrice(bodyText) {
-  const values = [...String(bodyText || "").matchAll(/\$([0-9]+(?:\.[0-9]{2})?)/g)].map(match => Number(match[1])).filter(Number.isFinite);
-  return values.length ? String(Math.min(...values)) : "";
-}
-
-async function collectEventLinks(page) {
-  await page.goto(SHOWS_URL, { waitUntil: "domcontentloaded" });
-  await page.waitForTimeout(1800);
-  for (let i = 0; i < 8; i += 1) {
-    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-    await page.waitForTimeout(450);
-  }
-  return page.evaluate(() => [...new Set(
-    [...document.querySelectorAll('a[href*="/event/"]')]
-      .map(anchor => anchor.href)
-      .filter(url => /^https:\/\/www\.thecaverns\.com\/event\//i.test(url))
-  )]);
-}
-
-async function extractEvent(page, url) {
-  const response = await page.goto(url, { waitUntil: "domcontentloaded" });
-  if (!response || response.status() >= 400) throw new Error(`Official event page returned HTTP ${response?.status() || 0}`);
-  await page.waitForTimeout(600);
-  const raw = await page.evaluate(() => {
-    const text = selector => (document.querySelector(selector)?.textContent || "").replace(/\s+/g, " ").trim();
-    const bodyText = document.body?.innerText || "";
-    const headings = [...document.querySelectorAll("h1,h2")].map(node => (node.textContent || "").replace(/\s+/g, " ").trim()).filter(Boolean);
-    const dateCandidate = [...document.querySelectorAll("time,h1,h2,h3,p,li,div")]
-      .map(node => (node.textContent || "").replace(/\s+/g, " ").trim())
-      .find(value => /\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}\b/i.test(value) && value.length < 80) || "";
-    const timeCandidate = bodyText.match(/\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/i)?.[0] || "";
-    const doors = bodyText.match(/Doors?\s+(?:open\s+)?(?:at\s+)?(\d{1,2}(?::\d{2})?\s*(?:am|pm))/i)?.[1] || "";
-    const buy = [...document.querySelectorAll("a[href]")].find(anchor => /tixr\.com\/groups\/thecaverns/i.test(anchor.href));
-    const image = document.querySelector('meta[property="og:image"]')?.content || document.querySelector("main img, article img, img")?.src || "";
-    const status = /cancelled|canceled/i.test(bodyText) ? "cancelled" : /postponed/i.test(bodyText) ? "postponed" : /sold out/i.test(bodyText) ? "sold-out" : "scheduled";
-    const title = headings.find(value => !/^shows?$/i.test(value) && !/^location$/i.test(value)) || text("title");
-    return { title, dateCandidate, timeCandidate, doors, ticketUrl: buy?.href || "", image, bodyText, status };
-  });
-
+function normalize(raw) {
   const title = clean(raw.title);
-  if (!title) throw new Error("Official event page did not provide a title");
-  const start = parseDateTime(raw.dateCandidate, raw.timeCandidate);
+  const sourceUrl = clean(raw.sourceUrl);
+  const ticketUrl = clean(raw.ticketUrl);
+  const text = clean(raw.text);
+  const doors = text.match(/Doors?\s*(?:open\s*)?(?:at\s*)?(\d{1,2}(?::\d{2})?\s*(?:am|pm))/i)?.[1] || "";
+  const time = text.match(/\b(\d{1,2}(?::\d{2})?\s*(?:am|pm))\b/i)?.[1] || "";
+  const date = text.match(/\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:,?\s+\d{4})?/i)?.[0] || "";
   const artist = title.split(/\s+(?:in|at|with|presents)\s+/i)[0]?.trim();
-
   return {
     provider: "caverns-official",
-    external_id: externalId(url),
-    url: raw.ticketUrl || url,
-    source_url: url,
+    external_id: externalId(sourceUrl),
+    url: ticketUrl || sourceUrl,
+    source_url: sourceUrl,
     title,
-    description: clean(raw.bodyText),
-    image: raw.image,
-    start,
+    description: text,
+    image: clean(raw.image),
+    start: parseDateTime(date, time),
     end: "",
-    doors: clean(raw.doors),
+    doors: clean(doors),
     venue: "The Caverns",
     address: "555 Charlie Roberts Rd, Pelham, TN 37366",
-    status: raw.status,
-    price: parsePrice(raw.bodyText),
+    status: /cancelled|canceled/i.test(text) ? "cancelled" : /postponed/i.test(text) ? "postponed" : /sold out/i.test(text) ? "sold-out" : "scheduled",
+    price: "",
     currency: "USD",
-    age: /\b(18\+|21\+|all ages)\b/i.exec(raw.bodyText)?.[1] || "",
+    age: /\b(18\+|21\+|all ages)\b/i.exec(text)?.[1] || "",
     artists: artist ? [artist] : [],
   };
 }
 
 export async function syncCavernsOfficial() {
   return withPage(async page => {
-    const links = (await collectEventLinks(page)).slice(0, config.MAX_EVENTS_PER_SYNC);
-    const events = [];
-    const failures = [];
-    for (const url of links) {
-      try {
-        events.push(await extractEvent(page, url));
-      } catch (error) {
-        failures.push({ url, error: error.message });
-      }
+    const response = await page.goto(SHOWS_URL, { waitUntil: "domcontentloaded", timeout: config.BROWSER_TIMEOUT_MS });
+    if (!response || response.status() >= 400) throw new Error(`Official shows page returned HTTP ${response?.status() || 0}`);
+    await page.waitForTimeout(1800);
+    for (let i = 0; i < 6; i += 1) {
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+      await page.waitForTimeout(300);
     }
+
+    const cards = await page.evaluate(() => {
+      const links = [...document.querySelectorAll('a[href*="/event/"]')];
+      const byUrl = new Map();
+      for (const link of links) {
+        const sourceUrl = link.href;
+        if (!/^https:\/\/www\.thecaverns\.com\/event\//i.test(sourceUrl)) continue;
+        let node = link;
+        let best = link.parentElement;
+        for (let depth = 0; depth < 7 && node?.parentElement; depth += 1) {
+          node = node.parentElement;
+          const text = (node.innerText || "").replace(/\s+/g, " ").trim();
+          if (text.length >= 30 && text.length <= 1800) best = node;
+          if (/\bDoors?\b/i.test(text) && /\b(?:am|pm)\b/i.test(text)) break;
+        }
+        const text = (best?.innerText || link.innerText || "").replace(/\s+/g, " ").trim();
+        const headings = [...(best?.querySelectorAll("h1,h2,h3,h4") || [])]
+          .map(el => (el.textContent || "").replace(/\s+/g, " ").trim())
+          .filter(Boolean);
+        const title = headings.find(value => !/^(shows?|learn more|buy)$/i.test(value)) || (link.textContent || "").trim();
+        const image = best?.querySelector("img")?.currentSrc || best?.querySelector("img")?.src || "";
+        const ticket = [...(best?.querySelectorAll("a[href]") || [])].find(a => /tixr\.com/i.test(a.href));
+        const candidate = { sourceUrl, ticketUrl: ticket?.href || "", title, text, image };
+        const existing = byUrl.get(sourceUrl);
+        if (!existing || candidate.text.length > existing.text.length) byUrl.set(sourceUrl, candidate);
+      }
+      return [...byUrl.values()];
+    });
+
+    const events = cards
+      .map(normalize)
+      .filter(event => event.title && event.source_url)
+      .slice(0, config.MAX_EVENTS_PER_SYNC);
+
     return {
       provider: "caverns-official",
       source_url: SHOWS_URL,
-      discovered: links.length,
+      discovered: events.length,
       events,
-      failures,
+      failures: [],
       fetched_at: new Date().toISOString(),
+      diagnostics: { strategy: "single-page-listing", cards_found: cards.length },
     };
   });
 }
