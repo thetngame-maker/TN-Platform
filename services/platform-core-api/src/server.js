@@ -16,6 +16,10 @@ import { requestContext, registerService, log, increment, observeGauge } from ".
 const logger = pino({ level: process.env.LOG_LEVEL || "info" });
 const app = express();
 
+function requestLogger(req) {
+  return req?.log && typeof req.log.error === "function" ? req.log : logger;
+}
+
 app.use(helmet());
 app.use(express.json({ limit: "100kb" }));
 app.use(requestContext);
@@ -43,8 +47,8 @@ app.post("/v1/discovery/run", requireApiKey, async (req, res) => {
     const data = await withPage(page => runTixrDiscovery(page, source.url, source.group));
     res.json({ ok: true, data });
   } catch (error) {
-    req.log.error({ err: error }, "Discovery run failed");
-    res.status(502).json({ ok: false, error: "Discovery run failed", detail: error.message });
+    requestLogger(req).error({ err: error }, "Discovery run failed");
+    res.status(502).json({ ok: false, error: "Discovery run failed", detail: error instanceof Error ? error.message : String(error) });
   }
 });
 
@@ -68,18 +72,23 @@ app.post("/v1/providers/tixr/sync", requireApiKey, async (req, res) => {
     setCached(cacheKey, data, config.CACHE_TTL_SECONDS);
     res.json({ ok: true, cached: false, data });
   } catch (error) {
-    req.log.error({ err: error }, "Tixr sync failed");
+    requestLogger(req).error({ err: error }, "Tixr sync failed");
     res.status(502).json({
       ok: false,
       error: "Provider sync failed",
-      detail: error.message,
+      detail: error instanceof Error ? error.message : String(error),
     });
   }
 });
 
 app.use((error, req, res, _next) => {
-  req.log.error({ err: error }, "Unhandled error");
-  res.status(500).json({ ok: false, error: "Internal server error" });
+  requestLogger(req).error({ err: error }, "Unhandled error");
+  if (res.headersSent) return;
+  res.status(500).json({
+    ok: false,
+    error: "Internal server error",
+    detail: process.env.NODE_ENV === "production" ? undefined : (error instanceof Error ? error.message : String(error)),
+  });
 });
 
 registerService({ id: "platform-core", name: "Platform Core", version: "3.1.0", description: "Configuration, registry, health, logging, metrics, and correlation infrastructure.", capabilities: ["configuration","service-registry","health","structured-logging","metrics"], endpoints: ["/health","/v1/platform/config","/v1/platform/services","/v1/platform/health","/v1/platform/logs","/v1/platform/metrics"] });
