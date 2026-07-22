@@ -6,6 +6,7 @@ const envSchema = z.object({
   CACHE_TTL_SECONDS: z.coerce.number().int().nonnegative().default(900),
   ALLOWED_TIXR_GROUPS: z.string().default("thecaverns"),
   BROWSER_TIMEOUT_MS: z.coerce.number().int().positive().default(45000),
+  MAX_EVENTS_PER_SYNC: z.coerce.number().int().positive().max(500).default(100),
   LOG_LEVEL: z.string().default("info"),
 });
 
@@ -25,6 +26,7 @@ export const config = Object.freeze({
   API_KEY: env.API_KEY,
   CACHE_TTL_SECONDS: env.CACHE_TTL_SECONDS,
   BROWSER_TIMEOUT_MS: env.BROWSER_TIMEOUT_MS,
+  MAX_EVENTS_PER_SYNC: env.MAX_EVENTS_PER_SYNC,
   LOG_LEVEL: env.LOG_LEVEL,
   allowedGroups: env.ALLOWED_TIXR_GROUPS
     .split(",")
