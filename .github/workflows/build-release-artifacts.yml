@@ -1,0 +1,68 @@
+name: Build Release Artifacts
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - sprint-001-caverns-sync
+      - sprint-002-wordpress-event-sync
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Validate and package TN Platform
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run source checks
+        run: npm run check
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build deployable archives
+        run: npm run build
+
+      - name: Show generated files
+        run: find dist -maxdepth 2 -type f -print -exec ls -lh {} \;
+
+      - name: Upload WordPress plugin artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tn-game-os-wordpress
+          path: dist/*tn-game-os*.zip
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Platform Core API artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tn-platform-core-api
+          path: dist/*platform-core-api*.zip
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload complete dist folder
+        uses: actions/upload-artifact@v4
+        with:
+          name: tn-platform-dist
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
