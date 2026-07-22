@@ -7,6 +7,7 @@ on:
       - main
       - sprint-001-caverns-sync
       - sprint-002-wordpress-event-sync
+      - sprint-003-review-import-workflow
   pull_request:
 
 permissions:
