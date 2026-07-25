@@ -10,7 +10,8 @@
   "scripts": {
     "test": "npm run test:api && npm run test:contracts",
     "test:api": "npm --prefix services/platform-core-api test",
-    "test:contracts": "node --test packages/contracts/test/*.test.mjs",
+    "test:contracts": "node --test packages/contracts/test/*.test.mjs && npm run test:contracts:php",
+    "test:contracts:php": "php packages/contracts/test/entity-contracts.test.php",
     "check": "npm run check:node && npm run check:php",
     "check:node": "node --check services/platform-core-api/src/server.js && node --check scripts/build-releases.mjs",
     "check:php": "bash scripts/check-php.sh",
