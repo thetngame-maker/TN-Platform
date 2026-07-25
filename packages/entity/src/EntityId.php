@@ -18,7 +18,12 @@ final readonly class EntityId implements EntityIdInterface
 
     public static function fromString(string $value): self
     {
-        return new self(strtoupper($value));
+        $value = trim($value);
+        if (strncasecmp($value, 'ent_', 4) !== 0) {
+            throw new InvalidArgumentException('Entity IDs must begin with ent_.');
+        }
+
+        return new self('ent_' . strtoupper(substr($value, 4)));
     }
 
     public static function generate(): self
@@ -39,18 +44,7 @@ final readonly class EntityId implements EntityIdInterface
         return new self('ent_' . substr($ulid, 0, 26));
     }
 
-    public function value(): string
-    {
-        return $this->value;
-    }
-
-    public function equals(EntityIdInterface $other): bool
-    {
-        return $this->value === $other->value();
-    }
-
-    public function __toString(): string
-    {
-        return $this->value;
-    }
+    public function value(): string { return $this->value; }
+    public function equals(EntityIdInterface $other): bool { return $this->value === $other->value(); }
+    public function __toString(): string { return $this->value; }
 }
