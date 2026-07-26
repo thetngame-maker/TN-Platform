@@ -18,7 +18,7 @@ const releases = [
     source: resolve(root, 'experiences/wordpress/tn-game-os'),
     parent: resolve(root, 'experiences/wordpress'),
     folder: 'tn-game-os',
-    output: resolve(dist, 'tn-game-os-v7.4.0-immersive-quest-runtime.zip')
+    output: resolve(dist, 'tn-game-os-v7.5.0-gps-proximity-runtime.zip')
   }
 ];
 
