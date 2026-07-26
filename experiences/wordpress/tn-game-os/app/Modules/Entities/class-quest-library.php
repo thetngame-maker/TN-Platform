@@ -45,12 +45,8 @@ final class Quest_Library implements Module_Interface {
 
         $published = (int)($counts->publish ?? 0);
         $drafts = (int)($counts->draft ?? 0);
-        $total_stops = 0;
         $total_xp = 0;
-        foreach ($quests as $quest) {
-            $total_stops += count((array)get_post_meta($quest->ID, '_tng_quest_entity_ids', true));
-            $total_xp += $this->xp($quest->ID);
-        }
+        foreach ($quests as $quest) $total_xp += $this->xp($quest->ID);
         ?>
         <div class="wrap tng-ql">
             <style>
@@ -74,7 +70,7 @@ final class Quest_Library implements Module_Interface {
                     $xp = $this->xp($quest->ID);
                     $mechanics = (array)get_post_meta($quest->ID, '_tng_game_checkpoint_mechanics', true);
                     $configured = $stops > 0 && count($mechanics) >= $stops;
-                    $runtime_url = get_preview_post_link($quest);
+                    $runtime_url = add_query_arg('tng_quest_runtime_id', $quest->ID, home_url('/'));
                     $source_blueprint = absint(get_post_meta($quest->ID, '_tng_quest_source_blueprint', true));
                     $next_status = $quest->post_status === 'publish' ? 'draft' : 'publish';
                     $status_url = wp_nonce_url(add_query_arg(['action'=>'tng_quest_library_status','tng_quest_id'=>$quest->ID,'new_status'=>$next_status],admin_url('admin-post.php')),'tng_quest_library_status_'.$quest->ID);
