@@ -18,7 +18,7 @@ const releases = [
     source: resolve(root, 'experiences/wordpress/tn-game-os'),
     parent: resolve(root, 'experiences/wordpress'),
     folder: 'tn-game-os',
-    output: resolve(dist, 'tn-game-os-v6.0.0-quest-intelligence.zip')
+    output: resolve(dist, 'tn-game-os-v6.1.0-quest-blueprint-studio.zip')
   }
 ];
 
