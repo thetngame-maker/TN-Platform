@@ -18,7 +18,7 @@ const releases = [
     source: resolve(root, 'experiences/wordpress/tn-game-os'),
     parent: resolve(root, 'experiences/wordpress'),
     folder: 'tn-game-os',
-    output: resolve(dist, 'tn-game-os-v7.0.3-admin-init-quest-interceptor.zip')
+    output: resolve(dist, 'tn-game-os-v7.0.4-quest-hook-isolation.zip')
   }
 ];
 
