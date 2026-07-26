@@ -18,7 +18,7 @@ const releases = [
     source: resolve(root, 'experiences/wordpress/tn-game-os'),
     parent: resolve(root, 'experiences/wordpress'),
     folder: 'tn-game-os',
-    output: resolve(dist, 'tn-game-os-v5.5.1-relationship-suggestions.zip')
+    output: resolve(dist, 'tn-game-os-v5.6.0-graph-automation.zip')
   }
 ];
 
