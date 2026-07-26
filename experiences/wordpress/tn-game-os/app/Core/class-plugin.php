@@ -44,6 +44,7 @@ final class Plugin {
             'app/Modules/Entities/class-graph-explorer.php',
             'app/Modules/Entities/class-relationship-manager.php',
             'app/Modules/Entities/class-recommendation-engine.php',
+            'app/Modules/Entities/class-recommendation-studio.php',
             'app/Modules/Sources/class-provider-interface.php',
             'app/Modules/Sources/class-provider-registry.php',
             'app/Modules/Sources/Providers/class-google-places-provider.php',
@@ -74,6 +75,7 @@ final class Plugin {
             \TNG_OS\Modules\Entities\Graph_Explorer::class,
             \TNG_OS\Modules\Entities\Relationship_Manager::class,
             \TNG_OS\Modules\Entities\Recommendation_Engine::class,
+            \TNG_OS\Modules\Entities\Recommendation_Studio::class,
             \TNG_OS\Modules\Sources\Content_Sources::class,
             \TNG_OS\Modules\Frontend\Food_Service::class,
             \TNG_OS\Modules\Frontend\Recommendations::class,
@@ -92,7 +94,6 @@ final class Plugin {
         foreach ($module_classes as $class) {
             if (isset($seen_classes[$class])) continue;
             $seen_classes[$class] = true;
-
             $module = new $class();
             $module_id = $module->id();
             if (isset($this->modules[$module_id])) continue;
@@ -100,14 +101,11 @@ final class Plugin {
         }
 
         foreach ($this->modules as $module) $module->register($this->container);
-
         require_once TNG_OS_PATH . 'app/Modules/Compatibility/class-legacy-runtime.php';
         require_once TNG_OS_PATH . 'app/Modules/Compatibility/class-content-manager-legacy.php';
         $this->container->set('legacy_core', new \TN_Game_Core());
         $this->container->set('legacy_content_manager', new \TNG_Content_Manager());
-
         foreach ($this->modules as $module) $module->boot($this->container);
-
         add_action('init', static function (): void {
             if (get_option('tng_os_rewrite_flush_needed')) {
                 flush_rewrite_rules(false);
