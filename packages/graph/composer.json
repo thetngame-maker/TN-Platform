@@ -1,0 +1,17 @@
+{
+  "name": "tn-platform/graph",
+  "description": "Framework-agnostic graph traversal for TN Platform entities and relationships.",
+  "type": "library",
+  "license": "MIT",
+  "require": {
+    "php": "^8.3",
+    "tn-platform/contracts": "@dev",
+    "tn-platform/entity": "@dev",
+    "tn-platform/relationship": "@dev"
+  },
+  "autoload": {
+    "psr-4": {
+      "TN\\Graph\\": "src/"
+    }
+  }
+}
