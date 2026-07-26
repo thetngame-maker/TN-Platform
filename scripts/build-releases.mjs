@@ -18,7 +18,7 @@ const releases = [
     source: resolve(root, 'experiences/wordpress/tn-game-os'),
     parent: resolve(root, 'experiences/wordpress'),
     folder: 'tn-game-os',
-    output: resolve(dist, 'tn-game-os-v7.0.1-quest-pipeline-stabilization.zip')
+    output: resolve(dist, 'tn-game-os-v7.0.2-quest-creation-bridge.zip')
   }
 ];
 
