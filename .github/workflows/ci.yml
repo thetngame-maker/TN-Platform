@@ -63,16 +63,16 @@ jobs:
 
       - name: Verify generated release artifacts
         run: |
-          test -f dist/tn-game-os-v5.3.0-entity-engine.zip
+          test -f dist/tn-game-os-v5.3.1-entity-explorer.zip
           test -f dist/tn-platform-core-api-v3.2.0-entity-engine.zip
-          unzip -t dist/tn-game-os-v5.3.0-entity-engine.zip
+          unzip -t dist/tn-game-os-v5.3.1-entity-explorer.zip
           unzip -t dist/tn-platform-core-api-v3.2.0-entity-engine.zip
 
       - name: Upload WordPress release
         uses: actions/upload-artifact@v4
         with:
-          name: tn-game-os-v5.3.0-entity-engine
-          path: dist/tn-game-os-v5.3.0-entity-engine.zip
+          name: tn-game-os-v5.3.1-entity-explorer
+          path: dist/tn-game-os-v5.3.1-entity-explorer.zip
           if-no-files-found: error
           retention-days: 14
 
