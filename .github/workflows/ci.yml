@@ -63,16 +63,16 @@ jobs:
 
       - name: Verify generated release artifacts
         run: |
-          test -f dist/tn-game-os-v5.3.3-graph-explorer.zip
+          test -f dist/tn-game-os-v5.3.4-relationship-manager.zip
           test -f dist/tn-platform-core-api-v3.2.0-entity-engine.zip
-          unzip -t dist/tn-game-os-v5.3.3-graph-explorer.zip
+          unzip -t dist/tn-game-os-v5.3.4-relationship-manager.zip
           unzip -t dist/tn-platform-core-api-v3.2.0-entity-engine.zip
 
       - name: Upload WordPress release
         uses: actions/upload-artifact@v4
         with:
-          name: tn-game-os-v5.3.3-graph-explorer
-          path: dist/tn-game-os-v5.3.3-graph-explorer.zip
+          name: tn-game-os-v5.3.4-relationship-manager
+          path: dist/tn-game-os-v5.3.4-relationship-manager.zip
           if-no-files-found: error
           retention-days: 14
 
