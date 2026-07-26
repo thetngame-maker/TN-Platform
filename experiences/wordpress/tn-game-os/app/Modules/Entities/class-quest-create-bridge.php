@@ -50,14 +50,6 @@ final class Quest_Create_Bridge implements Module_Interface {
         ]);
         if ($existing) $this->redirect_success((int)$existing[0], 'reused');
 
-        /*
-         * Do not fire the normal after-insert hooks for this internal blueprint.
-         * WooCommerce inspects the current admin POST during save_post and rejects
-         * our quest nonce as though it were a WooCommerce product nonce. The post
-         * was being inserted, but execution stopped before quest metadata and the
-         * redirect were written. Passing false as the third wp_insert_post()
-         * argument prevents that unrelated save-hook collision.
-         */
         $post_id = wp_insert_post([
             'post_type' => self::BLUEPRINT_TYPE,
             'post_status' => 'draft',
@@ -122,7 +114,7 @@ final class Quest_Create_Bridge implements Module_Interface {
     }
 
     private function redirect_success(int $id, string $status): void {
-        wp_safe_redirect(add_query_arg(['page'=>'tng-quest-blueprint-studio','blueprint'=>$id,'pipeline'=>$status], admin_url('admin.php')));
+        wp_safe_redirect(add_query_arg(['page'=>'tng-quest-blueprint-studio','tng_blueprint_id'=>$id,'pipeline'=>$status], admin_url('admin.php')));
         exit;
     }
 
