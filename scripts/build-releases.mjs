@@ -18,7 +18,7 @@ const releases = [
     source: resolve(root, 'experiences/wordpress/tn-game-os'),
     parent: resolve(root, 'experiences/wordpress'),
     folder: 'tn-game-os',
-    output: resolve(dist, 'tn-game-os-v5.3.1-entity-explorer.zip')
+    output: resolve(dist, 'tn-game-os-v5.3.2-platform-health.zip')
   }
 ];
 
