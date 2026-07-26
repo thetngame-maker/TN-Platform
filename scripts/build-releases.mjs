@@ -12,13 +12,13 @@ const releases = [
     source: resolve(root, 'services/platform-core-api'),
     parent: resolve(root, 'services'),
     folder: 'platform-core-api',
-    output: resolve(dist, 'tn-platform-core-api-v3.1.0-platform-infrastructure.zip')
+    output: resolve(dist, 'tn-platform-core-api-v3.2.0-entity-engine.zip')
   },
   {
     source: resolve(root, 'experiences/wordpress/tn-game-os'),
     parent: resolve(root, 'experiences/wordpress'),
     folder: 'tn-game-os',
-    output: resolve(dist, 'tn-game-os-v5.1.0-platform-infrastructure.zip')
+    output: resolve(dist, 'tn-game-os-v5.3.0-entity-engine.zip')
   }
 ];
 
