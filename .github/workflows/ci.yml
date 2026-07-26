@@ -63,23 +63,23 @@ jobs:
 
       - name: Verify generated release artifacts
         run: |
-          test -f dist/tn-game-os-v5.1.0-platform-infrastructure.zip
-          test -f dist/tn-platform-core-api-v3.1.0-platform-infrastructure.zip
-          unzip -t dist/tn-game-os-v5.1.0-platform-infrastructure.zip
-          unzip -t dist/tn-platform-core-api-v3.1.0-platform-infrastructure.zip
+          test -f dist/tn-game-os-v5.3.0-entity-engine.zip
+          test -f dist/tn-platform-core-api-v3.2.0-entity-engine.zip
+          unzip -t dist/tn-game-os-v5.3.0-entity-engine.zip
+          unzip -t dist/tn-platform-core-api-v3.2.0-entity-engine.zip
 
       - name: Upload WordPress release
         uses: actions/upload-artifact@v4
         with:
-          name: tn-game-os-wordpress-release
-          path: dist/tn-game-os-v5.1.0-platform-infrastructure.zip
+          name: tn-game-os-v5.3.0-entity-engine
+          path: dist/tn-game-os-v5.3.0-entity-engine.zip
           if-no-files-found: error
           retention-days: 14
 
       - name: Upload Platform Core API release
         uses: actions/upload-artifact@v4
         with:
-          name: tn-platform-core-api-release
-          path: dist/tn-platform-core-api-v3.1.0-platform-infrastructure.zip
+          name: tn-platform-core-api-v3.2.0-entity-engine
+          path: dist/tn-platform-core-api-v3.2.0-entity-engine.zip
           if-no-files-found: error
           retention-days: 14
