@@ -18,7 +18,7 @@ const releases = [
     source: resolve(root, 'experiences/wordpress/tn-game-os'),
     parent: resolve(root, 'experiences/wordpress'),
     folder: 'tn-game-os',
-    output: resolve(dist, 'tn-game-os-v7.2.0-quest-library.zip')
+    output: resolve(dist, 'tn-game-os-v7.3.0-player-progress-foundation.zip')
   }
 ];
 
