@@ -18,7 +18,7 @@ const releases = [
     source: resolve(root, 'experiences/wordpress/tn-game-os'),
     parent: resolve(root, 'experiences/wordpress'),
     folder: 'tn-game-os',
-    output: resolve(dist, 'tn-game-os-v7.7.2-coordinate-resolver-nonce-fix.zip')
+    output: resolve(dist, 'tn-game-os-v8.0.0-world-engine-foundation.zip')
   }
 ];
 
