@@ -23,20 +23,22 @@ final class Spatial_Coordinate_Resolver implements Module_Interface {
 
     public function inject_button(): void {
         if (!current_user_can('manage_options') || sanitize_key($_GET['page'] ?? '') !== self::PAGE) return;
-        $url = wp_nonce_url(admin_url('admin-post.php?action=tng_spatial_resolve_missing'), 'tng_spatial_resolve_missing');
+        $action = admin_url('admin-post.php');
+        $nonce = wp_create_nonce('tng_spatial_resolve_missing');
         ?>
         <script>
         (()=>{
             const add=()=>{
                 const repair=[...document.querySelectorAll('a.button')].find(a=>a.textContent.trim()==='Repair obvious issues');
                 if(!repair || document.querySelector('[data-tng-resolve-missing]')) return;
-                const link=document.createElement('a');
-                link.href=<?php echo wp_json_encode($url); ?>;
-                link.className='button button-primary';
-                link.dataset.tngResolveMissing='1';
-                link.textContent='Resolve missing coordinates';
-                link.style.marginLeft='8px';
-                repair.insertAdjacentElement('afterend',link);
+                const form=document.createElement('form');
+                form.method='post';
+                form.action=<?php echo wp_json_encode($action); ?>;
+                form.dataset.tngResolveMissing='1';
+                form.style.display='inline-block';
+                form.style.marginLeft='8px';
+                form.innerHTML='<input type="hidden" name="action" value="tng_spatial_resolve_missing"><input type="hidden" name="_wpnonce" value="<?php echo esc_js($nonce); ?>"><button type="submit" class="button button-primary">Resolve missing coordinates</button>';
+                repair.insertAdjacentElement('afterend',form);
             };
             add(); new MutationObserver(add).observe(document.body,{childList:true,subtree:true});
         })();
@@ -74,7 +76,6 @@ final class Spatial_Coordinate_Resolver implements Module_Interface {
         $resolved = 0;
         $geocode_calls = 0;
 
-        // Pass 1: recover coordinates already present on linked Traveler/source posts.
         foreach ($entities as $id => &$entity) {
             if ($this->coordinates($entity['payload'])) continue;
             $found = $this->source_post_coordinates($entity['payload']);
@@ -84,7 +85,6 @@ final class Spatial_Coordinate_Resolver implements Module_Interface {
         }
         unset($entity);
 
-        // Pass 2: geocode physical places/venues from their title or stored address.
         foreach ($entities as $id => &$entity) {
             if ($this->coordinates($entity['payload'])) continue;
             if (in_array($entity['type'], ['event','concert'], true)) continue;
@@ -99,7 +99,6 @@ final class Spatial_Coordinate_Resolver implements Module_Interface {
         }
         unset($entity);
 
-        // Pass 3: events inherit the coordinates of held-at / located-in venues.
         foreach ($entities as $id => &$entity) {
             if ($this->coordinates($entity['payload'])) continue;
             $found = $this->relationship_coordinates($id, $entity, $entities);
@@ -158,7 +157,6 @@ final class Spatial_Coordinate_Resolver implements Module_Interface {
                     if ($coords) return $coords;
                 }
             }
-            // Relationships may only be stored on the opposite entity.
             foreach ($entities as $other_id => $other_entity) {
                 foreach ($other_entity['relationships'] as $relationship) {
                     if (!is_array($relationship) || sanitize_key((string)($relationship['type'] ?? '')) !== $wanted) continue;
