@@ -11,44 +11,10 @@ final class Runtime_Navigation_Engine implements Module_Interface {
 
     public function register(Container $container): void {
         $container->set('runtime_navigation_engine', $this);
-        add_action('wp_head', [$this, 'install_leaflet_follow_patch'], 99);
         add_action('wp_footer', [$this, 'enhance_runtime'], 120);
     }
 
     public function boot(Container $container): void {}
-
-    public function install_leaflet_follow_patch(): void {
-        if (!isset($_GET['tng_quest_runtime_id']) && !is_singular('tng_quest')) return;
-        ?>
-        <script>
-        (()=>{
-            const install=()=>{
-                if(!window.L || !L.Map || L.Map.prototype.__tngFollowPatched) return false;
-                const original=L.Map.prototype.fitBounds;
-                L.Map.prototype.fitBounds=function(bounds,options){
-                    const container=this.getContainer?.();
-                    if(container?.classList.contains('tng-live-map') && container.dataset.tngFollow==='1' && Array.isArray(bounds) && bounds.length){
-                        const last=bounds[bounds.length-1];
-                        const lat=Array.isArray(last)?Number(last[0]):Number(last?.lat);
-                        const lng=Array.isArray(last)?Number(last[1]):Number(last?.lng);
-                        if(Number.isFinite(lat)&&Number.isFinite(lng)){
-                            this.setView([lat,lng],Math.max(this.getZoom()||0,17),{animate:true});
-                            return this;
-                        }
-                    }
-                    return original.call(this,bounds,options);
-                };
-                L.Map.prototype.__tngFollowPatched=true;
-                return true;
-            };
-            if(!install()){
-                const timer=setInterval(()=>{if(install())clearInterval(timer);},25);
-                setTimeout(()=>clearInterval(timer),10000);
-            }
-        })();
-        </script>
-        <?php
-    }
 
     public function enhance_runtime(): void {
         if (!isset($_GET['tng_quest_runtime_id']) && !is_singular('tng_quest')) return;
@@ -71,27 +37,47 @@ final class Runtime_Navigation_Engine implements Module_Interface {
             root.dataset.navigationEnhanced='1';
             const dataNode=root.querySelector('.tng-runtime-data');
             let data={stops:[]};try{data=JSON.parse(dataNode?.textContent||'{}')}catch(e){}
-            const mapCard=root.querySelector('.tng-map-card');
-            const mapEl=root.querySelector('.tng-live-map');
+            const mapCard=root.querySelector('.tng-map-card'),mapEl=root.querySelector('.tng-live-map');
             if(!mapCard||!mapEl)return;
-            mapEl.dataset.tngFollow='1';
             const panel=document.createElement('section');
             panel.className='tng-nav-panel';
             panel.innerHTML='<div class="tng-nav-compass"><span class="tng-nav-arrow">➤</span></div><div><div class="tng-nav-kicker">Live navigation</div><div class="tng-nav-title" data-nav-title>Waiting for next checkpoint</div><div class="tng-nav-metrics"><span class="tng-nav-metric"><strong data-nav-distance>—</strong>distance</span><span class="tng-nav-metric"><strong data-nav-eta>—</strong>walk time</span><span class="tng-nav-metric"><strong data-nav-accuracy>—</strong>GPS accuracy</span></div><div class="tng-nav-arrival" data-nav-arrival>You entered the checkpoint arrival zone.</div></div><div class="tng-nav-actions"><button type="button" class="tng-nav-button is-active" data-nav-follow>Auto-follow on</button><button type="button" class="tng-nav-button" data-nav-open>Navigate</button></div>';
             mapCard.parentNode.insertBefore(panel,mapCard);
             const arrow=panel.querySelector('.tng-nav-arrow'),title=panel.querySelector('[data-nav-title]'),distanceOut=panel.querySelector('[data-nav-distance]'),etaOut=panel.querySelector('[data-nav-eta]'),accuracyOut=panel.querySelector('[data-nav-accuracy]'),arrival=panel.querySelector('[data-nav-arrival]'),followButton=panel.querySelector('[data-nav-follow]'),navigateButton=panel.querySelector('[data-nav-open]');
-            let here=null,lastInside=false,follow=true;
+            let here=null,lastInside=false,follow=true,watchId=null,lastStopId='',lastFollowAt=0;
             const storage='tngQuestProgress:'+data.questId;
             const state=()=>{try{return JSON.parse(localStorage.getItem(storage)||'{}')}catch(e){return{}}};
-            const currentStop=()=>{const done=new Set((state().done||state().completedStops||[]).map(String));return (data.stops||[]).find(s=>!done.has(String(s.id)))||null;};
+            const currentStop=()=>{const saved=state(),done=new Set((saved.done||saved.completedStops||[]).map(String));return (data.stops||[]).find(s=>!done.has(String(s.id)))||null;};
             const meters=(a,b)=>{const R=6371000,p=Math.PI/180,dLat=(b.lat-a.lat)*p,dLon=(b.lng-a.lng)*p,x=Math.sin(dLat/2)**2+Math.cos(a.lat*p)*Math.cos(b.lat*p)*Math.sin(dLon/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));};
             const bearing=(a,b)=>{const p=Math.PI/180,y=Math.sin((b.lng-a.lng)*p)*Math.cos(b.lat*p),x=Math.cos(a.lat*p)*Math.sin(b.lat*p)-Math.sin(a.lat*p)*Math.cos(b.lat*p)*Math.cos((b.lng-a.lng)*p);return(Math.atan2(y,x)*180/Math.PI+360)%360;};
             const formatDistance=m=>m<160.934?Math.round(m*3.28084)+' ft':(m/1609.344).toFixed(m<1609?1:0)+' mi';
-            const refresh=()=>{const stop=currentStop();if(!stop){title.textContent='Quest complete';distanceOut.textContent='0 ft';etaOut.textContent='Done';return;}title.textContent=stop.title||'Next checkpoint';navigateButton.onclick=()=>window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(stop.lat+','+stop.lng)}`,'_blank','noopener');if(!here||!Number.isFinite(Number(stop.lat))||!Number.isFinite(Number(stop.lng))){distanceOut.textContent='—';etaOut.textContent='—';return;}const target={lat:Number(stop.lat),lng:Number(stop.lng)},m=meters(here,target),feet=m*3.28084,radius=Number(stop.radius||30);distanceOut.textContent=formatDistance(m);etaOut.textContent=m<20?'<1 min':Math.max(1,Math.round(m/1.4/60))+' min';arrow.style.transform=`rotate(${bearing(here,target)-90}deg)`;const inside=feet<=radius;arrival.classList.toggle('is-visible',inside);if(inside&&!lastInside&&navigator.vibrate)navigator.vibrate([120,70,180]);lastInside=inside;};
-            followButton.onclick=()=>{follow=!follow;mapEl.dataset.tngFollow=follow?'1':'0';followButton.classList.toggle('is-active',follow);followButton.textContent=follow?'Auto-follow on':'Auto-follow off';if(follow){root.querySelector('[data-location]')?.click();mapEl.scrollIntoView({behavior:'smooth',block:'center'});}};
-            if(navigator.geolocation)navigator.geolocation.watchPosition(p=>{here={lat:p.coords.latitude,lng:p.coords.longitude};accuracyOut.textContent='±'+Math.round((p.coords.accuracy||0)*3.28084)+' ft';refresh();},()=>{accuracyOut.textContent='Unavailable';},{enableHighAccuracy:true,maximumAge:2000,timeout:15000});
-            new MutationObserver(refresh).observe(root,{subtree:true,childList:true,characterData:true});
-            setInterval(refresh,1500);refresh();
+            const setText=(node,value)=>{if(node.textContent!==String(value))node.textContent=String(value);};
+            const refresh=()=>{
+                const stop=currentStop();
+                if(!stop){setText(title,'Quest complete');setText(distanceOut,'0 ft');setText(etaOut,'Done');arrival.classList.remove('is-visible');return;}
+                setText(title,stop.title||'Next checkpoint');
+                navigateButton.onclick=()=>window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(stop.lat+','+stop.lng)}`,'_blank','noopener');
+                if(!here||!Number.isFinite(Number(stop.lat))||!Number.isFinite(Number(stop.lng))){setText(distanceOut,'—');setText(etaOut,'—');return;}
+                const target={lat:Number(stop.lat),lng:Number(stop.lng)},m=meters(here,target),feet=m*3.28084,radius=Number(stop.radius||30);
+                setText(distanceOut,formatDistance(m));setText(etaOut,m<20?'<1 min':Math.max(1,Math.round(m/1.4/60))+' min');
+                arrow.style.transform=`rotate(${bearing(here,target)-90}deg)`;
+                const inside=feet<=radius;arrival.classList.toggle('is-visible',inside);
+                if(inside&&!lastInside&&navigator.vibrate)navigator.vibrate([120,70,180]);lastInside=inside;
+                const now=Date.now();
+                if(follow&&window.L&&now-lastFollowAt>2500){
+                    const mapContainer=root.querySelector('.tng-live-map');
+                    const mapId=mapContainer?._leaflet_id;
+                    if(mapId&&L.Map&&L.Map._instances?.[mapId])L.Map._instances[mapId].setView([here.lat,here.lng],17,{animate:true});
+                    lastFollowAt=now;
+                }
+                if(lastStopId!==String(stop.id)){lastStopId=String(stop.id);lastInside=false;}
+            };
+            followButton.onclick=()=>{follow=!follow;followButton.classList.toggle('is-active',follow);setText(followButton,follow?'Auto-follow on':'Auto-follow off');if(follow)mapEl.scrollIntoView({behavior:'smooth',block:'center'});};
+            const startWatch=()=>{if(watchId!==null||!navigator.geolocation)return;watchId=navigator.geolocation.watchPosition(p=>{here={lat:p.coords.latitude,lng:p.coords.longitude};setText(accuracyOut,'±'+Math.round((p.coords.accuracy||0)*3.28084)+' ft');refresh();},()=>setText(accuracyOut,'Unavailable'),{enableHighAccuracy:true,maximumAge:5000,timeout:12000});};
+            const tick=()=>{if(root.classList.contains('is-started'))startWatch();refresh();};
+            document.addEventListener('visibilitychange',()=>{if(document.hidden&&watchId!==null){navigator.geolocation.clearWatch(watchId);watchId=null;}else tick();});
+            window.addEventListener('storage',e=>{if(e.key===storage)refresh();});
+            setInterval(tick,2000);tick();
         })();
         </script>
         <?php
