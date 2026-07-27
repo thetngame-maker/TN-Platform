@@ -18,7 +18,7 @@ const releases = [
     source: resolve(root, 'experiences/wordpress/tn-game-os'),
     parent: resolve(root, 'experiences/wordpress'),
     folder: 'tn-game-os',
-    output: resolve(dist, 'tn-game-os-v8.0.1-world-engine-activation-fix.zip')
+    output: resolve(dist, 'tn-game-os-v8.1.0-world-discovery-engine.zip')
   }
 ];
 
