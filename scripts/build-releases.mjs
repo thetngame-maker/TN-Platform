@@ -18,7 +18,7 @@ const releases = [
     source: resolve(root, 'experiences/wordpress/tn-game-os'),
     parent: resolve(root, 'experiences/wordpress'),
     folder: 'tn-game-os',
-    output: resolve(dist, 'tn-game-os-v8.4.1-world-map-spacing-fix.zip')
+    output: resolve(dist, 'tn-game-os-v8.5.0-dynamic-discovery-engine.zip')
   }
 ];
 
