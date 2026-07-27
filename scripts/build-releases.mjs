@@ -18,7 +18,7 @@ const releases = [
     source: resolve(root, 'experiences/wordpress/tn-game-os'),
     parent: resolve(root, 'experiences/wordpress'),
     folder: 'tn-game-os',
-    output: resolve(dist, 'tn-game-os-v8.2.0-verified-discovery-claims.zip')
+    output: resolve(dist, 'tn-game-os-v8.2.1-world-quest-launch-fix.zip')
   }
 ];
 
