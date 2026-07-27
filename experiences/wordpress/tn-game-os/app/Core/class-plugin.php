@@ -69,7 +69,7 @@ final class Plugin {
             'app/Modules/Frontend/class-quest-runtime.php',
             'app/Modules/Frontend/class-quest-runtime-page.php',
             'app/Modules/Frontend/class-quest-map-layout-fix.php',
-            'app/Modules/Frontend/class-world-engine.php',
+            'app/Modules/Frontend/class-world-engine-safe.php',
             'app/Modules/Concerts/class-concert-trip-pages.php',
             'app/Modules/Concerts/class-concert-intelligence.php',
             'app/Modules/Studio/class-review-studio.php',
