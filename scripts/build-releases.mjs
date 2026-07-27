@@ -18,7 +18,7 @@ const releases = [
     source: resolve(root, 'experiences/wordpress/tn-game-os'),
     parent: resolve(root, 'experiences/wordpress'),
     folder: 'tn-game-os',
-    output: resolve(dist, 'tn-game-os-v8.3.0-live-gps-navigation-engine.zip')
+    output: resolve(dist, 'tn-game-os-v8.3.1-navigation-performance-fix.zip')
   }
 ];
 
