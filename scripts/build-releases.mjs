@@ -18,7 +18,7 @@ const releases = [
     source: resolve(root, 'experiences/wordpress/tn-game-os'),
     parent: resolve(root, 'experiences/wordpress'),
     folder: 'tn-game-os',
-    output: resolve(dist, 'tn-game-os-v8.7.1-direct-runtime-bootstrap-fix.zip')
+    output: resolve(dist, 'tn-game-os-v8.7.2-external-runtime-controller.zip')
   }
 ];
 
