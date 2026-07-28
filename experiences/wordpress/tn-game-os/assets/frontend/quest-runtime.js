@@ -33,10 +33,16 @@ if(!root||!start||!active||!list||!config.storageKey){
   return;
 }
 
+const decodeHtml=(value)=>{
+  const node=document.createElement('textarea');
+  node.innerHTML=String(value??'');
+  return node.value;
+};
+const cleanText=(value)=>decodeHtml(value).replace(/<[^>]*>/g,'').trim();
+const escapeHtml=(value)=>cleanText(value).replace(/[&<>"']/g,(char)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]));
 const load=()=>{try{return JSON.parse(localStorage.getItem(config.storageKey)||'{}');}catch(error){return {};}};
 const saveLocal=(value)=>{try{localStorage.setItem(config.storageKey,JSON.stringify(value));return true;}catch(error){return false;}};
 const normalize=(value)=>({started:Boolean(value?.started),completedStops:Array.isArray(value?.completedStops)?value.completedStops.map(String):[],status:value?.status||'not_started',startedAt:value?.startedAt||''});
-const escapeHtml=(value)=>String(value).replace(/[&<>"']/g,(char)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]));
 const typeLabel=(type)=>({manual:'Manual checkpoint',gps:'GPS arrival',photo:'Photo challenge',trivia:'Trivia',qr:'QR code'}[type]||'Checkpoint');
 const meters=(a,b)=>{const radius=6371000,p=Math.PI/180,dLat=(b.lat-a.lat)*p,dLng=(b.lng-a.lng)*p,x=Math.sin(dLat/2)**2+Math.cos(a.lat*p)*Math.cos(b.lat*p)*Math.sin(dLng/2)**2;return radius*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));};
 const distanceLabel=(value)=>value==null?'':value<1000?`${Math.round(value)} m away`:`${(value/1609.344).toFixed(1)} mi away`;
@@ -48,6 +54,7 @@ let watchId=null;
 let map=null;
 let playerMarker=null;
 let checkpointMarkers=[];
+let routeLayer=null;
 
 const stops=()=>Array.isArray(config.stops)?config.stops:[];
 const doneSet=()=>new Set(state.completedStops.map(String));
@@ -96,8 +103,8 @@ const renderNext=(current)=>{
   if(!nextCard)return;
   if(!current){nextCard.hidden=true;return;}
   nextCard.hidden=false;
-  nextTitle.textContent=current.title||'Next checkpoint';
-  nextInstruction.textContent=current.instruction||'Continue to the next checkpoint.';
+  nextTitle.textContent=cleanText(current.title)||'Next checkpoint';
+  nextInstruction.textContent=cleanText(current.instruction)||'Continue to the next checkpoint.';
   if(position&&Number.isFinite(Number(current.lat))&&Number.isFinite(Number(current.lng))){
     nextDistance.textContent=distanceLabel(meters(position,{lat:Number(current.lat),lng:Number(current.lng)}));
   }else{
@@ -151,22 +158,45 @@ const initMap=()=>{
   setTimeout(()=>map?.invalidateSize(),100);
 };
 
+const displayPoint=(stop,index,allStops)=>{
+  const lat=Number(stop.lat),lng=Number(stop.lng);
+  if(!Number.isFinite(lat)||!Number.isFinite(lng))return null;
+  const matches=allStops.filter((item)=>Number(item.lat)===lat&&Number(item.lng)===lng);
+  if(matches.length<2)return [lat,lng];
+  const matchIndex=matches.findIndex((item)=>String(item.id)===String(stop.id));
+  const angle=(Math.PI*2*matchIndex)/matches.length;
+  const radiusMeters=18;
+  const latOffset=(radiusMeters/111320)*Math.sin(angle);
+  const lngOffset=(radiusMeters/(111320*Math.cos(lat*Math.PI/180)))*Math.cos(angle);
+  return [lat+latOffset,lng+lngOffset];
+};
+
 const updateMap=()=>{
   if(!map)return;
   checkpointMarkers.forEach((marker)=>marker.remove());
   checkpointMarkers=[];
+  if(routeLayer){routeLayer.remove();routeLayer=null;}
   const done=doneSet();
   const next=currentIndex();
   const bounds=[];
-  stops().forEach((stop,index)=>{
+  const route=[];
+  const allStops=stops();
+  allStops.forEach((stop,index)=>{
     const lat=Number(stop.lat),lng=Number(stop.lng);
     if(!Number.isFinite(lat)||!Number.isFinite(lng))return;
+    const truePoint=[lat,lng];
+    const point=displayPoint(stop,index,allStops)||truePoint;
     const complete=done.has(String(stop.id)),current=index===next;
     const icon=L.divIcon({className:'',html:`<div class="tng-map-marker ${complete?'is-complete':current?'is-current':'is-locked'}">${complete?'✓':index+1}</div>`,iconSize:[38,38],iconAnchor:[19,19]});
-    const marker=L.marker([lat,lng],{icon}).addTo(map).bindPopup(`<strong>${escapeHtml(stop.title||'Checkpoint')}</strong><br>${complete?'Completed':current?'Next checkpoint':'Locked'}`);
+    const marker=L.marker(point,{icon}).addTo(map).bindPopup(`<strong>${escapeHtml(stop.title||'Checkpoint')}</strong><br>${complete?'Completed':current?'Next checkpoint':'Locked'}`);
+    marker.on('click',()=>document.querySelector(`[data-stop-id="${CSS.escape(String(stop.id))}"]`)?.scrollIntoView({behavior:'smooth',block:'center'}));
     checkpointMarkers.push(marker);
-    bounds.push([lat,lng]);
+    bounds.push(truePoint);
+    route.push(truePoint);
   });
+  if(route.length>1){
+    routeLayer=L.polyline(route,{color:'#7f56d9',weight:5,opacity:.72,dashArray:'10 10',lineCap:'round'}).addTo(map);
+  }
   if(position){
     if(!playerMarker){
       playerMarker=L.marker([position.lat,position.lng],{icon:L.divIcon({className:'',html:'<div class="tng-player-marker"></div>',iconSize:[24,24],iconAnchor:[12,12]})}).addTo(map).bindPopup('You are here');
