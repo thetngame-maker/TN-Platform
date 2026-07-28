@@ -38,8 +38,7 @@ final class Quest_Runtime implements Module_Interface {
     }
 
     public function get_progress(WP_REST_Request $request): WP_REST_Response {
-        $quest_id = absint($request['id']);
-        return new WP_REST_Response($this->progress(get_current_user_id(), $quest_id), 200);
+        return new WP_REST_Response($this->progress(get_current_user_id(), absint($request['id'])), 200);
     }
 
     public function save_progress(WP_REST_Request $request): WP_REST_Response {
@@ -79,6 +78,7 @@ final class Quest_Runtime implements Module_Interface {
 
         $config = [
             'questId' => $quest_id,
+            'questTitle' => get_the_title($quest_id),
             'storageKey' => 'tngQuestRuntime:' . $quest_id,
             'developer' => $dev,
             'loggedIn' => is_user_logged_in(),
@@ -86,6 +86,7 @@ final class Quest_Runtime implements Module_Interface {
             'restNonce' => is_user_logged_in() ? wp_create_nonce('wp_rest') : '',
             'stops' => $stops,
             'rewardXp' => $xp,
+            'worldUrl' => home_url('/?tng_world=1'),
         ];
 
         status_header(200);
@@ -96,14 +97,16 @@ final class Quest_Runtime implements Module_Interface {
 <meta charset="<?php bloginfo('charset'); ?>">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title><?php echo esc_html(get_the_title($quest_id)); ?> · <?php bloginfo('name'); ?></title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="<?php echo esc_url(TNG_OS_URL . 'assets/frontend/quest-runtime.css?ver=' . rawurlencode(TNG_OS_VERSION)); ?>">
 <?php wp_head(); ?>
 </head>
 <body class="tng-quest-runtime-page<?php echo $dev ? ' tng-developer-mode-active' : ''; ?>">
-<main class="tng-runtime" data-quest-id="<?php echo esc_attr((string)$quest_id); ?>" data-runtime-version="2">
+<main class="tng-runtime" data-quest-id="<?php echo esc_attr((string)$quest_id); ?>" data-runtime-version="3">
     <header class="tng-runtime-topbar">
-        <a href="<?php echo esc_url(home_url('/?tng_world=1')); ?>">The TN Game</a>
-        <a href="<?php echo esc_url(home_url('/')); ?>">Exit quest</a>
+        <a href="<?php echo esc_url(home_url('/?tng_world=1')); ?>">← World Map</a>
+        <strong>The TN Game</strong>
+        <a href="<?php echo esc_url(home_url('/')); ?>">Exit</a>
     </header>
 
     <section class="tng-runtime-hero">
@@ -120,19 +123,47 @@ final class Quest_Runtime implements Module_Interface {
     </section>
 
     <section class="tng-runtime-active" hidden>
-        <div class="tng-runtime-progress-head">
-            <div><span class="tng-runtime-eyebrow">QUEST ACTIVE</span><h2>Your journey</h2></div>
-            <strong><span data-completed>0</span> / <?php echo esc_html((string)count($stops)); ?> complete</strong>
-        </div>
-        <div class="tng-runtime-progress"><span></span></div>
-        <div class="tng-runtime-checkpoints"></div>
+        <section class="tng-hud-card tng-progress-card">
+            <div class="tng-runtime-progress-head">
+                <div><span class="tng-runtime-eyebrow">QUEST PROGRESS</span><h2>Your journey</h2></div>
+                <strong class="tng-progress-percent"><span data-percent>0</span>%</strong>
+            </div>
+            <div class="tng-runtime-progress"><span></span></div>
+            <div class="tng-progress-stats">
+                <span><strong data-completed>0</strong> / <?php echo esc_html((string)count($stops)); ?> checkpoints</span>
+                <span><?php echo esc_html(number_format_i18n($xp)); ?> XP available</span>
+                <?php if ($duration): ?><span><?php echo esc_html($duration); ?> estimated</span><?php endif; ?>
+            </div>
+        </section>
+
+        <section class="tng-hud-card tng-next-card" hidden>
+            <div><span class="tng-runtime-eyebrow">NEXT STOP</span><h2 data-next-title>Checkpoint</h2><p data-next-instruction></p><strong data-next-distance></strong></div>
+            <button type="button" class="tng-next-action" data-next-action>View checkpoint</button>
+        </section>
+
+        <section class="tng-hud-card tng-map-card">
+            <div class="tng-map-head"><div><span class="tng-runtime-eyebrow">LIVE QUEST MAP</span><h2>Follow your route</h2></div><button type="button" class="tng-location-button" data-locate>Use my location</button></div>
+            <p class="tng-location-status" role="status">Location has not been requested.</p>
+            <div class="tng-runtime-map" aria-label="Quest checkpoint map"></div>
+        </section>
+
+        <section class="tng-hud-card tng-checkpoints-card">
+            <div class="tng-section-head"><div><span class="tng-runtime-eyebrow">JOURNEY</span><h2>Checkpoints</h2></div><span><span data-completed-small>0</span> of <?php echo esc_html((string)count($stops)); ?> complete</span></div>
+            <div class="tng-runtime-checkpoints"></div>
+        </section>
+
         <div class="tng-runtime-actions"><button type="button" class="tng-runtime-reset">Reset progress</button></div>
+    </section>
+
+    <section class="tng-completion" hidden aria-live="polite">
+        <div class="tng-completion-burst">✓</div><span class="tng-runtime-eyebrow">QUEST COMPLETE</span><h2>Adventure completed!</h2><p>You completed every checkpoint and earned <strong><?php echo esc_html(number_format_i18n($xp)); ?> XP</strong>.</p><div class="tng-completion-actions"><a href="<?php echo esc_url(home_url('/?tng_world=1')); ?>">Explore the world</a><button type="button" data-share>Share adventure</button></div>
     </section>
 
     <?php if (!$stops): ?><aside class="tng-runtime-warning">No checkpoints were found for this quest. Open the Quest editor and confirm its linked entities are saved.</aside><?php endif; ?>
     <?php if ($dev): ?><aside class="tng-runtime-dev">Developer Mode is active. Current checkpoint claims may be tested without location validation.</aside><?php endif; ?>
 </main>
 <script>window.TNGQuestRuntime=<?php echo wp_json_encode($config); ?>;</script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="<?php echo esc_url(TNG_OS_URL . 'assets/frontend/quest-runtime.js?ver=' . rawurlencode(TNG_OS_VERSION)); ?>" defer></script>
 <?php wp_footer(); ?>
 </body>
@@ -157,9 +188,11 @@ final class Quest_Runtime implements Module_Interface {
         $stops = [];
         foreach ($ids as $entity_id) {
             $key = (string)$entity_id;
-            $post_id = absint($entity_id);
-            $entity = $post_id ? get_post($post_id) : null;
+            $entity = $this->entity_by_external_id($key);
+            $post_id = $entity ? (int)$entity->ID : absint($entity_id);
+            if (!$entity && $post_id) $entity = get_post($post_id);
             $m = is_array($mechanics[$key] ?? null) ? $mechanics[$key] : [];
+            $coords = $entity ? $this->coords((array)get_post_meta($entity->ID, '_tng_entity_payload', true)) : null;
             $stops[] = [
                 'id' => $key,
                 'title' => $entity ? get_the_title($entity) : ('Checkpoint ' . (count($stops) + 1)),
@@ -167,9 +200,33 @@ final class Quest_Runtime implements Module_Interface {
                 'instruction' => sanitize_textarea_field((string)($m['challenge'] ?? $notes[$key] ?? 'Complete this checkpoint to continue.')),
                 'hint' => sanitize_text_field((string)($m['hint'] ?? '')),
                 'xp' => absint($m['xp'] ?? 25),
+                'radius' => max(10, absint($m['radius'] ?? $m['radius_meters'] ?? 30)),
+                'lat' => $coords ? $coords[0] : null,
+                'lng' => $coords ? $coords[1] : null,
             ];
         }
         return $stops;
+    }
+
+    private function entity_by_external_id(string $entity_id): ?\WP_Post {
+        $posts = get_posts([
+            'post_type' => 'tng_entity',
+            'post_status' => ['publish', 'draft', 'private'],
+            'meta_key' => '_tng_entity_id',
+            'meta_value' => $entity_id,
+            'posts_per_page' => 1,
+        ]);
+        return $posts ? $posts[0] : null;
+    }
+
+    private function coords(array $payload): ?array {
+        $lat = $payload['latitude'] ?? $payload['lat'] ?? null;
+        $lng = $payload['longitude'] ?? $payload['lng'] ?? $payload['lon'] ?? null;
+        if ((!is_numeric($lat) || !is_numeric($lng)) && isset($payload['coordinates']) && is_array($payload['coordinates'])) {
+            $lat = $payload['coordinates']['lat'] ?? null;
+            $lng = $payload['coordinates']['lng'] ?? null;
+        }
+        return is_numeric($lat) && is_numeric($lng) ? [(float)$lat, (float)$lng] : null;
     }
 
     private function duration_label(int $minutes): string {
