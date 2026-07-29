@@ -10,6 +10,7 @@ final class Gameplay_Event_Service implements Module_Interface {
     private const DB_VERSION = '1';
     private const DB_OPTION = 'tng_gameplay_events_db_version';
     private const PAGE = 'tng-gameplay-events';
+    private const DEV_GENERATION_META = '_tng_dev_event_generation';
 
     public function id(): string { return 'gameplay_event_service'; }
 
@@ -81,6 +82,8 @@ final class Gameplay_Event_Service implements Module_Interface {
         $type = sanitize_key($type); $object_type = sanitize_key($object_type); $object_id = sanitize_text_field($object_id);
         $occurred_at = $this->mysql_date($occurred_at ?: current_time('mysql', true));
         $fingerprint = $fingerprint !== '' ? $fingerprint : $object_id;
+        $generation = absint(get_user_meta($user_id, self::DEV_GENERATION_META, true));
+        if ($generation > 0 && user_can($user_id, 'manage_options')) $fingerprint .= '|dev-generation:' . $generation;
         $event_key = hash('sha256', implode('|', [$user_id, $type, $object_type, $fingerprint]));
         $inserted = $wpdb->query($wpdb->prepare("INSERT IGNORE INTO {$this->table()} (event_key,user_id,event_type,object_type,object_id,xp,payload,occurred_at,created_at) VALUES (%s,%d,%s,%s,%s,%d,%s,%s,%s)", $event_key, $user_id, $type, $object_type, $object_id, max(0, $xp), wp_json_encode($payload), $occurred_at, current_time('mysql', true)));
         if ($inserted) do_action('tng_gameplay_event_recorded', $type, $user_id, $object_id, $payload);
@@ -96,7 +99,7 @@ final class Gameplay_Event_Service implements Module_Interface {
         $this->ensure_table(); global $wpdb; $table = $this->table(); $since = $this->mysql_date($since);
         $checkpoints = (int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE event_type='checkpoint_completed' AND occurred_at >= %s", $since));
         $quests = (int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE event_type='quest_completed' AND occurred_at >= %s", $since));
-        $xp = (int)$wpdb->get_var($wpdb->prepare("SELECT COALESCE(SUM(xp),0) FROM {$table} WHERE event_type IN ('checkpoint_completed','quest_completed') AND occurred_at >= %s", $since));
+        $xp = (int)$wpdb->get_var($wpdb->prepare("SELECT COALESCE(SUM(xp),0) FROM {$table} WHERE event_type='checkpoint_completed' AND occurred_at >= %s", $since));
         $explorers = (int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(DISTINCT user_id) FROM {$table} WHERE event_type IN ('checkpoint_completed','quest_completed') AND occurred_at >= %s", $since));
         return compact('checkpoints', 'quests', 'xp', 'explorers');
     }
@@ -135,9 +138,15 @@ final class Gameplay_Event_Service implements Module_Interface {
     }
 
     private function find_activity(array $profile, string $kind, string $id): array {
+        $matches = [];
         foreach ((array)($profile['recentActivity'] ?? []) as $activity) {
             if (!is_array($activity) || sanitize_key((string)($activity['kind'] ?? '')) !== $kind) continue;
-            $activity_id = sanitize_text_field((string)($activity['id'] ?? '')); if ($activity_id === $id || str_contains($activity_id, $id)) return $activity;
+            $activity_id = sanitize_text_field((string)($activity['id'] ?? ''));
+            if ($activity_id === $id || str_contains($activity_id, $id)) $matches[] = $activity;
+        }
+        if ($matches) {
+            usort($matches, static fn(array $a, array $b): int => strtotime((string)($b['date'] ?? '')) <=> strtotime((string)($a['date'] ?? '')));
+            return $matches[0];
         }
         return ['id' => $id, 'kind' => $kind, 'date' => current_time('mysql', true)];
     }
