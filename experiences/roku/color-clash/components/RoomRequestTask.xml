@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="RoomRequestTask" extends="Task">
+  <interface>
+    <field id="method" type="string" />
+    <field id="url" type="string" />
+    <field id="payload" type="string" />
+    <field id="result" type="string" alwaysNotify="true" />
+    <field id="error" type="string" alwaysNotify="true" />
+  </interface>
+  <script type="text/brightscript" uri="pkg:/components/RoomRequestTask.brs" />
+</component>
