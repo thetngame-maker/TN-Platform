@@ -1,7 +1,7 @@
 title=Color Clash Beta
 major_version=0
-minor_version=0
-build_version=3
+minor_version=1
+build_version=0
 ui_resolutions=fhd
-splash_color=#C62828
+splash_color=#101820
 splash_min_time=250
