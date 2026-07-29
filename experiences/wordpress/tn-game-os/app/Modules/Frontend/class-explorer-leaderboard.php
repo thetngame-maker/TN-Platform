@@ -3,6 +3,7 @@ namespace TNG_OS\Modules\Frontend;
 
 use TNG_OS\Core\Container;
 use TNG_OS\Core\Module_Interface;
+use TNG_OS\Modules\Admin\Gameplay_Control_Center;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_User_Query;
@@ -48,9 +49,11 @@ final class Explorer_Leaderboard implements Module_Interface {
     public function leaderboard(WP_REST_Request $request): WP_REST_Response {
         $metric = sanitize_key((string)$request->get_param('metric'));
         if (!in_array($metric, ['xp', 'checkpoints', 'quests'], true)) $metric = 'xp';
+        $settings = Gameplay_Control_Center::settings();
+        $limit = max(10, min(200, absint($settings['leaderboard_limit'] ?? 50)));
 
         $query = new WP_User_Query([
-            'number' => 250,
+            'number' => max(250, $limit * 3),
             'fields' => ['ID', 'display_name'],
             'meta_key' => self::PROFILE_META,
         ]);
@@ -81,7 +84,7 @@ final class Explorer_Leaderboard implements Module_Interface {
             return $b['value'] <=> $a['value'];
         });
 
-        $rows = array_slice($rows, 0, 50);
+        $rows = array_slice($rows, 0, $limit);
         foreach ($rows as $index => &$row) $row['rank'] = $index + 1;
 
         return new WP_REST_Response([
