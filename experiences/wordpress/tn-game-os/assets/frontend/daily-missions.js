@@ -19,7 +19,8 @@ const missions=[
 ];
 
 const api=async(method,body)=>{const r=await fetch(config.stateUrl,{method,credentials:'same-origin',headers:{'Content-Type':'application/json','X-WP-Nonce':config.restNonce||''},body:body?JSON.stringify(body):undefined});if(!r.ok)throw new Error();return r.json();};
-const persist=async()=>{save(state);render();if(!config.loggedIn||syncing)return;syncing=true;try{state=normalize(await api('POST',state));save(state);render();}catch(e){}syncing=false;};
+const broadcast=()=>document.dispatchEvent(new CustomEvent('tng:wallet-updated',{detail:{tokens:state.tokens}}));
+const persist=async()=>{save(state);render();broadcast();if(!config.loggedIn||syncing)return;syncing=true;try{state=normalize(await api('POST',state));save(state);render();broadcast();}catch(e){}syncing=false;};
 const completedCount=()=>root.querySelectorAll('.tng-checkpoint.is-complete[data-stop-id]').length;
 const locationActive=()=>Boolean(root.querySelector('.tng-location-active,.tng-player-marker,.tng-live-location.is-active'))||/location active/i.test(root.textContent||'');
 const progressFor=m=>m.key==='location'?(locationActive()?1:0):Math.min(m.target,completedCount());
@@ -33,6 +34,7 @@ const render=()=>{const node=ensureCard();node.querySelector('[data-token-balanc
 
 const reconcile=()=>{missions.forEach(m=>{if(progressFor(m)>=m.target)completeMission(m.key);});render();};
 const queue=()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;reconcile();});};
-const init=async()=>{render();const list=root.querySelector('.tng-runtime-checkpoints');if(list)new MutationObserver(queue).observe(list,{subtree:true,attributes:true,attributeFilter:['class']});document.addEventListener('click',e=>{if(e.target.closest('[data-use-location],.tng-use-location,.tng-location-button'))setTimeout(queue,800);});setInterval(queue,4000);reconcile();if(config.loggedIn){try{const remote=normalize(await api('GET'));state={...state,...remote,date:today(),completed:remote.date===today()?remote.completed:[],claimed:remote.date===today()?remote.claimed:[]};save(state);render();reconcile();}catch(e){}}};
+document.addEventListener('tng:wallet-updated',e=>{const tokens=Number(e.detail?.tokens);if(!Number.isFinite(tokens)||tokens===state.tokens)return;state.tokens=Math.max(0,tokens);save(state);render();});
+const init=async()=>{render();broadcast();const list=root.querySelector('.tng-runtime-checkpoints');if(list)new MutationObserver(queue).observe(list,{subtree:true,attributes:true,attributeFilter:['class']});document.addEventListener('click',e=>{if(e.target.closest('[data-use-location],.tng-use-location,.tng-location-button'))setTimeout(queue,800);});setInterval(queue,4000);reconcile();if(config.loggedIn){try{const remote=normalize(await api('GET'));state={...state,...remote,date:today(),completed:remote.date===today()?remote.completed:[],claimed:remote.date===today()?remote.claimed:[]};save(state);render();broadcast();reconcile();}catch(e){}}};
 init();
 })();
