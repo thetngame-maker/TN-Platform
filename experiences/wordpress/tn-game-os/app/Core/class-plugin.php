@@ -57,6 +57,7 @@ final class Plugin {
             'app/Modules/Frontend/class-world-engine.php',
             'app/Modules/Frontend/class-quest-runtime.php',
             'app/Modules/Frontend/class-quest-finale.php',
+            'app/Modules/Frontend/class-quest-memory.php',
             'app/Modules/Frontend/class-explorer-identity.php',
             'app/Modules/Frontend/class-daily-missions.php',
             'app/Modules/Frontend/class-adventure-rewards.php',
@@ -72,6 +73,7 @@ final class Plugin {
             'app/Modules/Admin/class-runtime-audit.php',
             'app/Modules/Admin/class-service-tag-manager.php',
             'app/Modules/Admin/class-explorer-test-lab.php',
+            'app/Modules/Admin/class-test-player-friends.php',
             'app/Modules/Admin/class-admin.php',
         ] as $file) require_once TNG_OS_PATH . $file;
 
@@ -98,6 +100,7 @@ final class Plugin {
             \TNG_OS\Modules\Frontend\World_Engine::class,
             \TNG_OS\Modules\Frontend\Quest_Runtime::class,
             \TNG_OS\Modules\Frontend\Quest_Finale::class,
+            \TNG_OS\Modules\Frontend\Quest_Memory::class,
             \TNG_OS\Modules\Frontend\Explorer_Identity::class,
             \TNG_OS\Modules\Frontend\Daily_Missions::class,
             \TNG_OS\Modules\Frontend\Adventure_Rewards::class,
@@ -113,6 +116,7 @@ final class Plugin {
             \TNG_OS\Modules\Admin\Runtime_Audit::class,
             \TNG_OS\Modules\Admin\Service_Tag_Manager::class,
             \TNG_OS\Modules\Admin\Explorer_Test_Lab::class,
+            \TNG_OS\Modules\Admin\Test_Player_Friends::class,
             \TNG_OS\Modules\Admin\Admin::class,
         ];
 
