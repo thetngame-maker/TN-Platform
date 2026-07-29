@@ -1,0 +1,24 @@
+(()=>{
+'use strict';
+const root=document.querySelector('.tng-runtime'),config=window.TNGWeeklyExpedition||{};
+if(!root)return;
+const KEY='tngWeeklyExpedition:v1',PROFILE='tngExplorerProfile:v4',WALLET='tngDailyMissions:v1';
+const weekKey=()=>{const d=new Date(),day=(d.getUTCDay()+6)%7;d.setUTCDate(d.getUTCDate()-day+3);const first=new Date(Date.UTC(d.getUTCFullYear(),0,4));const week=1+Math.round(((d-first)/86400000-3+(first.getUTCDay()+6)%7)/7);return `${d.getUTCFullYear()}-W${String(week).padStart(2,'0')}`;};
+const profile=()=>{try{return JSON.parse(localStorage.getItem(PROFILE)||'{}');}catch(e){return{};}};
+const wallet=()=>{try{return JSON.parse(localStorage.getItem(WALLET)||'{}');}catch(e){return{};}};
+const normalize=v=>({weekKey:String(v?.weekKey||''),baselineCheckpoints:Number(v?.baselineCheckpoints||0),baselineQuests:Number(v?.baselineQuests||0),points:Number(v?.points||0),claimed:Array.isArray(v?.claimed)?v.claimed.map(String):[],tokens:Number(v?.tokens||0)});
+const load=()=>{try{return normalize(JSON.parse(localStorage.getItem(KEY)||'{}'));}catch(e){return normalize({});}};
+const save=s=>{try{localStorage.setItem(KEY,JSON.stringify(s));}catch(e){}};
+let state=normalize(config.initialState||load()),card=null,syncing=false;
+const currentCounts=()=>{const p=profile();return{checkpoints:(p.completedCheckpoints||[]).length,quests:(p.completedQuests||[]).length};};
+if(state.weekKey!==weekKey()){const c=currentCounts();state={weekKey:weekKey(),baselineCheckpoints:c.checkpoints,baselineQuests:c.quests,points:0,claimed:[],tokens:Number(wallet().tokens||0)};save(state);}
+const tiers=[{key:'trail',title:'Trail Marker',target:2,reward:20},{key:'journey',title:'Journey Chest',target:5,reward:45},{key:'summit',title:'Summit Cache',target:9,reward:90}];
+const localPoints=()=>{const c=currentCounts();return Math.max(0,c.checkpoints-state.baselineCheckpoints)+Math.max(0,c.quests-state.baselineQuests)*3;};
+const api=async(method,body)=>{const r=await fetch(config.stateUrl,{method,credentials:'same-origin',headers:{'Content-Type':'application/json','X-WP-Nonce':config.restNonce||''},body:body?JSON.stringify(body):undefined});if(!r.ok)throw new Error();return r.json();};
+const updateWallet=tokens=>{const w=wallet();w.tokens=Math.max(0,Number(tokens||0));try{localStorage.setItem(WALLET,JSON.stringify(w));}catch(e){}document.dispatchEvent(new CustomEvent('tng:tokens-updated',{detail:{tokens:w.tokens}}));};
+const ensure=()=>{if(card)return card;card=document.createElement('section');card.className='tng-weekly-expedition';card.innerHTML=`<header><div><span>WEEKLY EXPEDITION</span><h2>Climb the adventure trail</h2><p>Complete checkpoints and quests to unlock weekly caches.</p></div><div class="tng-weekly-points"><strong data-weekly-points>0</strong><small>Trail points</small></div></header><div class="tng-weekly-track" data-weekly-track></div><footer><strong>Quest completion earns 3 points</strong><small>Resets at the start of each week.</small></footer>`;const vault=root.querySelector('.tng-adventure-rewards');const missions=root.querySelector('.tng-daily-missions');(vault||missions||root.querySelector('.tng-explorer-card'))?.insertAdjacentElement('afterend',card);card.addEventListener('click',e=>{const b=e.target.closest('[data-weekly-claim]');if(b)claim(b.dataset.weeklyClaim||'');});return card;};
+const claim=async key=>{const tier=tiers.find(t=>t.key===key);if(!tier||state.claimed.includes(key)||state.points<tier.target||syncing)return;syncing=true;try{if(config.loggedIn){state=normalize(await api('POST',{tier:key}));}else{state.claimed.push(key);state.tokens=Number(wallet().tokens||0)+tier.reward;}save(state);updateWallet(state.tokens);render();}catch(e){}syncing=false;};
+const render=()=>{const node=ensure();if(!config.loggedIn)state.points=localPoints();node.querySelector('[data-weekly-points]').textContent=state.points;node.querySelector('[data-weekly-track]').innerHTML=tiers.map((t,i)=>{const ready=state.points>=t.target,claimed=state.claimed.includes(t.key),pct=Math.min(100,Math.round((state.points/t.target)*100));return `<article class="${ready?'is-ready':''} ${claimed?'is-claimed':''}"><div class="tng-weekly-node"><span>${claimed?'✓':i+1}</span></div><div class="tng-weekly-copy"><strong>${t.title}</strong><small>${Math.min(state.points,t.target)} of ${t.target} trail points</small><div><i style="width:${pct}%"></i></div></div><div class="tng-weekly-reward"><b>+${t.reward}</b><small>tokens</small>${ready&&!claimed?`<button type="button" data-weekly-claim="${t.key}">Claim cache</button>`:`<span>${claimed?'Collected':ready?'Ready':'Locked'}</span>`}</div></article>`;}).join('');};
+const refresh=async()=>{if(config.loggedIn){try{state=normalize(await api('GET'));save(state);updateWallet(state.tokens);}catch(e){}}render();};
+render();refresh();setInterval(()=>{if(!config.loggedIn){state.points=localPoints();render();}},4000);
+})();
