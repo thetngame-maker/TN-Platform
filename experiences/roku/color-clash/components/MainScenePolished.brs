@@ -2,22 +2,30 @@ sub init()
   m.baseUrl = "http://192.168.1.127:8080"
   m.mode = "home"
   m.room = invalid
-  ids = ["homeGroup","loadingGroup","lobbyGroup","gameGroup","errorGroup","loadingMessage","joinUrl","roomCode","lobbyStatus","playerList","startButton","startLabel","turnLabel","gameMessage","deckCount","discardCard","discardText","activeColor","gamePlayers","errorText","pollTimer","createTask","pollTask","startTask"]
+  m.requestPending = false
+  ids = ["homeGroup","loadingGroup","lobbyGroup","gameGroup","errorGroup","loadingMessage","joinUrl","roomCode","lobbyStatus","playerList","startButton","startLabel","turnLabel","gameMessage","deckCount","discardCard","discardText","activeColor","gamePlayers","errorText","autoStartTimer","pollTimer","createTask","pollTask","startTask"]
   for each id in ids
     m[id] = m.top.findNode(id)
   end for
   m.joinUrl.text = m.baseUrl
+  m.autoStartTimer.observeField("fire", "createRoom")
   m.pollTimer.observeField("fire", "pollRoom")
   m.createTask.observeField("result", "onCreateResult")
+  m.createTask.observeField("error", "onCreateError")
   m.pollTask.observeField("result", "onPollResult")
+  m.pollTask.observeField("error", "onPollError")
   m.startTask.observeField("result", "onStartResult")
+  m.startTask.observeField("error", "onStartError")
   m.top.setFocus(true)
+  m.autoStartTimer.control = "start"
 end sub
 
 function onKeyEvent(key as string, press as boolean) as boolean
   if not press then return false
   if m.mode = "home"
     if key = "OK" then createRoom()
+    return true
+  else if m.mode = "loading"
     return true
   else if m.mode = "error"
     if key = "OK" then createRoom()
@@ -44,12 +52,16 @@ sub showOnly(name as string)
 end sub
 
 sub showHome()
+  m.autoStartTimer.control = "stop"
   m.pollTimer.control = "stop"
   m.room = invalid
+  m.requestPending = false
   showOnly("home")
 end sub
 
 sub createRoom()
+  if m.requestPending then return
+  m.requestPending = true
   m.pollTimer.control = "stop"
   showOnly("loading")
   m.loadingMessage.text = "Creating a live room on " + m.baseUrl
@@ -57,38 +69,55 @@ sub createRoom()
 end sub
 
 sub pollRoom()
-  if m.room = invalid then return
+  if m.room = invalid or m.requestPending then return
+  m.requestPending = true
   runTask(m.pollTask, "GET", m.baseUrl + "/api/rooms/" + m.room.code, "")
 end sub
 
 sub startGame()
+  if m.requestPending then return
+  m.requestPending = true
   m.pollTimer.control = "stop"
   m.startLabel.text = "STARTING..."
   runTask(m.startTask, "POST", m.baseUrl + "/api/rooms/" + m.room.code + "/start", "{}")
 end sub
 
 sub runTask(task as object, method as string, url as string, payload as string)
+  task.control = "stop"
   task.method = method
   task.url = url
   task.payload = payload
-  task.control = "RUN"
+  task.result = ""
+  task.error = ""
+  task.control = "run"
 end sub
 
 sub onCreateResult()
-  handleResult(m.createTask, "create")
+  if m.createTask.result <> "" then handleResult(m.createTask, "create")
+end sub
+sub onCreateError()
+  if m.createTask.error <> "" then handleError(m.createTask.error)
 end sub
 sub onPollResult()
-  handleResult(m.pollTask, "poll")
+  if m.pollTask.result <> "" then handleResult(m.pollTask, "poll")
+end sub
+sub onPollError()
+  if m.pollTask.error <> "" then handleError(m.pollTask.error)
 end sub
 sub onStartResult()
-  handleResult(m.startTask, "start")
+  if m.startTask.result <> "" then handleResult(m.startTask, "start")
+end sub
+sub onStartError()
+  if m.startTask.error <> "" then handleError(m.startTask.error)
+end sub
+
+sub handleError(message as string)
+  m.requestPending = false
+  showError(message)
 end sub
 
 sub handleResult(task as object, kind as string)
-  if task.error <> ""
-    showError(task.error)
-    return
-  end if
+  m.requestPending = false
   data = ParseJson(task.result)
   if data = invalid
     showError("The room server returned an unreadable response.")
@@ -181,6 +210,7 @@ function textColor(color as string) as string
 end function
 
 sub showError(message as string)
+  m.autoStartTimer.control = "stop"
   m.pollTimer.control = "stop"
   m.errorText.text = message + chr(10) + chr(10) + "Confirm the Mac room server is running and both devices are on the same Wi-Fi."
   showOnly("error")
