@@ -2,6 +2,12 @@ sub init()
   m.top.functionName = "execute"
 end sub
 
+sub failRequest(message as string)
+  m.top.error = message
+  m.top.result = "__ERROR__" + message
+  m.top.complete = true
+end sub
+
 sub execute()
   m.top.complete = false
   m.top.result = ""
@@ -23,22 +29,19 @@ sub execute()
   end if
 
   if not started
-    m.top.error = "REQUEST_START_FAILED"
-    m.top.complete = true
+    failRequest("REQUEST_START_FAILED")
     return
   end if
 
   event = wait(10000, port)
   if event = invalid
     transfer.AsyncCancel()
-    m.top.error = "REQUEST_TIMEOUT"
-    m.top.complete = true
+    failRequest("REQUEST_TIMEOUT")
     return
   end if
 
   if type(event) <> "roUrlEvent"
-    m.top.error = "UNEXPECTED_NETWORK_EVENT"
-    m.top.complete = true
+    failRequest("UNEXPECTED_NETWORK_EVENT")
     return
   end if
 
@@ -48,10 +51,10 @@ sub execute()
 
   if code < 200 or code >= 300
     if response = invalid or response = "" then response = "HTTP " + code.toStr()
-    m.top.error = response
-  else
-    m.top.result = response
+    failRequest(response)
+    return
   end if
 
+  m.top.result = response
   m.top.complete = true
 end sub
