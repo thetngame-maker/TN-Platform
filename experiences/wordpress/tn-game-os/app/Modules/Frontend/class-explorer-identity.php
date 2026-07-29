@@ -60,6 +60,8 @@ final class Explorer_Identity implements Module_Interface {
             'badges' => $this->clean_keys($incoming['badges'] ?? $current['badges']),
             'activityDays' => $this->clean_days($incoming['activityDays'] ?? $current['activityDays']),
             'recentActivity' => $this->clean_activity($incoming['recentActivity'] ?? $current['recentActivity']),
+            'selectedTitle' => sanitize_key((string)($incoming['selectedTitle'] ?? $current['selectedTitle'] ?? 'explorer')),
+            'featuredBadge' => sanitize_key((string)($incoming['featuredBadge'] ?? $current['featuredBadge'] ?? '')),
             'updatedAt' => current_time('mysql', true),
         ];
         update_user_meta(get_current_user_id(), self::META_KEY, $profile);
@@ -77,6 +79,8 @@ final class Explorer_Identity implements Module_Interface {
             'badges' => $this->clean_keys($profile['badges'] ?? []),
             'activityDays' => $this->clean_days($profile['activityDays'] ?? []),
             'recentActivity' => $this->clean_activity($profile['recentActivity'] ?? []),
+            'selectedTitle' => sanitize_key((string)($profile['selectedTitle'] ?? 'explorer')),
+            'featuredBadge' => sanitize_key((string)($profile['featuredBadge'] ?? '')),
         ];
     }
 
