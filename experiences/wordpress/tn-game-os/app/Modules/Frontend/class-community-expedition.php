@@ -13,6 +13,7 @@ final class Community_Expedition implements Module_Interface {
     private const CLAIM_META = '_tng_community_expedition_claims';
     private const PROFILE_META = '_tng_explorer_profile';
     private const WALLET_META = '_tng_daily_missions';
+    private const CACHE_KEY = 'tng_community_expedition_totals';
 
     public function id(): string { return 'community_expedition'; }
 
@@ -20,6 +21,9 @@ final class Community_Expedition implements Module_Interface {
         $container->set('community_expedition', $this);
         add_action('wp_enqueue_scripts', [$this, 'enqueue']);
         add_action('rest_api_init', [$this, 'register_rest']);
+        add_action('updated_user_meta', [$this, 'invalidate_profile_cache'], 10, 4);
+        add_action('added_user_meta', [$this, 'invalidate_profile_cache'], 10, 4);
+        add_action('deleted_user_meta', [$this, 'invalidate_profile_cache'], 10, 4);
     }
 
     public function boot(Container $container): void {}
@@ -38,13 +42,10 @@ final class Community_Expedition implements Module_Interface {
 
     public function register_rest(): void {
         register_rest_route(self::REST_NS, '/community-expedition', [
-            'methods' => 'GET',
-            'callback' => [$this, 'get_status'],
-            'permission_callback' => '__return_true',
+            'methods' => 'GET', 'callback' => [$this, 'get_status'], 'permission_callback' => '__return_true',
         ]);
         register_rest_route(self::REST_NS, '/community-expedition/claim', [
-            'methods' => 'POST',
-            'callback' => [$this, 'claim_reward'],
+            'methods' => 'POST', 'callback' => [$this, 'claim_reward'],
             'permission_callback' => static fn(): bool => is_user_logged_in(),
         ]);
     }
@@ -52,13 +53,13 @@ final class Community_Expedition implements Module_Interface {
     public function get_status(): WP_REST_Response {
         $week = $this->week_key();
         $totals = $this->community_totals();
-        $claimed = is_user_logged_in() ? $this->claimed(get_current_user_id(), $week) : [];
         return new WP_REST_Response([
             'week' => $week,
             'totals' => $totals,
-            'claimed' => $claimed,
+            'claimed' => is_user_logged_in() ? $this->claimed(get_current_user_id(), $week) : [],
             'rewards' => $this->rewards(),
             'explorers' => $totals['explorers'],
+            'cached' => !empty($totals['_cached']),
         ], 200);
     }
 
@@ -66,31 +67,24 @@ final class Community_Expedition implements Module_Interface {
         $key = sanitize_key((string)$request->get_param('key'));
         $rewards = $this->rewards();
         if (!isset($rewards[$key])) return new WP_REST_Response(['message' => 'Unknown reward.'], 400);
-
         $totals = $this->community_totals();
         $reward = $rewards[$key];
-        if (($totals[$reward['metric']] ?? 0) < $reward['target']) {
-            return new WP_REST_Response(['message' => 'Community goal not reached yet.'], 409);
-        }
-
+        if (($totals[$reward['metric']] ?? 0) < $reward['target']) return new WP_REST_Response(['message' => 'Community goal not reached yet.'], 409);
         $user_id = get_current_user_id();
         $week = $this->week_key();
         $claimed = $this->claimed($user_id, $week);
         if (in_array($key, $claimed, true)) return new WP_REST_Response(['message' => 'Already claimed.'], 409);
-
         $claimed[] = $key;
         update_user_meta($user_id, self::CLAIM_META, ['week' => $week, 'claimed' => array_values(array_unique($claimed))]);
-
         $wallet = get_user_meta($user_id, self::WALLET_META, true);
         if (!is_array($wallet)) $wallet = [];
         $wallet['tokens'] = absint($wallet['tokens'] ?? 0) + absint($reward['tokens']);
         update_user_meta($user_id, self::WALLET_META, $wallet);
+        return new WP_REST_Response(['claimed' => array_values(array_unique($claimed)), 'tokensAwarded' => absint($reward['tokens']), 'walletTokens' => absint($wallet['tokens'])], 200);
+    }
 
-        return new WP_REST_Response([
-            'claimed' => array_values(array_unique($claimed)),
-            'tokensAwarded' => absint($reward['tokens']),
-            'walletTokens' => absint($wallet['tokens']),
-        ], 200);
+    public function invalidate_profile_cache($meta_id, $user_id, $meta_key, $meta_value): void {
+        if ($meta_key === self::PROFILE_META) delete_transient(self::CACHE_KEY . '_' . $this->week_key());
     }
 
     private function rewards(): array {
@@ -101,11 +95,18 @@ final class Community_Expedition implements Module_Interface {
         ];
     }
 
+    private function cache_seconds(): int {
+        $settings = wp_parse_args((array)get_option('tng_gameplay_settings', []), ['community_cache_seconds' => 60]);
+        return max(15, min(3600, absint($settings['community_cache_seconds'] ?? 60)));
+    }
+
     private function community_totals(): array {
+        $cache_key = self::CACHE_KEY . '_' . $this->week_key();
+        $cached = get_transient($cache_key);
+        if (is_array($cached)) { $cached['_cached'] = true; return $cached; }
         $start = $this->week_start_timestamp();
         $users = get_users(['fields' => 'ids', 'meta_key' => self::PROFILE_META, 'number' => 500]);
         $checkpoints = 0; $quests = 0; $xp = 0; $explorers = 0;
-
         foreach ($users as $user_id) {
             $profile = get_user_meta((int)$user_id, self::PROFILE_META, true);
             if (!is_array($profile)) continue;
@@ -120,8 +121,10 @@ final class Community_Expedition implements Module_Interface {
             }
             if ($active) $explorers++;
         }
-
-        return compact('checkpoints', 'quests', 'xp', 'explorers');
+        $totals = compact('checkpoints', 'quests', 'xp', 'explorers');
+        set_transient($cache_key, $totals, $this->cache_seconds());
+        $totals['_cached'] = false;
+        return $totals;
     }
 
     private function claimed(int $user_id, string $week): array {
@@ -131,10 +134,8 @@ final class Community_Expedition implements Module_Interface {
     }
 
     private function week_key(): string { return gmdate('o-\WW', $this->week_start_timestamp()); }
-
     private function week_start_timestamp(): int {
-        $now = current_time('timestamp', true);
-        $day = (int)gmdate('N', $now);
+        $now = current_time('timestamp', true); $day = (int)gmdate('N', $now);
         return strtotime('-' . ($day - 1) . ' days midnight', $now);
     }
 }
