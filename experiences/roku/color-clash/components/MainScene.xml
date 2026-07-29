@@ -3,33 +3,36 @@
     <script type="text/brightscript" uri="pkg:/components/MainScene.brs" />
 
     <children>
-        <Rectangle id="background" width="1920" height="1080" color="0x101820FF" />
+        <Rectangle id="background" width="1920" height="1080" color="0xC62828FF" />
 
         <Label
             id="title"
-            text="COLOR CLASH"
-            translation="[360, 260]"
-            width="1200"
-            height="100"
+            text="COLOR CLASH V0.0.3"
+            translation="[260, 310]"
+            width="1400"
+            height="120"
             horizAlign="center"
+            vertAlign="center"
             color="0xFFFFFFFF" />
 
         <Label
-            id="prompt"
-            text="PRESS OK"
-            translation="[660, 500]"
-            width="600"
-            height="80"
+            id="instructions"
+            text="OK = GREEN   LEFT = BLUE   RIGHT = PURPLE"
+            translation="[260, 500]"
+            width="1400"
+            height="90"
             horizAlign="center"
+            vertAlign="center"
             color="0xFFFFFFFF" />
 
         <Label
             id="status"
-            text="Text test loaded"
-            translation="[560, 690]"
-            width="800"
-            height="70"
+            text="DIAGNOSTIC BUILD LOADED"
+            translation="[360, 690]"
+            width="1200"
+            height="80"
             horizAlign="center"
-            color="0xF59E0BFF" />
+            vertAlign="center"
+            color="0xFFFFFFFF" />
     </children>
 </component>
