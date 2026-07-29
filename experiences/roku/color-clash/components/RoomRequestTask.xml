@@ -4,8 +4,10 @@
     <field id="method" type="string" />
     <field id="url" type="string" />
     <field id="payload" type="string" />
-    <field id="result" type="string" alwaysNotify="true" />
-    <field id="error" type="string" alwaysNotify="true" />
+    <field id="result" type="string" />
+    <field id="error" type="string" />
+    <field id="statusCode" type="integer" />
+    <field id="complete" type="boolean" alwaysNotify="true" />
   </interface>
   <script type="text/brightscript" uri="pkg:/components/RoomRequestTask.brs" />
 </component>
