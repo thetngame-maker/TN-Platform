@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="MainScene" extends="Scene">
+    <script type="text/brightscript" uri="pkg:/components/MainScene.brs" />
+
+    <children>
+        <Rectangle id="background" width="1920" height="1080" color="0x101820FF" />
+
+        <Label id="title" text="COLOR CLASH" translation="[120, 90]" width="1680" height="100" horizAlign="center">
+            <Font role="font" uri="font:LargeBoldSystemFont" size="64" />
+        </Label>
+
+        <Label id="subtitle" text="TN GAME • ROKU FIRST TEST" translation="[120, 185]" width="1680" height="60" horizAlign="center" color="0xB9C5CCFF">
+            <Font role="font" uri="font:MediumSystemFont" size="30" />
+        </Label>
+
+        <Rectangle id="panel" translation="[510, 300]" width="900" height="500" color="0x1D2A33FF" />
+
+        <Label id="status" text="The Roku app installed successfully." translation="[590, 360]" width="740" height="70" horizAlign="center">
+            <Font role="font" uri="font:MediumBoldSystemFont" size="36" />
+        </Label>
+
+        <Label id="botLabel" text="Bots: 2" translation="[690, 490]" width="540" height="60" horizAlign="center">
+            <Font role="font" uri="font:MediumSystemFont" size="34" />
+        </Label>
+
+        <Label id="difficultyLabel" text="Difficulty: Normal" translation="[690, 565]" width="540" height="60" horizAlign="center">
+            <Font role="font" uri="font:MediumSystemFont" size="34" />
+        </Label>
+
+        <Rectangle id="button" translation="[710, 670]" width="500" height="90" color="0x2E8B57FF" />
+        <Label id="buttonText" text="PRESS OK TO TEST" translation="[710, 690]" width="500" height="55" horizAlign="center">
+            <Font role="font" uri="font:MediumBoldSystemFont" size="32" />
+        </Label>
+
+        <Label id="help" text="LEFT/RIGHT: bots   •   UP/DOWN: difficulty   •   OK: confirm" translation="[160, 900]" width="1600" height="50" horizAlign="center" color="0xB9C5CCFF">
+            <Font role="font" uri="font:SmallSystemFont" size="25" />
+        </Label>
+    </children>
+</component>
