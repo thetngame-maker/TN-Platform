@@ -1,48 +1,52 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <component name="MainScene" extends="Scene">
-    <script type="text/brightscript" uri="pkg:/components/MainSceneFixed.brs" />
+    <script type="text/brightscript" uri="pkg:/components/MainScenePolished.brs" />
     <children>
         <Rectangle id="background" width="1920" height="1080" color="0x101820FF" />
 
         <Group id="menuGroup">
-            <Label text="COLOR CLASH" translation="[260,205]" width="1400" height="120" horizAlign="center" vertAlign="center" color="0xFFFFFFFF" />
-            <Label text="SPRINT 3 • SMART BOTS + WILD CARDS" translation="[360,330]" width="1200" height="70" horizAlign="center" color="0xF4B942FF" />
-            <Rectangle translation="[660,520]" width="600" height="110" color="0xF97316FF" />
-            <Label text="PLAY" translation="[660,538]" width="600" height="75" horizAlign="center" vertAlign="center" color="0xFFFFFFFF" />
-            <Label text="Press OK to configure the match" translation="[560,710]" width="800" height="60" horizAlign="center" color="0xFFFFFFFF" />
+            <Label text="COLOR CLASH" translation="[260,190]" width="1400" height="120" horizAlign="center" color="0xFFFFFFFF" />
+            <Label text="SPRINT 4 • GAME POLISH" translation="[360,320]" width="1200" height="70" horizAlign="center" color="0xF4B942FF" />
+            <Rectangle translation="[660,510]" width="600" height="110" color="0xF97316FF" />
+            <Label text="PLAY" translation="[660,530]" width="600" height="70" horizAlign="center" color="0xFFFFFFFF" />
+            <Label text="Press OK to configure the match" translation="[560,700]" width="800" height="60" horizAlign="center" color="0xFFFFFFFF" />
         </Group>
 
         <Group id="setupGroup" visible="false">
-            <Label text="MATCH SETUP" translation="[260,160]" width="1400" height="100" horizAlign="center" color="0xFFFFFFFF" />
-            <Rectangle id="botsRow" translation="[560,360]" width="800" height="110" color="0xF97316FF" />
-            <Label text="BOT PLAYERS" translation="[610,382]" width="380" height="65" color="0xFFFFFFFF" />
-            <Label id="botChoice" text="3" translation="[1050,382]" width="250" height="65" horizAlign="right" color="0xFFFFFFFF" />
-            <Rectangle id="difficultyRow" translation="[560,500]" width="800" height="110" color="0x263238FF" />
-            <Label text="DIFFICULTY" translation="[610,522]" width="380" height="65" color="0xFFFFFFFF" />
-            <Label id="difficultyChoice" text="NORMAL" translation="[990,522]" width="310" height="65" horizAlign="right" color="0xFFFFFFFF" />
-            <Label text="UP/DOWN: SELECT   •   LEFT/RIGHT: CHANGE   •   OK: DEAL" translation="[410,735]" width="1100" height="60" horizAlign="center" color="0xD5DEE3FF" />
-            <Label text="BACK: MAIN MENU" translation="[710,815]" width="500" height="55" horizAlign="center" color="0xB9C5CCFF" />
+            <Label text="MATCH SETUP" translation="[260,145]" width="1400" height="100" horizAlign="center" color="0xFFFFFFFF" />
+            <Rectangle id="botsRow" translation="[560,335]" width="800" height="105" color="0xF97316FF" />
+            <Label text="BOT PLAYERS" translation="[610,355]" width="380" height="65" color="0xFFFFFFFF" />
+            <Label id="botChoice" text="3" translation="[1050,355]" width="250" height="65" horizAlign="right" color="0xFFFFFFFF" />
+            <Rectangle id="difficultyRow" translation="[560,465]" width="800" height="105" color="0x263238FF" />
+            <Label text="DIFFICULTY" translation="[610,485]" width="380" height="65" color="0xFFFFFFFF" />
+            <Label id="difficultyChoice" text="NORMAL" translation="[990,485]" width="310" height="65" horizAlign="right" color="0xFFFFFFFF" />
+            <Rectangle id="effectsRow" translation="[560,595]" width="800" height="105" color="0x263238FF" />
+            <Label text="GAME EFFECTS" translation="[610,615]" width="380" height="65" color="0xFFFFFFFF" />
+            <Label id="effectsChoice" text="ON" translation="[990,615]" width="310" height="65" horizAlign="right" color="0xFFFFFFFF" />
+            <Label text="UP/DOWN: SELECT • LEFT/RIGHT: CHANGE • OK: DEAL" translation="[390,775]" width="1140" height="55" horizAlign="center" color="0xD5DEE3FF" />
+            <Label text="BACK: MAIN MENU" translation="[710,845]" width="500" height="50" horizAlign="center" color="0xB9C5CCFF" />
         </Group>
 
         <Group id="gameGroup" visible="false">
-            <Label text="COLOR CLASH" translation="[65,30]" width="480" height="65" color="0xFFFFFFFF" />
-            <Label id="turnLabel" text="YOUR TURN" translation="[610,42]" width="700" height="70" horizAlign="center" color="0xF4B942FF" />
-            <Label id="messageLabel" text="Choose a legal card" translation="[1260,42]" width="590" height="70" horizAlign="right" color="0xFFFFFFFF" />
+            <Label text="COLOR CLASH" translation="[65,25]" width="430" height="60" color="0xFFFFFFFF" />
+            <Label id="turnLabel" text="YOUR TURN" translation="[610,35]" width="700" height="65" horizAlign="center" color="0xF4B942FF" />
+            <Label id="messageLabel" text="Choose a legal card" translation="[1260,35]" width="590" height="65" horizAlign="right" color="0xFFFFFFFF" />
+            <Label id="directionLabel" text="CLOCKWISE →" translation="[65,92]" width="430" height="45" color="0xB9C5CCFF" />
 
-            <Group id="topBotGroup"><Label text="SCOUT BOT" translation="[760,145]" width="400" height="55" horizAlign="center" color="0xFFFFFFFF" /><Label id="topBotCount" text="7 CARDS" translation="[760,200]" width="400" height="45" horizAlign="center" color="0xB9C5CCFF" /></Group>
-            <Group id="leftBotGroup"><Label text="FOX BOT" translation="[105,395]" width="360" height="55" horizAlign="center" color="0xFFFFFFFF" /><Label id="leftBotCount" text="7 CARDS" translation="[105,450]" width="360" height="45" horizAlign="center" color="0xB9C5CCFF" /></Group>
-            <Group id="rightBotGroup"><Label text="BEAR BOT" translation="[1455,395]" width="360" height="55" horizAlign="center" color="0xFFFFFFFF" /><Label id="rightBotCount" text="7 CARDS" translation="[1455,450]" width="360" height="45" horizAlign="center" color="0xB9C5CCFF" /></Group>
+            <Group id="topBotGroup"><Label text="SCOUT BOT" translation="[760,140]" width="400" height="52" horizAlign="center" color="0xFFFFFFFF" /><Label id="topBotCount" text="7 CARDS" translation="[760,195]" width="400" height="42" horizAlign="center" color="0xB9C5CCFF" /></Group>
+            <Group id="leftBotGroup"><Label text="FOX BOT" translation="[105,390]" width="360" height="52" horizAlign="center" color="0xFFFFFFFF" /><Label id="leftBotCount" text="7 CARDS" translation="[105,445]" width="360" height="42" horizAlign="center" color="0xB9C5CCFF" /></Group>
+            <Group id="rightBotGroup"><Label text="BEAR BOT" translation="[1455,390]" width="360" height="52" horizAlign="center" color="0xFFFFFFFF" /><Label id="rightBotCount" text="7 CARDS" translation="[1455,445]" width="360" height="42" horizAlign="center" color="0xB9C5CCFF" /></Group>
 
-            <Rectangle translation="[735,340]" width="205" height="285" color="0x263238FF" />
-            <Label text="DECK" translation="[735,420]" width="205" height="70" horizAlign="center" color="0xFFFFFFFF" />
-            <Label id="deckCount" text="0" translation="[735,500]" width="205" height="55" horizAlign="center" color="0xB9C5CCFF" />
-            <Rectangle id="discardCard" translation="[980,340]" width="205" height="285" color="0x2E7D32FF" />
-            <Label id="discardText" text="5" translation="[980,410]" width="205" height="140" horizAlign="center" vertAlign="center" color="0xFFFFFFFF" />
-            <Label id="activeColorLabel" text="ACTIVE: GREEN" translation="[915,635]" width="335" height="45" horizAlign="center" color="0xB9C5CCFF" />
-            <Label id="playerCount" text="YOU • 7 CARDS" translation="[610,680]" width="700" height="55" horizAlign="center" color="0xFFFFFFFF" />
+            <Rectangle translation="[735,330]" width="205" height="285" color="0x263238FF" />
+            <Label text="DECK" translation="[735,410]" width="205" height="65" horizAlign="center" color="0xFFFFFFFF" />
+            <Label id="deckCount" text="0" translation="[735,490]" width="205" height="50" horizAlign="center" color="0xB9C5CCFF" />
+            <Rectangle id="discardCard" translation="[980,330]" width="205" height="285" color="0x2E7D32FF" />
+            <Label id="discardText" text="5" translation="[980,400]" width="205" height="140" horizAlign="center" vertAlign="center" color="0xFFFFFFFF" />
+            <Label id="activeColorLabel" text="ACTIVE: GREEN" translation="[915,625]" width="335" height="45" horizAlign="center" color="0xB9C5CCFF" />
+            <Label id="playerCount" text="YOU • 7 CARDS" translation="[610,675]" width="700" height="52" horizAlign="center" color="0xFFFFFFFF" />
 
             <Group id="handGroup">
-                <Rectangle id="selection" translation="[230,755]" width="150" height="250" color="0xF4B94288" />
+                <Rectangle id="selection" width="150" height="260" color="0xF4B94288" />
                 <Rectangle id="card0" width="140" height="240" /><Label id="cardText0" width="140" height="100" horizAlign="center" vertAlign="center" />
                 <Rectangle id="card1" width="140" height="240" /><Label id="cardText1" width="140" height="100" horizAlign="center" vertAlign="center" />
                 <Rectangle id="card2" width="140" height="240" /><Label id="cardText2" width="140" height="100" horizAlign="center" vertAlign="center" />
@@ -54,8 +58,14 @@
                 <Rectangle id="card8" width="140" height="240" /><Label id="cardText8" width="140" height="100" horizAlign="center" vertAlign="center" />
                 <Rectangle id="card9" width="140" height="240" /><Label id="cardText9" width="140" height="100" horizAlign="center" vertAlign="center" />
             </Group>
-            <Label text="LEFT/RIGHT: SELECT • OK: PLAY • DOWN: DRAW • BACK: MENU" translation="[350,1025]" width="1220" height="42" horizAlign="center" color="0xB9C5CCFF" />
+            <Label id="footerLabel" text="LEFT/RIGHT: SELECT • OK: PLAY • DOWN: DRAW • PLAY/PAUSE: PAUSE" translation="[300,1022]" width="1320" height="42" horizAlign="center" color="0xB9C5CCFF" />
             <Timer id="botTimer" duration="1.15" repeat="false" />
+            <Timer id="bannerTimer" duration="1.1" repeat="false" />
+        </Group>
+
+        <Group id="actionGroup" visible="false">
+            <Rectangle translation="[610,235]" width="700" height="150" color="0x081117EE" />
+            <Label id="actionText" text="SKIP!" translation="[610,270]" width="700" height="90" horizAlign="center" color="0xF4B942FF" />
         </Group>
 
         <Group id="wildGroup" visible="false">
@@ -63,15 +73,24 @@
             <Label text="CHOOSE THE ACTIVE COLOR" translation="[510,325]" width="900" height="90" horizAlign="center" color="0xFFFFFFFF" />
             <Rectangle id="wildColorCard" translation="[790,455]" width="340" height="190" color="0xC62828FF" />
             <Label id="wildColorText" text="RED" translation="[790,505]" width="340" height="90" horizAlign="center" color="0xFFFFFFFF" />
-            <Label text="LEFT/RIGHT: CHANGE   •   OK: CONFIRM" translation="[560,700]" width="800" height="55" horizAlign="center" color="0xD5DEE3FF" />
+            <Label text="LEFT/RIGHT: CHANGE • OK: CONFIRM" translation="[560,700]" width="800" height="55" horizAlign="center" color="0xD5DEE3FF" />
+        </Group>
+
+        <Group id="pauseGroup" visible="false">
+            <Rectangle translation="[430,235]" width="1060" height="610" color="0x081117F5" />
+            <Label text="GAME PAUSED" translation="[510,330]" width="900" height="100" horizAlign="center" color="0xF4B942FF" />
+            <Label id="pauseEffects" text="EFFECTS: ON" translation="[610,490]" width="700" height="70" horizAlign="center" color="0xFFFFFFFF" />
+            <Label text="LEFT/RIGHT: TOGGLE EFFECTS" translation="[560,590]" width="800" height="55" horizAlign="center" color="0xD5DEE3FF" />
+            <Label text="OK OR PLAY/PAUSE: RESUME • BACK: MAIN MENU" translation="[510,690]" width="900" height="55" horizAlign="center" color="0xFFFFFFFF" />
         </Group>
 
         <Group id="winnerGroup" visible="false">
-            <Rectangle translation="[430,245]" width="1060" height="590" color="0x081117F2" />
-            <Label id="winnerTitle" text="YOU WIN!" translation="[510,350]" width="900" height="120" horizAlign="center" color="0xF4B942FF" />
-            <Label id="winnerMessage" text="Great game" translation="[560,500]" width="800" height="80" horizAlign="center" color="0xFFFFFFFF" />
-            <Rectangle translation="[690,655]" width="540" height="95" color="0xF97316FF" />
-            <Label text="OK: PLAY AGAIN • BACK: MENU" translation="[690,675]" width="540" height="55" horizAlign="center" color="0xFFFFFFFF" />
+            <Rectangle translation="[390,205]" width="1140" height="665" color="0x081117F5" />
+            <Label id="winnerTitle" text="YOU WIN!" translation="[510,300]" width="900" height="110" horizAlign="center" color="0xF4B942FF" />
+            <Label id="winnerMessage" text="Great game" translation="[510,445]" width="900" height="75" horizAlign="center" color="0xFFFFFFFF" />
+            <Label id="winnerStats" text="18 CARDS PLAYED • 4 DRAWN • 03:42" translation="[460,555]" width="1000" height="65" horizAlign="center" color="0xD5DEE3FF" />
+            <Rectangle translation="[690,690]" width="540" height="95" color="0xF97316FF" />
+            <Label text="OK: PLAY AGAIN • BACK: MENU" translation="[690,712]" width="540" height="55" horizAlign="center" color="0xFFFFFFFF" />
         </Group>
     </children>
 </component>
