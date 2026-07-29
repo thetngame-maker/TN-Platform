@@ -33,6 +33,7 @@ let profile=normalize(config.initialProfile||loadLocal());
 let syncing=false;
 let panel=null;
 let lastXp=profile.totalXp;
+let reconcileQueued=false;
 
 const api=async(method,body)=>{
   const response=await fetch(config.profileUrl,{method,credentials:'same-origin',headers:{'Content-Type':'application/json','X-WP-Nonce':config.restNonce||''},body:body?JSON.stringify(body):undefined});
@@ -45,14 +46,15 @@ const persist=async()=>{
   profile.completedQuests=unique(profile.completedQuests);
   profile.badges=unique(profile.badges);
   saveLocal(profile);
+  render();
   if(!config.loggedIn||syncing)return;
   syncing=true;
   try{
     profile=normalize(await api('POST',profile));
     saveLocal(profile);
+    render();
   }catch(error){}
   syncing=false;
-  render();
 };
 
 const ensurePanel=()=>{
@@ -93,27 +95,31 @@ const ensurePanel=()=>{
 const initials=(name)=>String(name||'Explorer').split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]?.toUpperCase()||'').join('')||'E';
 const collectionCount=()=>Object.values(profile.collections||{}).filter(value=>Number(value)>0).length;
 
+const setText=(node,value)=>{const text=String(value);if(node&&node.textContent!==text)node.textContent=text;};
 const render=()=>{
   const card=ensurePanel();
   const level=levelFor(profile.totalXp),start=levelStart(level),end=levelEnd(level),within=profile.totalXp-start,span=Math.max(1,end-start),percent=Math.min(100,Math.round((within/span)*100));
   const name=config.displayName||'Explorer';
   const avatar=card.querySelector('[data-explorer-avatar]');
-  avatar.innerHTML=config.avatarUrl?`<img src="${config.avatarUrl}" alt="">`:`<span>${initials(name)}</span>`;
-  card.querySelector('[data-explorer-name]').textContent=name;
-  card.querySelector('[data-explorer-rank]').textContent=`Level ${level} Explorer`;
-  card.querySelector('[data-explorer-level]').textContent=`Level ${level}`;
-  card.querySelector('[data-explorer-xp]').textContent=`${profile.totalXp.toLocaleString()} XP`;
-  card.querySelector('[data-explorer-level-bar]').style.width=percent+'%';
-  card.querySelector('[data-explorer-next]').textContent=`${Math.max(0,end-profile.totalXp).toLocaleString()} XP to Level ${level+1}`;
-  card.querySelector('[data-explorer-checkpoints]').textContent=profile.completedCheckpoints.length;
-  card.querySelector('[data-explorer-quests]').textContent=profile.completedQuests.length;
-  card.querySelector('[data-explorer-collections]').textContent=collectionCount();
+  const avatarMarkup=config.avatarUrl?`<img src="${config.avatarUrl}" alt="">`:`<span>${initials(name)}</span>`;
+  if(avatar.innerHTML!==avatarMarkup)avatar.innerHTML=avatarMarkup;
+  setText(card.querySelector('[data-explorer-name]'),name);
+  setText(card.querySelector('[data-explorer-rank]'),`Level ${level} Explorer`);
+  setText(card.querySelector('[data-explorer-level]'),`Level ${level}`);
+  setText(card.querySelector('[data-explorer-xp]'),`${profile.totalXp.toLocaleString()} XP`);
+  const levelBar=card.querySelector('[data-explorer-level-bar]');
+  if(levelBar.style.width!==percent+'%')levelBar.style.width=percent+'%';
+  setText(card.querySelector('[data-explorer-next]'),`${Math.max(0,end-profile.totalXp).toLocaleString()} XP to Level ${level+1}`);
+  setText(card.querySelector('[data-explorer-checkpoints]'),profile.completedCheckpoints.length);
+  setText(card.querySelector('[data-explorer-quests]'),profile.completedQuests.length);
+  setText(card.querySelector('[data-explorer-collections]'),collectionCount());
   const badges=card.querySelector('[data-explorer-badges]');
-  badges.innerHTML=profile.badges.length?profile.badges.map(key=>{const badge=badgeCatalog[key]||{icon:'✦',title:key,text:'Achievement unlocked'};return `<article><span>${badge.icon}</span><div><strong>${badge.title}</strong><small>${badge.text}</small></div></article>`;}).join(''):'<p>Complete checkpoints to unlock your first badge.</p>';
+  const badgeMarkup=profile.badges.length?profile.badges.map(key=>{const badge=badgeCatalog[key]||{icon:'✦',title:key,text:'Achievement unlocked'};return `<article><span>${badge.icon}</span><div><strong>${badge.title}</strong><small>${badge.text}</small></div></article>`;}).join(''):'<p>Complete checkpoints to unlock your first badge.</p>';
+  if(badges.innerHTML!==badgeMarkup)badges.innerHTML=badgeMarkup;
   if(profile.totalXp>lastXp){card.classList.remove('is-leveling');void card.offsetWidth;card.classList.add('is-leveling');lastXp=profile.totalXp;}
 };
 
-const awardBadge=(key)=>{if(!profile.badges.includes(key))profile.badges.push(key);};
+const awardBadge=(key)=>{if(!profile.badges.includes(key)){profile.badges.push(key);return true;}return false;};
 const checkpointKey=(stopId)=>`${runtime.questId}:${stopId}`;
 
 const reconcile=()=>{
@@ -133,22 +139,32 @@ const reconcile=()=>{
   });
   if(root.classList.contains('is-complete')){
     const questKey=String(runtime.questId);
-    if(!profile.completedQuests.includes(questKey)){profile.completedQuests.push(questKey);awardBadge('quest_complete');changed=true;}
+    if(!profile.completedQuests.includes(questKey)){profile.completedQuests.push(questKey);changed=true;}
+    changed=awardBadge('quest_complete')||changed;
   }
-  if(profile.completedCheckpoints.length>=1)awardBadge('first_step');
-  if(profile.completedCheckpoints.length>=3)awardBadge('trailblazer');
-  if(profile.completedCheckpoints.length>=10)awardBadge('explorer_10');
-  if(changed)persist();else render();
+  if(profile.completedCheckpoints.length>=1)changed=awardBadge('first_step')||changed;
+  if(profile.completedCheckpoints.length>=3)changed=awardBadge('trailblazer')||changed;
+  if(profile.completedCheckpoints.length>=10)changed=awardBadge('explorer_10')||changed;
+  if(changed)persist();
 };
 
-const observer=new MutationObserver(()=>reconcile());
-observer.observe(root,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
+const queueReconcile=()=>{
+  if(reconcileQueued)return;
+  reconcileQueued=true;
+  requestAnimationFrame(()=>{reconcileQueued=false;reconcile();});
+};
+
+const checkpointList=root.querySelector('.tng-runtime-checkpoints');
+if(checkpointList){
+  const observer=new MutationObserver(queueReconcile);
+  observer.observe(checkpointList,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
+}
 
 const init=async()=>{
-  if(config.loggedIn){
-    try{profile=normalize(await api('GET'));saveLocal(profile);}catch(error){}
-  }
   render();
+  if(config.loggedIn){
+    try{profile=normalize(await api('GET'));saveLocal(profile);render();}catch(error){}
+  }
   reconcile();
 };
 
