@@ -1,7 +1,8 @@
-title=Color Clash Beta
+title=Color Clash Phone Party
 major_version=0
-minor_version=6
+minor_version=7
 build_version=0
 ui_resolutions=fhd
 splash_color=#06110E
 splash_min_time=250
+requires_networking=1
