@@ -6,7 +6,6 @@ const joinError=document.querySelector('#joinError');
 const roomLabel=document.querySelector('#roomLabel');
 const nameLabel=document.querySelector('#nameLabel');
 const avatar=document.querySelector('#avatar');
-const demoButton=document.querySelector('#demoButton');
 const handEl=document.querySelector('#hand');
 const playButton=document.querySelector('#playButton');
 const drawButton=document.querySelector('#drawButton');
@@ -112,8 +111,6 @@ function renderHand(cards){
     handEl.appendChild(button);
   });
 }
-
-demoButton.addEventListener('click',()=>{feedback.textContent='Waiting for the host to start the live game.'});
 
 playButton.addEventListener('click',async()=>{
   if(!state||selected<0)return;
