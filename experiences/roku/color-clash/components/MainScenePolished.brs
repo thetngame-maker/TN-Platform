@@ -2,15 +2,16 @@ sub init()
   m.baseUrl = "http://192.168.1.127:8080"
   m.mode = "home"
   m.room = invalid
+  m.pollBusy = false
   ids = ["homeGroup","loadingGroup","lobbyGroup","gameGroup","errorGroup","loadingMessage","joinUrl","roomCode","lobbyStatus","playerList","startButton","startLabel","turnLabel","gameMessage","deckCount","discardCard","discardText","activeColor","gamePlayers","errorText","pollTimer","createTask","pollTask","startTask"]
   for each id in ids
     m[id] = m.top.findNode(id)
   end for
   m.joinUrl.text = m.baseUrl
   m.pollTimer.observeField("fire", "pollRoom")
-  m.createTask.observeField("result", "onCreateResult")
-  m.pollTask.observeField("result", "onPollResult")
-  m.startTask.observeField("result", "onStartResult")
+  m.createTask.observeField("complete", "onCreateComplete")
+  m.pollTask.observeField("complete", "onPollComplete")
+  m.startTask.observeField("complete", "onStartComplete")
   m.top.setFocus(true)
 end sub
 
@@ -45,42 +46,61 @@ end sub
 
 sub showHome()
   m.pollTimer.control = "stop"
+  m.pollBusy = false
   m.room = invalid
+  stopTask(m.createTask)
+  stopTask(m.pollTask)
+  stopTask(m.startTask)
   showOnly("home")
 end sub
 
 sub createRoom()
   m.pollTimer.control = "stop"
+  m.pollBusy = false
   showOnly("loading")
   m.loadingMessage.text = "Creating a live room on " + m.baseUrl
   runTask(m.createTask, "POST", m.baseUrl + "/api/rooms", "{}")
 end sub
 
 sub pollRoom()
-  if m.room = invalid then return
+  if m.room = invalid or m.pollBusy then return
+  m.pollBusy = true
   runTask(m.pollTask, "GET", m.baseUrl + "/api/rooms/" + m.room.code, "")
 end sub
 
 sub startGame()
   m.pollTimer.control = "stop"
+  m.pollBusy = false
   m.startLabel.text = "STARTING..."
   runTask(m.startTask, "POST", m.baseUrl + "/api/rooms/" + m.room.code + "/start", "{}")
 end sub
 
+sub stopTask(task as object)
+  if task <> invalid then task.control = "STOP"
+end sub
+
 sub runTask(task as object, method as string, url as string, payload as string)
+  task.control = "STOP"
   task.method = method
   task.url = url
   task.payload = payload
+  task.complete = false
   task.control = "RUN"
 end sub
 
-sub onCreateResult()
+sub onCreateComplete()
+  if not m.createTask.complete then return
   handleResult(m.createTask, "create")
 end sub
-sub onPollResult()
+
+sub onPollComplete()
+  if not m.pollTask.complete then return
+  m.pollBusy = false
   handleResult(m.pollTask, "poll")
 end sub
-sub onStartResult()
+
+sub onStartComplete()
+  if not m.startTask.complete then return
   handleResult(m.startTask, "start")
 end sub
 
@@ -99,6 +119,7 @@ sub handleResult(task as object, kind as string)
     showOnly("lobby")
     renderLobby()
     m.pollTimer.control = "start"
+    pollRoom()
   else if kind = "start"
     showOnly("game")
     renderGame()
@@ -182,6 +203,7 @@ end function
 
 sub showError(message as string)
   m.pollTimer.control = "stop"
+  m.pollBusy = false
   m.errorText.text = message + chr(10) + chr(10) + "Confirm the Mac room server is running and both devices are on the same Wi-Fi."
   showOnly("error")
 end sub
