@@ -75,6 +75,7 @@ final class Plugin {
             'app/Modules/Admin/class-service-tag-manager.php',
             'app/Modules/Admin/class-explorer-test-lab.php',
             'app/Modules/Admin/class-test-player-friends.php',
+            'app/Modules/Admin/class-gameplay-control-center.php',
             'app/Modules/Admin/class-admin.php',
         ] as $file) require_once TNG_OS_PATH . $file;
 
@@ -119,7 +120,21 @@ final class Plugin {
             \TNG_OS\Modules\Admin\Service_Tag_Manager::class,
             \TNG_OS\Modules\Admin\Explorer_Test_Lab::class,
             \TNG_OS\Modules\Admin\Test_Player_Friends::class,
+            \TNG_OS\Modules\Admin\Gameplay_Control_Center::class,
             \TNG_OS\Modules\Admin\Admin::class,
+        ];
+
+        $feature_modules = [
+            'quest_finale' => 'quest_finale',
+            'quest_memory' => 'quest_memory',
+            'explorer_journal' => 'explorer_journal',
+            'daily_missions' => 'daily_missions',
+            'adventure_rewards' => 'adventure_rewards',
+            'weekly_expedition' => 'weekly_expedition',
+            'explorer_leaderboard' => 'explorer_leaderboard',
+            'community_expedition' => 'community_expedition',
+            'explorer_challenges' => 'explorer_challenges',
+            'explorer_friends' => 'explorer_friends',
         ];
 
         $seen_classes = [];
@@ -128,6 +143,7 @@ final class Plugin {
             $seen_classes[$class] = true;
             $module = new $class();
             $module_id = $module->id();
+            if (isset($feature_modules[$module_id]) && !\TNG_OS\Modules\Admin\Gameplay_Control_Center::enabled($feature_modules[$module_id])) continue;
             if (isset($this->modules[$module_id])) continue;
             $this->modules[$module_id] = $module;
         }
