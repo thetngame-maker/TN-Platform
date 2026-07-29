@@ -1,0 +1,1 @@
+Temporary marker for Sprint 8C.1 automatic room creation fix.
