@@ -9,8 +9,10 @@ if (!defined('ABSPATH')) exit;
 
 final class Developer_Manager implements Module_Interface {
     private const LEGACY_AUTO_OPTION = 'tng_auto_developer_mode';
+    private const PROFILE_META = '_tng_explorer_profile';
     private const WEEKLY_META = '_tng_weekly_expedition';
     private const COMMUNITY_CLAIM_META = '_tng_community_expedition_claims';
+    private const DEV_GENERATION_META = '_tng_dev_event_generation';
 
     public function id(): string { return 'developer_manager'; }
 
@@ -45,7 +47,10 @@ final class Developer_Manager implements Module_Interface {
             'id' => 'tng-developer-mode',
             'title' => $enabled ? 'TN Developer: ON' : 'TN Developer: OFF',
             'href' => esc_url($url),
-            'meta' => ['class' => $enabled ? 'tng-dev-is-enabled' : 'tng-dev-is-disabled', 'title' => $enabled ? 'Disable TN developer tools for this page' : 'Enable TN developer tools for this page'],
+            'meta' => [
+                'class' => $enabled ? 'tng-dev-is-enabled' : 'tng-dev-is-disabled',
+                'title' => $enabled ? 'Disable TN developer tools for this page' : 'Enable TN developer tools for this page',
+            ],
         ]);
     }
 
@@ -61,13 +66,22 @@ final class Developer_Manager implements Module_Interface {
         $notice = isset($_GET['tng_dev_notice']) ? sanitize_text_field(wp_unslash($_GET['tng_dev_notice'])) : '';
         ?>
         <aside class="tng-developer-status" role="status" aria-live="polite">
-            <div class="tng-dev-copy"><span><strong>TN Developer Mode</strong> is active for this page only.</span><?php if ($notice): ?><small><?php echo esc_html($notice); ?></small><?php endif; ?></div>
+            <div class="tng-dev-copy">
+                <span><strong>TN Developer Mode</strong> is active for this page only.</span>
+                <?php if ($notice): ?><small><?php echo esc_html($notice); ?></small><?php endif; ?>
+            </div>
             <div class="tng-dev-actions">
-                <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" onsubmit="return confirm('Reset your Weekly Expedition event window and claims from this point?');">
-                    <?php wp_nonce_field('tng_dev_reset_weekly'); ?><input type="hidden" name="action" value="tng_dev_reset_weekly"><input type="hidden" name="return_url" value="<?php echo esc_attr($return_url); ?>"><button type="submit">Reset weekly</button>
+                <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" onsubmit="return confirm('Reset your Weekly Expedition and prepare this quest for a fresh canonical test run?');">
+                    <?php wp_nonce_field('tng_dev_reset_weekly'); ?>
+                    <input type="hidden" name="action" value="tng_dev_reset_weekly">
+                    <input type="hidden" name="return_url" value="<?php echo esc_attr($return_url); ?>">
+                    <button type="submit">Reset weekly</button>
                 </form>
-                <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" onsubmit="return confirm('Reset the global Community Expedition event window and clear community reward claims for testing?');">
-                    <?php wp_nonce_field('tng_dev_reset_community'); ?><input type="hidden" name="action" value="tng_dev_reset_community"><input type="hidden" name="return_url" value="<?php echo esc_attr($return_url); ?>"><button type="submit">Reset community</button>
+                <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" onsubmit="return confirm('Reset the global Community Expedition and prepare this quest for a fresh canonical test run?');">
+                    <?php wp_nonce_field('tng_dev_reset_community'); ?>
+                    <input type="hidden" name="action" value="tng_dev_reset_community">
+                    <input type="hidden" name="return_url" value="<?php echo esc_attr($return_url); ?>">
+                    <button type="submit">Reset community</button>
                 </form>
                 <a href="<?php echo esc_url($disable_url); ?>">Return to player view</a>
             </div>
@@ -81,23 +95,50 @@ final class Developer_Manager implements Module_Interface {
 
     public function reset_weekly(): void {
         $this->guard('tng_dev_reset_weekly');
-        update_user_meta(get_current_user_id(), self::WEEKLY_META, [
-            'weekKey' => $this->week_key(),
-            'resetAt' => current_time('mysql', true),
+        $user_id = get_current_user_id();
+        $this->prepare_current_quest_replay($user_id);
+        update_user_meta($user_id, self::WEEKLY_META, [
+            'weekKey' => gmdate('o-\WW'),
+            'startedAt' => current_time('mysql', true),
             'claimed' => [],
         ]);
-        $this->redirect_back('Weekly Expedition event window reset to 0 Trail Points.');
+        $this->redirect_back('Weekly Expedition reset. The current quest is ready to generate fresh checkpoint and XP events.');
     }
 
     public function reset_community(): void {
         $this->guard('tng_dev_reset_community');
+        $user_id = get_current_user_id();
+        $this->prepare_current_quest_replay($user_id);
         update_option(Community_Expedition::DEV_BASELINE_OPTION, [
             'week' => $this->week_key(),
+            'startedAt' => current_time('mysql', true),
             'resetAt' => current_time('mysql', true),
         ], false);
-        foreach (get_users(['fields' => 'ids']) as $user_id) delete_user_meta((int)$user_id, self::COMMUNITY_CLAIM_META);
+        foreach (get_users(['fields' => 'ids']) as $other_user_id) delete_user_meta((int)$other_user_id, self::COMMUNITY_CLAIM_META);
         Community_Expedition::clear_cache();
-        $this->redirect_back('Community Expedition event window reset and reward claims cleared.');
+        $this->redirect_back('Community Expedition reset. The current quest is ready to generate fresh checkpoint and XP events.');
+    }
+
+    private function prepare_current_quest_replay(int $user_id): void {
+        $return_url = isset($_POST['return_url']) ? esc_url_raw(wp_unslash($_POST['return_url'])) : '';
+        $query = wp_parse_url($return_url, PHP_URL_QUERY);
+        $args = [];
+        if (is_string($query)) parse_str($query, $args);
+        $quest_id = absint($args['tng_quest_runtime_id'] ?? 0);
+        update_user_meta($user_id, self::DEV_GENERATION_META, absint(get_user_meta($user_id, self::DEV_GENERATION_META, true)) + 1);
+        if (!$quest_id) return;
+
+        $profile = get_user_meta($user_id, self::PROFILE_META, true);
+        if (!is_array($profile)) return;
+        $profile['completedCheckpoints'] = array_values(array_filter((array)($profile['completedCheckpoints'] ?? []), fn($value): bool => !$this->belongs_to_quest((string)$value, $quest_id)));
+        $profile['completedQuests'] = array_values(array_filter((array)($profile['completedQuests'] ?? []), fn($value): bool => !$this->belongs_to_quest((string)$value, $quest_id)));
+        update_user_meta($user_id, self::PROFILE_META, $profile);
+    }
+
+    private function belongs_to_quest(string $value, int $quest_id): bool {
+        $value = trim($value);
+        if ($value === (string)$quest_id || $value === 'quest:' . $quest_id) return true;
+        return (bool)preg_match('/(?:^|:)' . preg_quote((string)$quest_id, '/') . '(?::|$)/', $value);
     }
 
     private function current_url(): string {
