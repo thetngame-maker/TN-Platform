@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Color Clash Host</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .host{max-width:760px;margin:0 auto;padding:48px 24px;text-align:center}.code{font-size:clamp(64px,15vw,140px);letter-spacing:.16em;margin:30px 0;color:#ff7417}.players{display:grid;gap:12px;margin:24px 0}.player{padding:18px;border:1px solid #28664e;border-radius:16px;background:#0a2119}.host button{width:100%;margin-top:14px}
+  </style>
+</head>
+<body>
+  <main class="host">
+    <div class="brand"><strong>TN GAME</strong> <span>COLOR CLASH</span></div>
+    <p class="eyebrow">LIVE ROOM HOST</p>
+    <h1>Join the table</h1>
+    <p>Players open this same address on their phone and enter the room code.</p>
+    <div id="roomCode" class="code">----</div>
+    <p id="status">Creating room…</p>
+    <section id="players" class="players" aria-live="polite"></section>
+    <button id="startButton" type="button" disabled>START GAME</button>
+    <button id="newButton" type="button">CREATE NEW ROOM</button>
+  </main>
+  <script src="host.js"></script>
+</body>
+</html>
