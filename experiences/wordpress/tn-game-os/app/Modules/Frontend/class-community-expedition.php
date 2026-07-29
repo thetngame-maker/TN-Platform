@@ -14,6 +14,7 @@ final class Community_Expedition implements Module_Interface {
     private const PROFILE_META = '_tng_explorer_profile';
     private const WALLET_META = '_tng_daily_missions';
     private const CACHE_KEY = 'tng_community_expedition_totals';
+    public const DEV_BASELINE_OPTION = 'tng_community_expedition_dev_baseline';
 
     public function id(): string { return 'community_expedition'; }
 
@@ -87,6 +88,13 @@ final class Community_Expedition implements Module_Interface {
         if ($meta_key === self::PROFILE_META) delete_transient(self::CACHE_KEY . '_' . $this->week_key());
     }
 
+    public static function clear_cache(): void {
+        $now = current_time('timestamp', true);
+        $day = (int)gmdate('N', $now);
+        $start = strtotime('-' . ($day - 1) . ' days midnight', $now);
+        delete_transient(self::CACHE_KEY . '_' . gmdate('o-\WW', $start));
+    }
+
     private function rewards(): array {
         return [
             'checkpoint_rally' => ['title' => 'Checkpoint Rally', 'metric' => 'checkpoints', 'target' => 25, 'tokens' => 20, 'icon' => '◆'],
@@ -120,6 +128,13 @@ final class Community_Expedition implements Module_Interface {
                 if ($kind === 'quest') { $quests++; $active = true; }
             }
             if ($active) $explorers++;
+        }
+        $baseline = get_option(self::DEV_BASELINE_OPTION, []);
+        if (is_array($baseline) && ($baseline['week'] ?? '') === $this->week_key()) {
+            $checkpoints = max(0, $checkpoints - absint($baseline['checkpoints'] ?? 0));
+            $quests = max(0, $quests - absint($baseline['quests'] ?? 0));
+            $xp = max(0, $xp - absint($baseline['xp'] ?? 0));
+            $explorers = $checkpoints || $quests || $xp ? $explorers : 0;
         }
         $totals = compact('checkpoints', 'quests', 'xp', 'explorers');
         set_transient($cache_key, $totals, $this->cache_seconds());
