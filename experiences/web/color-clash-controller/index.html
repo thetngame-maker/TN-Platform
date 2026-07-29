@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Color Clash Controller</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="brand-bar">
+      <span class="brand-pill">TN GAME</span>
+      <span>COLOR CLASH</span>
+    </header>
+
+    <section id="joinView" class="view active">
+      <p class="eyebrow">PHONE CONTROLLER</p>
+      <h1>Join the table</h1>
+      <p class="muted">Enter the four-letter room code shown on the Roku.</p>
+      <label for="roomCode">Room code</label>
+      <input id="roomCode" inputmode="text" maxlength="4" autocomplete="off" placeholder="TRAIL">
+      <label for="playerName">Player name</label>
+      <input id="playerName" maxlength="18" autocomplete="nickname" placeholder="Dakota">
+      <button id="joinButton" type="button">JOIN ADVENTURE</button>
+      <p id="joinError" class="error" aria-live="polite"></p>
+    </section>
+
+    <section id="lobbyView" class="view">
+      <p class="eyebrow">ROOM <span id="roomLabel">----</span></p>
+      <h1>You’re connected</h1>
+      <div class="player-card">
+        <div id="avatar" class="avatar">D</div>
+        <div><strong id="nameLabel">PLAYER</strong><br><span class="muted">Waiting for the host</span></div>
+      </div>
+      <div class="status"><span class="pulse"></span> Controller ready</div>
+      <button id="demoButton" class="secondary" type="button">START HAND DEMO</button>
+    </section>
+
+    <section id="handView" class="view">
+      <div class="turn-row">
+        <div><p class="eyebrow">YOUR PRIVATE HAND</p><h2 id="turnText">Your turn</h2></div>
+        <span id="activeColor" class="color-chip gold">GOLD</span>
+      </div>
+      <div id="hand" class="hand" aria-label="Your cards"></div>
+      <p id="feedback" class="feedback" aria-live="polite">Choose a matching card.</p>
+      <button id="playButton" type="button" disabled>PLAY SELECTED CARD</button>
+      <button id="drawButton" class="secondary" type="button">DRAW CARD</button>
+      <button id="leaveButton" class="text-button" type="button">Leave room</button>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
