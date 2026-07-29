@@ -50,7 +50,7 @@
                 <Label id="cardText5" text="3" translation="[1250, 855]" width="160" height="100" horizAlign="center" vertAlign="center" color="0xFFFFFFFF" />
                 <Rectangle id="card6" translation="[1430, 790]" width="160" height="230" color="0x2E7D32FF" />
                 <Label id="cardText6" text="7" translation="[1430, 855]" width="160" height="100" horizAlign="center" vertAlign="center" color="0xFFFFFFFF" />
-                <Rectangle id="selection" translation="[338, 778]" width="184" height="254" color="0x00000000" lineWidth="6" />
+                <Rectangle id="selection" translation="[338, 778]" width="184" height="254" color="0xF4B94255" />
             </Group>
 
             <Label text="LEFT/RIGHT: SELECT   •   OK: PLAY   •   BACK: MENU" translation="[460, 1030]" width="1000" height="40" horizAlign="center" color="0xB9C5CCFF" />
