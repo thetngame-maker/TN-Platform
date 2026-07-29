@@ -12,18 +12,21 @@ const playButton=document.querySelector('#playButton');
 const drawButton=document.querySelector('#drawButton');
 const leaveButton=document.querySelector('#leaveButton');
 const feedback=document.querySelector('#feedback');
+const turnText=document.querySelector('#turnText');
+const activeColor=document.querySelector('#activeColor');
 let selected=-1;
 let roomCode='';
 let playerToken='';
 let pollTimer=null;
-let cards=[{color:'green',value:'4'},{color:'gold-card',value:'6'},{color:'red',value:'9'},{color:'green',value:'REVERSE'},{color:'wild',value:'WILD'},{color:'blue',value:'+2'}];
+let state=null;
 
 function show(name){Object.values(views).forEach(v=>v.classList.remove('active'));views[name].classList.add('active')}
 function normalizedCode(){return roomInput.value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4)}
 roomInput.addEventListener('input',()=>{roomInput.value=normalizedCode()});
 
 async function api(path,options={}){
-  const response=await fetch(path,{headers:{'content-type':'application/json'},...options});
+  const headers={'content-type':'application/json',...(playerToken?{'x-player-token':playerToken}:{})};
+  const response=await fetch(path,{headers,...options});
   const data=await response.json().catch(()=>({}));
   if(!response.ok)throw new Error(data.error||'Unable to connect');
   return data;
@@ -52,21 +55,98 @@ joinButton.addEventListener('click',async()=>{
 
 function beginPolling(){
   clearInterval(pollTimer);
-  pollTimer=setInterval(async()=>{
-    try{
-      const room=await api(`/api/rooms/${roomCode}`);
-      if(room.status==='playing'){
-        clearInterval(pollTimer);
-        renderHand();
-        show('hand');
-        feedback.textContent='The host started the game.';
-      }
-    }catch(error){feedback.textContent=error.message}
-  },1000);
+  refreshState();
+  pollTimer=setInterval(refreshState,700);
 }
 
-demoButton.addEventListener('click',()=>{renderHand();show('hand')});
-function renderHand(){handEl.innerHTML='';cards.forEach((card,index)=>{const button=document.createElement('button');button.type='button';button.className=`card ${card.color}${selected===index?' selected':''}`;button.textContent=card.value;button.setAttribute('aria-label',`${card.color.replace('-card','')} ${card.value}`);button.addEventListener('click',()=>{selected=index;feedback.textContent=`Selected ${card.value}.`;playButton.disabled=false;renderHand()});handEl.appendChild(button)})}
-playButton.addEventListener('click',()=>{if(selected<0)return;const [played]=cards.splice(selected,1);feedback.textContent=`Played ${played.value}. Live card commands arrive in Sprint 8B.`;selected=-1;playButton.disabled=true;renderHand()});
-drawButton.addEventListener('click',()=>{const pool=[{color:'red',value:'3'},{color:'blue',value:'7'},{color:'gold-card',value:'SKIP'},{color:'green',value:'+2'}];cards.push(pool[Math.floor(Math.random()*pool.length)]);feedback.textContent='Demo card drawn. Live dealing arrives in Sprint 8B.';selected=-1;playButton.disabled=true;renderHand()});
-leaveButton.addEventListener('click',()=>{clearInterval(pollTimer);selected=-1;roomCode='';playerToken='';roomInput.value='';nameInput.value='';show('join')});
+async function refreshState(){
+  if(!roomCode||!playerToken)return;
+  try{
+    state=await api(`/api/rooms/${roomCode}/state`);
+    if(state.room.status==='playing'||state.room.status==='finished'){
+      show('hand');
+      renderState();
+    }
+  }catch(error){feedback.textContent=error.message}
+}
+
+function cardClass(card){
+  if(card.color==='WILD')return 'wild';
+  if(card.color==='GOLD')return 'gold-card';
+  return card.color.toLowerCase();
+}
+
+function renderState(){
+  if(!state)return;
+  const room=state.room;
+  const player=state.player;
+  const game=room.game;
+  activeColor.textContent=game?.activeColor||'—';
+  activeColor.className=`color-chip ${(game?.activeColor||'gold').toLowerCase()}`;
+  if(room.status==='finished'){
+    const winner=room.players.find(item=>item.id===game.winnerId);
+    turnText.textContent=winner?.id===player.id?'You win!':`${winner?.name||'Player'} wins`;
+    feedback.textContent=game.message;
+  }else{
+    turnText.textContent=player.isTurn?'Your turn':'Waiting for your turn';
+    feedback.textContent=game.message||'Choose a matching card.';
+  }
+  playButton.disabled=!player.isTurn||selected<0||room.status!=='playing';
+  drawButton.disabled=!player.isTurn||room.status!=='playing';
+  renderHand(player.hand);
+}
+
+function renderHand(cards){
+  handEl.innerHTML='';
+  cards.forEach((card,index)=>{
+    const button=document.createElement('button');
+    button.type='button';
+    button.className=`card ${cardClass(card)}${selected===index?' selected':''}`;
+    button.textContent=card.value;
+    button.setAttribute('aria-label',`${card.color} ${card.value}`);
+    button.addEventListener('click',()=>{
+      selected=index;
+      feedback.textContent=`Selected ${card.value}.`;
+      renderState();
+    });
+    handEl.appendChild(button);
+  });
+}
+
+demoButton.addEventListener('click',()=>{feedback.textContent='Waiting for the host to start the live game.'});
+
+playButton.addEventListener('click',async()=>{
+  if(!state||selected<0)return;
+  const card=state.player.hand[selected];
+  let chosenColor='';
+  if(card.value==='WILD'){
+    chosenColor=(window.prompt('Choose RED, GREEN, BLUE, or GOLD','RED')||'RED').trim().toUpperCase();
+    if(!['RED','GREEN','BLUE','GOLD'].includes(chosenColor))chosenColor='RED';
+  }
+  playButton.disabled=true;
+  try{
+    state=await api(`/api/rooms/${roomCode}/play`,{method:'POST',body:JSON.stringify({cardId:card.id,chosenColor})});
+    selected=-1;
+    renderState();
+  }catch(error){feedback.textContent=error.message;renderState()}
+});
+
+drawButton.addEventListener('click',async()=>{
+  drawButton.disabled=true;
+  try{
+    state=await api(`/api/rooms/${roomCode}/draw`,{method:'POST',body:'{}'});
+    selected=-1;
+    renderState();
+  }catch(error){feedback.textContent=error.message;renderState()}
+});
+
+leaveButton.addEventListener('click',()=>{
+  clearInterval(pollTimer);
+  selected=-1;
+  roomCode='';
+  playerToken='';
+  state=null;
+  roomInput.value='';
+  nameInput.value='';
+  show('join');
+});
