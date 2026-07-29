@@ -3,6 +3,7 @@ namespace TNG_OS\Modules\Frontend;
 
 use TNG_OS\Core\Container;
 use TNG_OS\Core\Module_Interface;
+use TNG_OS\Modules\Gameplay\Gameplay_Event_Service;
 use WP_REST_Request;
 use WP_REST_Response;
 
@@ -11,20 +12,19 @@ if (!defined('ABSPATH')) exit;
 final class Community_Expedition implements Module_Interface {
     private const REST_NS = 'tng-game/v1';
     private const CLAIM_META = '_tng_community_expedition_claims';
-    private const PROFILE_META = '_tng_explorer_profile';
     private const WALLET_META = '_tng_daily_missions';
     private const CACHE_KEY = 'tng_community_expedition_totals';
     public const DEV_BASELINE_OPTION = 'tng_community_expedition_dev_baseline';
+    private ?Gameplay_Event_Service $events = null;
 
     public function id(): string { return 'community_expedition'; }
 
     public function register(Container $container): void {
         $container->set('community_expedition', $this);
+        if ($container->has('gameplay_event_service')) $this->events = $container->get('gameplay_event_service');
         add_action('wp_enqueue_scripts', [$this, 'enqueue']);
         add_action('rest_api_init', [$this, 'register_rest']);
-        add_action('updated_user_meta', [$this, 'invalidate_profile_cache'], 10, 4);
-        add_action('added_user_meta', [$this, 'invalidate_profile_cache'], 10, 4);
-        add_action('deleted_user_meta', [$this, 'invalidate_profile_cache'], 10, 4);
+        add_action('tng_gameplay_event_recorded', [self::class, 'clear_cache']);
     }
 
     public function boot(Container $container): void {}
@@ -42,13 +42,8 @@ final class Community_Expedition implements Module_Interface {
     }
 
     public function register_rest(): void {
-        register_rest_route(self::REST_NS, '/community-expedition', [
-            'methods' => 'GET', 'callback' => [$this, 'get_status'], 'permission_callback' => '__return_true',
-        ]);
-        register_rest_route(self::REST_NS, '/community-expedition/claim', [
-            'methods' => 'POST', 'callback' => [$this, 'claim_reward'],
-            'permission_callback' => static fn(): bool => is_user_logged_in(),
-        ]);
+        register_rest_route(self::REST_NS, '/community-expedition', ['methods' => 'GET', 'callback' => [$this, 'get_status'], 'permission_callback' => '__return_true']);
+        register_rest_route(self::REST_NS, '/community-expedition/claim', ['methods' => 'POST', 'callback' => [$this, 'claim_reward'], 'permission_callback' => static fn(): bool => is_user_logged_in()]);
     }
 
     public function get_status(): WP_REST_Response {
@@ -61,6 +56,7 @@ final class Community_Expedition implements Module_Interface {
             'rewards' => $this->rewards(),
             'explorers' => $totals['explorers'],
             'cached' => !empty($totals['_cached']),
+            'source' => 'gameplay_events',
         ], 200);
     }
 
@@ -82,10 +78,6 @@ final class Community_Expedition implements Module_Interface {
         $wallet['tokens'] = absint($wallet['tokens'] ?? 0) + absint($reward['tokens']);
         update_user_meta($user_id, self::WALLET_META, $wallet);
         return new WP_REST_Response(['claimed' => array_values(array_unique($claimed)), 'tokensAwarded' => absint($reward['tokens']), 'walletTokens' => absint($wallet['tokens'])], 200);
-    }
-
-    public function invalidate_profile_cache($meta_id, $user_id, $meta_key, $meta_value): void {
-        if ($meta_key === self::PROFILE_META) delete_transient(self::CACHE_KEY . '_' . $this->week_key());
     }
 
     public static function clear_cache(): void {
@@ -112,31 +104,14 @@ final class Community_Expedition implements Module_Interface {
         $cache_key = self::CACHE_KEY . '_' . $this->week_key();
         $cached = get_transient($cache_key);
         if (is_array($cached)) { $cached['_cached'] = true; return $cached; }
-        $start = $this->week_start_timestamp();
-        $users = get_users(['fields' => 'ids', 'meta_key' => self::PROFILE_META, 'number' => 500]);
-        $checkpoints = 0; $quests = 0; $xp = 0; $explorers = 0;
-        foreach ($users as $user_id) {
-            $profile = get_user_meta((int)$user_id, self::PROFILE_META, true);
-            if (!is_array($profile)) continue;
-            $active = false;
-            foreach ((array)($profile['recentActivity'] ?? []) as $item) {
-                if (!is_array($item)) continue;
-                $time = strtotime((string)($item['date'] ?? ''));
-                if (!$time || $time < $start) continue;
-                $kind = sanitize_key((string)($item['kind'] ?? ''));
-                if ($kind === 'checkpoint') { $checkpoints++; $xp += absint($item['xp'] ?? 0); $active = true; }
-                if ($kind === 'quest') { $quests++; $active = true; }
-            }
-            if ($active) $explorers++;
-        }
+        $since = gmdate('Y-m-d H:i:s', $this->week_start_timestamp());
         $baseline = get_option(self::DEV_BASELINE_OPTION, []);
-        if (is_array($baseline) && ($baseline['week'] ?? '') === $this->week_key()) {
-            $checkpoints = max(0, $checkpoints - absint($baseline['checkpoints'] ?? 0));
-            $quests = max(0, $quests - absint($baseline['quests'] ?? 0));
-            $xp = max(0, $xp - absint($baseline['xp'] ?? 0));
-            $explorers = $checkpoints || $quests || $xp ? $explorers : 0;
+        if (is_array($baseline) && ($baseline['week'] ?? '') === $this->week_key() && !empty($baseline['resetAt'])) {
+            $reset = strtotime((string)$baseline['resetAt']);
+            if ($reset && $reset > strtotime($since)) $since = gmdate('Y-m-d H:i:s', $reset);
         }
-        $totals = compact('checkpoints', 'quests', 'xp', 'explorers');
+        $totals = $this->events ? $this->events->community_totals($since) : ['checkpoints' => 0, 'quests' => 0, 'xp' => 0, 'explorers' => 0];
+        $totals['since'] = $since;
         set_transient($cache_key, $totals, $this->cache_seconds());
         $totals['_cached'] = false;
         return $totals;
@@ -150,7 +125,8 @@ final class Community_Expedition implements Module_Interface {
 
     private function week_key(): string { return gmdate('o-\WW', $this->week_start_timestamp()); }
     private function week_start_timestamp(): int {
-        $now = current_time('timestamp', true); $day = (int)gmdate('N', $now);
+        $now = current_time('timestamp', true);
+        $day = (int)gmdate('N', $now);
         return strtotime('-' . ($day - 1) . ' days midnight', $now);
     }
 }
