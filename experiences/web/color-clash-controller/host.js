@@ -16,13 +16,23 @@ async function api(path,options={}){
 function render(room){
   roomCodeEl.textContent=room.code;
   playersEl.innerHTML='';
-  room.players.forEach(player=>{
+  const gamePlayers=room.game?.players||room.players;
+  gamePlayers.forEach(player=>{
     const item=document.createElement('div');
     item.className='player';
-    item.textContent=`✓ ${player.name}`;
+    const count=Number.isInteger(player.cardCount)?` • ${player.cardCount} cards`:'';
+    const turn=room.game?.turnPlayerId===player.id?' ← TURN':'';
+    item.textContent=`✓ ${player.name}${count}${turn}`;
     playersEl.appendChild(item);
   });
-  statusEl.textContent=room.status==='playing'?'Game started':`${room.players.length} player${room.players.length===1?'':'s'} connected`;
+  if(room.status==='playing'){
+    const top=room.game?.topCard;
+    statusEl.textContent=`${room.game?.message||'Game active'} • Top: ${top?.color||''} ${top?.value||''} • Active: ${room.game?.activeColor||''}`;
+  }else if(room.status==='finished'){
+    statusEl.textContent=room.game?.message||'Game finished';
+  }else{
+    statusEl.textContent=`${room.players.length} player${room.players.length===1?'':'s'} connected`;
+  }
   startButton.disabled=room.players.length<1||room.status!=='lobby';
 }
 
@@ -33,7 +43,7 @@ async function createRoom(){
     const room=await api('/api/rooms',{method:'POST',body:'{}'});
     roomCode=room.code;
     render(room);
-    timer=setInterval(refresh,1000);
+    timer=setInterval(refresh,700);
   }catch(error){statusEl.textContent=error.message}
 }
 
