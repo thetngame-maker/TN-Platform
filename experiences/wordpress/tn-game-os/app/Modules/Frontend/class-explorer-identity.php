@@ -25,7 +25,9 @@ final class Explorer_Identity implements Module_Interface {
     public function enqueue(): void {
         if (is_admin() || !isset($_GET['tng_quest_runtime_id'])) return;
         wp_enqueue_style('tng-explorer-identity', TNG_OS_URL . 'assets/frontend/explorer-identity.css', [], TNG_OS_VERSION);
+        wp_enqueue_style('tng-explorer-share-card', TNG_OS_URL . 'assets/frontend/explorer-share-card.css', ['tng-explorer-identity'], TNG_OS_VERSION);
         wp_enqueue_script('tng-explorer-identity', TNG_OS_URL . 'assets/frontend/explorer-identity.js', [], TNG_OS_VERSION, true);
+        wp_enqueue_script('tng-explorer-share-card', TNG_OS_URL . 'assets/frontend/explorer-share-card.js', ['tng-explorer-identity'], TNG_OS_VERSION, true);
 
         $user = wp_get_current_user();
         wp_localize_script('tng-explorer-identity', 'TNGExplorerIdentity', [
