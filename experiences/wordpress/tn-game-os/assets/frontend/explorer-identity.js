@@ -1,172 +1,30 @@
 (()=>{
 'use strict';
-
-const root=document.querySelector('.tng-runtime');
-const runtime=window.TNGQuestRuntime||{};
-const config=window.TNGExplorerIdentity||{};
+const root=document.querySelector('.tng-runtime'),runtime=window.TNGQuestRuntime||{},config=window.TNGExplorerIdentity||{};
 if(!root||!runtime.questId)return;
-
-const PROFILE_KEY='tngExplorerProfile:v1';
-const defaultProfile=()=>({totalXp:0,completedCheckpoints:[],completedQuests:[],collections:{},badges:[],updatedAt:''});
-const normalize=(value)=>({
-  totalXp:Math.max(0,Number(value?.totalXp||0)),
-  completedCheckpoints:Array.isArray(value?.completedCheckpoints)?value.completedCheckpoints.map(String):[],
-  completedQuests:Array.isArray(value?.completedQuests)?value.completedQuests.map(String):[],
-  collections:value?.collections&&typeof value.collections==='object'?value.collections:{},
-  badges:Array.isArray(value?.badges)?value.badges.map(String):[],
-  updatedAt:value?.updatedAt||''
-});
-const loadLocal=()=>{try{return normalize(JSON.parse(localStorage.getItem(PROFILE_KEY)||'{}'));}catch(error){return defaultProfile();}};
-const saveLocal=(profile)=>{try{localStorage.setItem(PROFILE_KEY,JSON.stringify(profile));}catch(error){}};
-const unique=(values)=>Array.from(new Set(values.map(String)));
-const levelFor=(xp)=>Math.max(1,Math.floor(Math.sqrt(Math.max(0,xp)/100))+1);
-const levelStart=(level)=>Math.pow(level-1,2)*100;
-const levelEnd=(level)=>Math.pow(level,2)*100;
-const badgeCatalog={
-  first_step:{icon:'✦',title:'First Step',text:'Complete your first checkpoint'},
-  trailblazer:{icon:'◆',title:'Trailblazer',text:'Complete 3 checkpoints'},
-  quest_complete:{icon:'★',title:'Quest Complete',text:'Finish a full TN Game quest'},
-  explorer_10:{icon:'⬟',title:'Explorer 10',text:'Complete 10 checkpoints'}
-};
-
-let profile=normalize(config.initialProfile||loadLocal());
-let syncing=false;
-let panel=null;
-let lastXp=profile.totalXp;
-let reconcileQueued=false;
-
-const api=async(method,body)=>{
-  const response=await fetch(config.profileUrl,{method,credentials:'same-origin',headers:{'Content-Type':'application/json','X-WP-Nonce':config.restNonce||''},body:body?JSON.stringify(body):undefined});
-  if(!response.ok)throw new Error('Explorer profile request failed');
-  return response.json();
-};
-
-const persist=async()=>{
-  profile.completedCheckpoints=unique(profile.completedCheckpoints);
-  profile.completedQuests=unique(profile.completedQuests);
-  profile.badges=unique(profile.badges);
-  saveLocal(profile);
-  render();
-  if(!config.loggedIn||syncing)return;
-  syncing=true;
-  try{
-    profile=normalize(await api('POST',profile));
-    saveLocal(profile);
-    render();
-  }catch(error){}
-  syncing=false;
-};
-
-const ensurePanel=()=>{
-  if(panel)return panel;
-  panel=document.createElement('section');
-  panel.className='tng-explorer-card';
-  panel.innerHTML=`
-    <div class="tng-explorer-person">
-      <div class="tng-explorer-avatar" data-explorer-avatar></div>
-      <div>
-        <span class="tng-explorer-kicker">EXPLORER IDENTITY</span>
-        <h2 data-explorer-name>Explorer</h2>
-        <p data-explorer-rank>Level 1 Explorer</p>
-      </div>
-    </div>
-    <div class="tng-explorer-level">
-      <div class="tng-explorer-level-head"><strong data-explorer-level>Level 1</strong><span data-explorer-xp>0 XP</span></div>
-      <div class="tng-explorer-level-bar"><span data-explorer-level-bar></span></div>
-      <small data-explorer-next>100 XP to Level 2</small>
-    </div>
-    <div class="tng-explorer-stats">
-      <div><strong data-explorer-checkpoints>0</strong><span>Checkpoints</span></div>
-      <div><strong data-explorer-quests>0</strong><span>Quests</span></div>
-      <div><strong data-explorer-collections>0</strong><span>Collections</span></div>
-    </div>
-    <button type="button" class="tng-explorer-badges-toggle" data-explorer-badges-toggle>View badges</button>
-    <div class="tng-explorer-badges" data-explorer-badges hidden></div>`;
-  const hero=root.querySelector('.tng-runtime-hero');
-  hero?.insertAdjacentElement('afterend',panel);
-  panel.querySelector('[data-explorer-badges-toggle]')?.addEventListener('click',()=>{
-    const badges=panel.querySelector('[data-explorer-badges]');
-    badges.hidden=!badges.hidden;
-    panel.querySelector('[data-explorer-badges-toggle]').textContent=badges.hidden?'View badges':'Hide badges';
-  });
-  return panel;
-};
-
-const initials=(name)=>String(name||'Explorer').split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]?.toUpperCase()||'').join('')||'E';
-const collectionCount=()=>Object.values(profile.collections||{}).filter(value=>Number(value)>0).length;
-
-const setText=(node,value)=>{const text=String(value);if(node&&node.textContent!==text)node.textContent=text;};
-const render=()=>{
-  const card=ensurePanel();
-  const level=levelFor(profile.totalXp),start=levelStart(level),end=levelEnd(level),within=profile.totalXp-start,span=Math.max(1,end-start),percent=Math.min(100,Math.round((within/span)*100));
-  const name=config.displayName||'Explorer';
-  const avatar=card.querySelector('[data-explorer-avatar]');
-  const avatarMarkup=config.avatarUrl?`<img src="${config.avatarUrl}" alt="">`:`<span>${initials(name)}</span>`;
-  if(avatar.innerHTML!==avatarMarkup)avatar.innerHTML=avatarMarkup;
-  setText(card.querySelector('[data-explorer-name]'),name);
-  setText(card.querySelector('[data-explorer-rank]'),`Level ${level} Explorer`);
-  setText(card.querySelector('[data-explorer-level]'),`Level ${level}`);
-  setText(card.querySelector('[data-explorer-xp]'),`${profile.totalXp.toLocaleString()} XP`);
-  const levelBar=card.querySelector('[data-explorer-level-bar]');
-  if(levelBar.style.width!==percent+'%')levelBar.style.width=percent+'%';
-  setText(card.querySelector('[data-explorer-next]'),`${Math.max(0,end-profile.totalXp).toLocaleString()} XP to Level ${level+1}`);
-  setText(card.querySelector('[data-explorer-checkpoints]'),profile.completedCheckpoints.length);
-  setText(card.querySelector('[data-explorer-quests]'),profile.completedQuests.length);
-  setText(card.querySelector('[data-explorer-collections]'),collectionCount());
-  const badges=card.querySelector('[data-explorer-badges]');
-  const badgeMarkup=profile.badges.length?profile.badges.map(key=>{const badge=badgeCatalog[key]||{icon:'✦',title:key,text:'Achievement unlocked'};return `<article><span>${badge.icon}</span><div><strong>${badge.title}</strong><small>${badge.text}</small></div></article>`;}).join(''):'<p>Complete checkpoints to unlock your first badge.</p>';
-  if(badges.innerHTML!==badgeMarkup)badges.innerHTML=badgeMarkup;
-  if(profile.totalXp>lastXp){card.classList.remove('is-leveling');void card.offsetWidth;card.classList.add('is-leveling');lastXp=profile.totalXp;}
-};
-
-const awardBadge=(key)=>{if(!profile.badges.includes(key)){profile.badges.push(key);return true;}return false;};
-const checkpointKey=(stopId)=>`${runtime.questId}:${stopId}`;
-
-const reconcile=()=>{
-  const stops=Array.isArray(runtime.stops)?runtime.stops:[];
-  const completeCards=Array.from(root.querySelectorAll('.tng-checkpoint.is-complete[data-stop-id]'));
-  let changed=false;
-  completeCards.forEach(card=>{
-    const stopId=String(card.dataset.stopId||'');
-    const key=checkpointKey(stopId);
-    if(!stopId||profile.completedCheckpoints.includes(key))return;
-    const stop=stops.find(item=>String(item.id)===stopId)||{};
-    profile.completedCheckpoints.push(key);
-    profile.totalXp+=Math.max(0,Number(stop.xp||0));
-    const collection=String(stop.type||'checkpoint');
-    profile.collections[collection]=Number(profile.collections[collection]||0)+1;
-    changed=true;
-  });
-  if(root.classList.contains('is-complete')){
-    const questKey=String(runtime.questId);
-    if(!profile.completedQuests.includes(questKey)){profile.completedQuests.push(questKey);changed=true;}
-    changed=awardBadge('quest_complete')||changed;
-  }
-  if(profile.completedCheckpoints.length>=1)changed=awardBadge('first_step')||changed;
-  if(profile.completedCheckpoints.length>=3)changed=awardBadge('trailblazer')||changed;
-  if(profile.completedCheckpoints.length>=10)changed=awardBadge('explorer_10')||changed;
-  if(changed)persist();
-};
-
-const queueReconcile=()=>{
-  if(reconcileQueued)return;
-  reconcileQueued=true;
-  requestAnimationFrame(()=>{reconcileQueued=false;reconcile();});
-};
-
-const checkpointList=root.querySelector('.tng-runtime-checkpoints');
-if(checkpointList){
-  const observer=new MutationObserver(queueReconcile);
-  observer.observe(checkpointList,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
-}
-
-const init=async()=>{
-  render();
-  if(config.loggedIn){
-    try{profile=normalize(await api('GET'));saveLocal(profile);render();}catch(error){}
-  }
-  reconcile();
-};
-
+const KEY='tngExplorerProfile:v2',today=()=>new Date().toISOString().slice(0,10),unique=v=>Array.from(new Set((v||[]).map(String)));
+const normalize=v=>({totalXp:Math.max(0,Number(v?.totalXp||0)),completedCheckpoints:unique(v?.completedCheckpoints),completedQuests:unique(v?.completedQuests),collections:v?.collections&&typeof v.collections==='object'?v.collections:{},badges:unique(v?.badges),activityDays:unique(v?.activityDays),updatedAt:v?.updatedAt||''});
+const load=()=>{try{return normalize(JSON.parse(localStorage.getItem(KEY)||localStorage.getItem('tngExplorerProfile:v1')||'{}'));}catch(e){return normalize({});}};
+const save=p=>{try{localStorage.setItem(KEY,JSON.stringify(p));}catch(e){}};
+const levelFor=xp=>Math.max(1,Math.floor(Math.sqrt(Math.max(0,xp)/100))+1),levelStart=l=>(l-1)**2*100,levelEnd=l=>l**2*100;
+const badges={first_step:{icon:'✦',title:'First Step',text:'Complete your first checkpoint',need:'1 checkpoint'},trailblazer:{icon:'◆',title:'Trailblazer',text:'Complete 3 checkpoints',need:'3 checkpoints'},quest_complete:{icon:'★',title:'Quest Complete',text:'Finish a full TN Game quest',need:'1 quest'},explorer_10:{icon:'⬟',title:'Explorer 10',text:'Complete 10 checkpoints',need:'10 checkpoints'},streak_3:{icon:'🔥',title:'On a Roll',text:'Explore on 3 consecutive days',need:'3-day streak'}};
+const collectionMeta={gps:{icon:'📍',title:'Places'},manual:{icon:'✓',title:'Discoveries'},photo:{icon:'📷',title:'Photos'},trivia:{icon:'?',title:'Trivia'},qr:{icon:'▦',title:'Scans'},checkpoint:{icon:'◆',title:'Checkpoints'}};
+let profile=normalize(config.initialProfile||load()),panel=null,drawer=null,syncing=false,lastXp=profile.totalXp,reconcileQueued=false;
+const api=async(method,body)=>{const r=await fetch(config.profileUrl,{method,credentials:'same-origin',headers:{'Content-Type':'application/json','X-WP-Nonce':config.restNonce||''},body:body?JSON.stringify(body):undefined});if(!r.ok)throw new Error();return r.json();};
+const streak=()=>{const days=profile.activityDays.map(d=>new Date(d+'T12:00:00')).sort((a,b)=>b-a);if(!days.length)return 0;let count=1;for(let i=1;i<days.length;i++){if(Math.round((days[i-1]-days[i])/86400000)===1)count++;else break;}return count;};
+const persist=async()=>{profile.completedCheckpoints=unique(profile.completedCheckpoints);profile.completedQuests=unique(profile.completedQuests);profile.badges=unique(profile.badges);profile.activityDays=unique(profile.activityDays);save(profile);render();if(!config.loggedIn||syncing)return;syncing=true;try{profile=normalize(await api('POST',profile));save(profile);render();}catch(e){}syncing=false;};
+const initials=n=>String(n||'Explorer').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]?.toUpperCase()||'').join('')||'E';
+const ensurePanel=()=>{if(panel)return panel;panel=document.createElement('section');panel.className='tng-explorer-card';panel.innerHTML=`<button type="button" class="tng-explorer-main" data-profile-open><div class="tng-explorer-person"><div class="tng-explorer-avatar" data-avatar></div><div><span class="tng-explorer-kicker">EXPLORER IDENTITY</span><h2 data-name>Explorer</h2><p data-rank>Level 1 Explorer</p></div></div></button><div class="tng-explorer-level"><div class="tng-explorer-level-head"><strong data-level>Level 1</strong><span data-xp>0 XP</span></div><div class="tng-explorer-level-bar"><span data-level-bar></span></div><small data-next>100 XP to Level 2</small></div><div class="tng-explorer-stats"><div><strong data-checkpoints>0</strong><span>Checkpoints</span></div><div><strong data-quests>0</strong><span>Quests</span></div><div><strong data-streak>0</strong><span>Day streak</span></div></div><button type="button" class="tng-explorer-badges-toggle" data-profile-open>Explorer profile</button>`;root.querySelector('.tng-runtime-hero')?.insertAdjacentElement('afterend',panel);panel.querySelectorAll('[data-profile-open]').forEach(b=>b.addEventListener('click',openDrawer));return panel;};
+const ensureDrawer=()=>{if(drawer)return drawer;drawer=document.createElement('section');drawer.className='tng-profile-drawer';drawer.hidden=true;drawer.innerHTML=`<div class="tng-profile-backdrop" data-close></div><article class="tng-profile-sheet"><button class="tng-profile-close" data-close aria-label="Close">×</button><header class="tng-profile-header"><div class="tng-profile-avatar" data-drawer-avatar></div><div><span>TN GAME EXPLORER</span><h2 data-drawer-name>Explorer</h2><p data-drawer-rank>Level 1 Explorer</p></div></header><div class="tng-profile-overview"><article><strong data-drawer-xp>0</strong><span>Total XP</span></article><article><strong data-drawer-checkpoints>0</strong><span>Checkpoints</span></article><article><strong data-drawer-quests>0</strong><span>Quests</span></article><article><strong data-drawer-streak>0</strong><span>Day streak</span></article></div><section><div class="tng-profile-section-head"><div><span>COLLECTIONS</span><h3>Your discoveries</h3></div></div><div class="tng-profile-collections" data-collections></div></section><section><div class="tng-profile-section-head"><div><span>ACHIEVEMENTS</span><h3>Badge cabinet</h3></div></div><div class="tng-profile-badges" data-badges></div></section><footer><button type="button" data-share-profile>Share explorer card</button></footer></article>`;document.body.appendChild(drawer);drawer.addEventListener('click',e=>{if(e.target.closest('[data-close]'))closeDrawer();if(e.target.closest('[data-share-profile]'))shareProfile();});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!drawer.hidden)closeDrawer();});return drawer;};
+const openDrawer=()=>{ensureDrawer().hidden=false;document.body.classList.add('tng-profile-open');renderDrawer();};
+const closeDrawer=()=>{if(drawer)drawer.hidden=true;document.body.classList.remove('tng-profile-open');};
+const shareProfile=async()=>{const text=`${config.displayName||'Explorer'} is a Level ${levelFor(profile.totalXp)} TN Game Explorer with ${profile.totalXp} XP and ${profile.completedCheckpoints.length} checkpoints completed.`;try{if(navigator.share)await navigator.share({title:'My TN Game Explorer Profile',text,url:location.origin});else await navigator.clipboard.writeText(text+' '+location.origin);}catch(e){}};
+const avatarHtml=()=>config.avatarUrl?`<img src="${config.avatarUrl}" alt="">`:`<span>${initials(config.displayName)}</span>`;
+const renderDrawer=()=>{if(!drawer)return;const l=levelFor(profile.totalXp),s=streak();drawer.querySelector('[data-drawer-avatar]').innerHTML=avatarHtml();drawer.querySelector('[data-drawer-name]').textContent=config.displayName||'Explorer';drawer.querySelector('[data-drawer-rank]').textContent=`Level ${l} Explorer`;drawer.querySelector('[data-drawer-xp]').textContent=profile.totalXp.toLocaleString();drawer.querySelector('[data-drawer-checkpoints]').textContent=profile.completedCheckpoints.length;drawer.querySelector('[data-drawer-quests]').textContent=profile.completedQuests.length;drawer.querySelector('[data-drawer-streak]').textContent=s;const collections=drawer.querySelector('[data-collections]');const entries=Object.entries(profile.collections).filter(([,v])=>Number(v)>0);collections.innerHTML=entries.length?entries.map(([k,v])=>{const m=collectionMeta[k]||collectionMeta.checkpoint;return `<article><span>${m.icon}</span><div><strong>${m.title}</strong><small>${Number(v)} discovered</small></div></article>`;}).join(''):'<p>Complete checkpoints to begin your collections.</p>';drawer.querySelector('[data-badges]').innerHTML=Object.entries(badges).map(([k,b])=>{const unlocked=profile.badges.includes(k);return `<article class="${unlocked?'is-unlocked':'is-locked'}"><span>${unlocked?b.icon:'◇'}</span><div><strong>${b.title}</strong><small>${unlocked?b.text:b.need}</small></div></article>`;}).join('');};
+const render=()=>{const card=ensurePanel(),l=levelFor(profile.totalXp),start=levelStart(l),end=levelEnd(l),pct=Math.min(100,Math.round(((profile.totalXp-start)/Math.max(1,end-start))*100)),name=config.displayName||'Explorer';card.querySelector('[data-avatar]').innerHTML=avatarHtml();card.querySelector('[data-name]').textContent=name;card.querySelector('[data-rank]').textContent=`Level ${l} Explorer`;card.querySelector('[data-level]').textContent=`Level ${l}`;card.querySelector('[data-xp]').textContent=`${profile.totalXp.toLocaleString()} XP`;card.querySelector('[data-level-bar]').style.width=pct+'%';card.querySelector('[data-next]').textContent=`${Math.max(0,end-profile.totalXp).toLocaleString()} XP to Level ${l+1}`;card.querySelector('[data-checkpoints]').textContent=profile.completedCheckpoints.length;card.querySelector('[data-quests]').textContent=profile.completedQuests.length;card.querySelector('[data-streak]').textContent=streak();if(profile.totalXp>lastXp){card.classList.remove('is-leveling');void card.offsetWidth;card.classList.add('is-leveling');lastXp=profile.totalXp;}renderDrawer();};
+const award=k=>{if(!profile.badges.includes(k))profile.badges.push(k);};
+const reconcile=()=>{const stops=Array.isArray(runtime.stops)?runtime.stops:[],cards=Array.from(root.querySelectorAll('.tng-checkpoint.is-complete[data-stop-id]'));let changed=false;cards.forEach(card=>{const id=String(card.dataset.stopId||''),key=`${runtime.questId}:${id}`;if(!id||profile.completedCheckpoints.includes(key))return;const stop=stops.find(x=>String(x.id)===id)||{};profile.completedCheckpoints.push(key);profile.totalXp+=Math.max(0,Number(stop.xp||0));const c=String(stop.type||'checkpoint');profile.collections[c]=Number(profile.collections[c]||0)+1;profile.activityDays.push(today());changed=true;});if(root.classList.contains('is-complete')){const q=String(runtime.questId);if(!profile.completedQuests.includes(q)){profile.completedQuests.push(q);profile.activityDays.push(today());award('quest_complete');changed=true;}}if(profile.completedCheckpoints.length>=1)award('first_step');if(profile.completedCheckpoints.length>=3)award('trailblazer');if(profile.completedCheckpoints.length>=10)award('explorer_10');if(streak()>=3)award('streak_3');if(changed)persist();else render();};
+const queue=()=>{if(reconcileQueued)return;reconcileQueued=true;requestAnimationFrame(()=>{reconcileQueued=false;reconcile();});};
+const init=async()=>{render();const list=root.querySelector('.tng-runtime-checkpoints');if(list)new MutationObserver(queue).observe(list,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});reconcile();if(config.loggedIn){try{profile=normalize(await api('GET'));save(profile);render();reconcile();}catch(e){}}};
 init();
 })();
