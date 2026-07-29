@@ -3,6 +3,7 @@ namespace TNG_OS\Modules\Frontend;
 
 use TNG_OS\Core\Container;
 use TNG_OS\Core\Module_Interface;
+use TNG_OS\Modules\Admin\Gameplay_Control_Center;
 use WP_REST_Request;
 use WP_REST_Response;
 
@@ -149,6 +150,8 @@ final class Explorer_Friends implements Module_Interface {
     private function state(int $user_id): array {
         $friends = [];
         $activity = [];
+        $settings = Gameplay_Control_Center::settings();
+        $feed_limit = max(10, min(100, absint($settings['activity_feed_limit'] ?? 30)));
         $reaction_store = get_option(self::REACTIONS_KEY, []);
         if (!is_array($reaction_store)) $reaction_store = [];
         foreach ($this->friend_ids($user_id) as $friend_id) {
@@ -162,8 +165,8 @@ final class Explorer_Friends implements Module_Interface {
                 'avatar' => get_avatar_url($friend_id, ['size' => 96]),
                 'title' => sanitize_key((string)($profile['selectedTitle'] ?? 'explorer')),
                 'xp' => absint($profile['totalXp'] ?? 0),
-                'checkpoints' => count((array)($profile['completedCheckpoints'] ?? [])),
-                'quests' => count((array)($profile['completedQuests'] ?? [])),
+                'checkpoints' => count(array_unique((array)($profile['completedCheckpoints'] ?? []))),
+                'quests' => count(array_unique((array)($profile['completedQuests'] ?? []))),
             ];
             foreach (array_slice((array)($profile['recentActivity'] ?? []), 0, 8) as $item) {
                 if (!is_array($item)) continue;
@@ -184,6 +187,6 @@ final class Explorer_Friends implements Module_Interface {
         }
         usort($friends, static fn(array $a, array $b): int => $b['xp'] <=> $a['xp']);
         usort($activity, static fn(array $a, array $b): int => strcmp($b['date'], $a['date']));
-        return ['friends' => $friends, 'activity' => array_slice($activity, 0, 30)];
+        return ['friends' => $friends, 'activity' => array_slice($activity, 0, $feed_limit)];
     }
 }
