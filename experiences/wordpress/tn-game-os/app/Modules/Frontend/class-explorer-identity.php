@@ -59,6 +59,7 @@ final class Explorer_Identity implements Module_Interface {
             'collections' => $this->clean_counts($incoming['collections'] ?? $current['collections']),
             'badges' => $this->clean_keys($incoming['badges'] ?? $current['badges']),
             'activityDays' => $this->clean_days($incoming['activityDays'] ?? $current['activityDays']),
+            'recentActivity' => $this->clean_activity($incoming['recentActivity'] ?? $current['recentActivity']),
             'updatedAt' => current_time('mysql', true),
         ];
         update_user_meta(get_current_user_id(), self::META_KEY, $profile);
@@ -75,6 +76,7 @@ final class Explorer_Identity implements Module_Interface {
             'collections' => $this->clean_counts($profile['collections'] ?? []),
             'badges' => $this->clean_keys($profile['badges'] ?? []),
             'activityDays' => $this->clean_days($profile['activityDays'] ?? []),
+            'recentActivity' => $this->clean_activity($profile['recentActivity'] ?? []),
         ];
     }
 
@@ -99,5 +101,25 @@ final class Explorer_Identity implements Module_Interface {
         }
         rsort($days);
         return array_slice(array_values(array_unique($days)), 0, 365);
+    }
+
+    private function clean_activity($values): array {
+        $clean = [];
+        foreach ((array)$values as $value) {
+            if (!is_array($value)) continue;
+            $id = sanitize_text_field((string)($value['id'] ?? ''));
+            if ($id === '') continue;
+            $clean[$id] = [
+                'id' => $id,
+                'kind' => sanitize_key((string)($value['kind'] ?? 'checkpoint')),
+                'title' => sanitize_text_field((string)($value['title'] ?? 'Adventure activity')),
+                'subtitle' => sanitize_text_field((string)($value['subtitle'] ?? '')),
+                'xp' => absint($value['xp'] ?? 0),
+                'date' => sanitize_text_field((string)($value['date'] ?? '')),
+            ];
+        }
+        $clean = array_values($clean);
+        usort($clean, static fn(array $a, array $b): int => strcmp((string)$b['date'], (string)$a['date']));
+        return array_slice($clean, 0, 40);
     }
 }
