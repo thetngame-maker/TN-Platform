@@ -52,7 +52,8 @@ final class Explorer_Identity implements Module_Interface {
     }
 
     public function save_profile(WP_REST_Request $request): WP_REST_Response {
-        $current = $this->profile(get_current_user_id());
+        $user_id = get_current_user_id();
+        $current = $this->profile($user_id);
         $incoming = (array)$request->get_json_params();
         $profile = [
             'totalXp' => max((int)$current['totalXp'], absint($incoming['totalXp'] ?? 0)),
@@ -66,7 +67,8 @@ final class Explorer_Identity implements Module_Interface {
             'featuredBadge' => sanitize_key((string)($incoming['featuredBadge'] ?? $current['featuredBadge'] ?? '')),
             'updatedAt' => current_time('mysql', true),
         ];
-        update_user_meta(get_current_user_id(), self::META_KEY, $profile);
+        update_user_meta($user_id, self::META_KEY, $profile);
+        do_action('tng_gameplay_profile_saved', $user_id, $current, $profile);
         return new WP_REST_Response($profile, 200);
     }
 
