@@ -14,8 +14,8 @@
       <Label text="Use private hands on your phones while the Roku becomes the shared table." translation="[330,390]" width="1260" height="60" horizAlign="center" color="0xA7BDB5FF" />
       <Rectangle translation="[545,535]" width="830" height="145" color="0x351A0BFF" />
       <Rectangle translation="[560,550]" width="800" height="115" color="0xF97316FF" />
-      <Label text="CREATE LIVE ROOM" translation="[560,574]" width="800" height="70" horizAlign="center" color="0xFFFFFFFF" />
-      <Label text="Press OK to connect this Roku to the room server" translation="[500,735]" width="920" height="52" horizAlign="center" color="0xD9E8E1FF" />
+      <Label text="CONNECTING..." translation="[560,574]" width="800" height="70" horizAlign="center" color="0xFFFFFFFF" />
+      <Label text="The Roku will create a live room automatically" translation="[500,735]" width="920" height="52" horizAlign="center" color="0xD9E8E1FF" />
       <Label id="serverLabel" text="SERVER: 192.168.1.127:8080" translation="[500,815]" width="920" height="48" horizAlign="center" color="0x6F8D82FF" />
     </Group>
 
@@ -62,6 +62,7 @@
       <Label text="OK: TRY AGAIN  •  BACK: HOME" translation="[590,645]" width="740" height="55" horizAlign="center" color="0xA7BDB5FF" />
     </Group>
 
+    <Timer id="autoStartTimer" duration="0.35" repeat="false" />
     <Timer id="pollTimer" duration="1" repeat="true" />
     <RoomRequestTask id="createTask" />
     <RoomRequestTask id="pollTask" />
