@@ -2,113 +2,82 @@
 <component name="MainScene" extends="Scene">
     <script type="text/brightscript" uri="pkg:/components/MainScenePolished.brs" />
     <children>
-        <Rectangle id="background" width="1920" height="1080" color="0x07130FFF" />
-
-        <!-- TN Game atmosphere -->
+        <Rectangle id="background" width="1920" height="1080" color="0x06110EFF" />
         <Rectangle translation="[0,0]" width="1920" height="165" color="0x0D241CFF" />
-        <Rectangle translation="[0,1010]" width="1920" height="70" color="0x06100DFF" />
+        <Rectangle translation="[0,1010]" width="1920" height="70" color="0x040B09FF" />
         <Rectangle translation="[0,162]" width="1920" height="3" color="0xF97316FF" />
-        <Rectangle translation="[120,230]" width="1680" height="2" color="0x18392DFF" />
-        <Rectangle translation="[220,290]" width="1480" height="2" color="0x153329FF" />
-        <Rectangle translation="[330,350]" width="1260" height="2" color="0x122D24FF" />
+
+        <!-- Ambient Tennessee ridge layers -->
+        <Rectangle id="ridgeBack" translation="[-80,215]" width="2080" height="3" color="0x18392D88" />
+        <Rectangle id="ridgeMid" translation="[-160,275]" width="2160" height="3" color="0x153329AA" />
+        <Rectangle id="ridgeFront" translation="[-240,335]" width="2240" height="3" color="0x122D24CC" />
+        <Animation duration="10" repeat="true" control="start">
+            <Vector2DFieldInterpolator key="[0,1]" keyValue="[[-80,215],[80,215]]" fieldToInterp="ridgeBack.translation" />
+        </Animation>
+        <Animation duration="8" repeat="true" control="start">
+            <Vector2DFieldInterpolator key="[0,1]" keyValue="[[-160,275],[40,275]]" fieldToInterp="ridgeMid.translation" />
+        </Animation>
+        <Animation duration="6" repeat="true" control="start">
+            <Vector2DFieldInterpolator key="[0,1]" keyValue="[[-240,335],[20,335]]" fieldToInterp="ridgeFront.translation" />
+        </Animation>
 
         <Group id="menuGroup">
-            <Rectangle translation="[155,92]" width="220" height="62" color="0xF97316FF" />
-            <Label text="THE TN GAME" translation="[175,105]" width="180" height="42" horizAlign="center" color="0xFFFFFFFF" />
-
-            <Label text="COLOR CLASH" translation="[210,235]" width="1500" height="150" horizAlign="center" color="0xFFFFFFFF" />
-            <Label text="A FAST-PACED TN GAME CARD ADVENTURE" translation="[410,385]" width="1100" height="60" horizAlign="center" color="0xF6A55CFF" />
-
-            <Rectangle translation="[590,505]" width="740" height="135" color="0x351A0BFF" />
-            <Rectangle translation="[600,515]" width="720" height="115" color="0xF97316FF" />
-            <Label text="START ADVENTURE" translation="[600,535]" width="720" height="75" horizAlign="center" color="0xFFFFFFFF" />
-
-            <Label text="MATCH COLORS • PLAY ACTION CARDS • OUTSMART THE BOTS" translation="[360,700]" width="1200" height="55" horizAlign="center" color="0xD9E8E1FF" />
+            <Rectangle translation="[145,88]" width="245" height="66" color="0xF97316FF" />
+            <Label text="THE TN GAME" translation="[165,102]" width="205" height="44" horizAlign="center" color="0xFFFFFFFF" />
+            <Label text="COLOR CLASH" translation="[210,220]" width="1500" height="150" horizAlign="center" color="0xFFFFFFFF" />
+            <Label text="TENNESSEE TRAIL TABLE EDITION" translation="[410,370]" width="1100" height="60" horizAlign="center" color="0xF6A55CFF" />
+            <Rectangle id="menuGlow" translation="[575,492]" width="770" height="150" color="0xF9731633" />
+            <Rectangle translation="[590,507]" width="740" height="120" color="0x351A0BFF" />
+            <Rectangle translation="[600,517]" width="720" height="100" color="0xF97316FF" />
+            <Label text="START ADVENTURE" translation="[600,535]" width="720" height="70" horizAlign="center" color="0xFFFFFFFF" />
+            <Animation duration="1.8" repeat="true" control="start">
+                <FloatFieldInterpolator key="[0,0.5,1]" keyValue="[0.25,0.85,0.25]" fieldToInterp="menuGlow.opacity" />
+            </Animation>
+            <Label text="MATCH COLORS • TRIGGER ACTIONS • OUTSMART THE TRAIL BOTS" translation="[300,700]" width="1320" height="55" horizAlign="center" color="0xD9E8E1FF" />
             <Label text="Press OK to enter the trailhead" translation="[560,785]" width="800" height="55" horizAlign="center" color="0x91A9A0FF" />
-
-            <Rectangle translation="[265,900]" width="430" height="65" color="0x102A21FF" />
-            <Label text="1–3 BOT PLAYERS" translation="[285,913]" width="390" height="42" horizAlign="center" color="0xD9E8E1FF" />
-            <Rectangle translation="[745,900]" width="430" height="65" color="0x102A21FF" />
-            <Label text="EASY + NORMAL AI" translation="[765,913]" width="390" height="42" horizAlign="center" color="0xD9E8E1FF" />
-            <Rectangle translation="[1225,900]" width="430" height="65" color="0x102A21FF" />
-            <Label text="ROKU REMOTE READY" translation="[1245,913]" width="390" height="42" horizAlign="center" color="0xD9E8E1FF" />
+            <Rectangle translation="[265,900]" width="430" height="65" color="0x102A21FF" /><Label text="1–3 BOT PLAYERS" translation="[285,913]" width="390" height="42" horizAlign="center" color="0xD9E8E1FF" />
+            <Rectangle translation="[745,900]" width="430" height="65" color="0x102A21FF" /><Label text="EASY + NORMAL AI" translation="[765,913]" width="390" height="42" horizAlign="center" color="0xD9E8E1FF" />
+            <Rectangle translation="[1225,900]" width="430" height="65" color="0x102A21FF" /><Label text="PREMIUM EFFECTS" translation="[1245,913]" width="390" height="42" horizAlign="center" color="0xD9E8E1FF" />
         </Group>
 
         <Group id="setupGroup" visible="false">
-            <Rectangle translation="[145,85]" width="250" height="62" color="0xF97316FF" />
-            <Label text="THE TN GAME" translation="[165,98]" width="210" height="42" horizAlign="center" color="0xFFFFFFFF" />
+            <Rectangle translation="[145,85]" width="250" height="62" color="0xF97316FF" /><Label text="THE TN GAME" translation="[165,98]" width="210" height="42" horizAlign="center" color="0xFFFFFFFF" />
             <Label text="CHOOSE YOUR MATCH" translation="[430,175]" width="1060" height="100" horizAlign="center" color="0xFFFFFFFF" />
-            <Label text="Configure your Color Clash adventure" translation="[560,275]" width="800" height="55" horizAlign="center" color="0x9FB7AEFF" />
-
-            <Rectangle translation="[505,350]" width="910" height="365" color="0x0B1E18FF" />
-            <Rectangle id="botsRow" translation="[535,380]" width="850" height="90" color="0xF97316FF" />
-            <Label text="BOT PLAYERS" translation="[585,398]" width="390" height="55" color="0xFFFFFFFF" />
-            <Label id="botChoice" text="3" translation="[1080,398]" width="250" height="55" horizAlign="right" color="0xFFFFFFFF" />
-
-            <Rectangle id="difficultyRow" translation="[535,490]" width="850" height="90" color="0x18382DFF" />
-            <Label text="TRAIL DIFFICULTY" translation="[585,508]" width="430" height="55" color="0xFFFFFFFF" />
-            <Label id="difficultyChoice" text="NORMAL" translation="[1020,508]" width="310" height="55" horizAlign="right" color="0xFFFFFFFF" />
-
-            <Rectangle id="effectsRow" translation="[535,600]" width="850" height="90" color="0x18382DFF" />
-            <Label text="GAME EFFECTS" translation="[585,618]" width="390" height="55" color="0xFFFFFFFF" />
-            <Label id="effectsChoice" text="ON" translation="[1020,618]" width="310" height="55" horizAlign="right" color="0xFFFFFFFF" />
-
-            <Label text="UP/DOWN: SELECT • LEFT/RIGHT: CHANGE • OK: DEAL" translation="[390,780]" width="1140" height="55" horizAlign="center" color="0xD9E8E1FF" />
-            <Label text="BACK: RETURN TO BASECAMP" translation="[660,850]" width="600" height="50" horizAlign="center" color="0x91A9A0FF" />
+            <Label text="Configure your Color Clash trail table" translation="[560,275]" width="800" height="55" horizAlign="center" color="0x9FB7AEFF" />
+            <Rectangle translation="[490,335]" width="940" height="400" color="0x07130FFF" />
+            <Rectangle translation="[505,350]" width="910" height="370" color="0x0B1E18FF" />
+            <Rectangle id="botsRow" translation="[535,380]" width="850" height="90" color="0xF97316FF" /><Label text="BOT PLAYERS" translation="[585,398]" width="390" height="55" color="0xFFFFFFFF" /><Label id="botChoice" text="3" translation="[1080,398]" width="250" height="55" horizAlign="right" color="0xFFFFFFFF" />
+            <Rectangle id="difficultyRow" translation="[535,490]" width="850" height="90" color="0x18382DFF" /><Label text="TRAIL DIFFICULTY" translation="[585,508]" width="430" height="55" color="0xFFFFFFFF" /><Label id="difficultyChoice" text="NORMAL" translation="[1020,508]" width="310" height="55" horizAlign="right" color="0xFFFFFFFF" />
+            <Rectangle id="effectsRow" translation="[535,600]" width="850" height="90" color="0x18382DFF" /><Label text="PREMIUM EFFECTS" translation="[585,618]" width="430" height="55" color="0xFFFFFFFF" /><Label id="effectsChoice" text="ON" translation="[1020,618]" width="310" height="55" horizAlign="right" color="0xFFFFFFFF" />
+            <Label text="UP/DOWN: SELECT • LEFT/RIGHT: CHANGE • OK: DEAL" translation="[390,790]" width="1140" height="55" horizAlign="center" color="0xD9E8E1FF" />
+            <Label text="BACK: RETURN TO BASECAMP" translation="[660,860]" width="600" height="50" horizAlign="center" color="0x91A9A0FF" />
         </Group>
 
         <Group id="gameGroup" visible="false">
-            <Rectangle translation="[48,22]" width="235" height="55" color="0xF97316FF" />
-            <Label text="TN GAME" translation="[65,31]" width="200" height="38" horizAlign="center" color="0xFFFFFFFF" />
+            <Rectangle translation="[48,22]" width="235" height="55" color="0xF97316FF" /><Label text="TN GAME" translation="[65,31]" width="200" height="38" horizAlign="center" color="0xFFFFFFFF" />
             <Label text="COLOR CLASH" translation="[305,24]" width="360" height="55" color="0xFFFFFFFF" />
             <Label id="turnLabel" text="YOUR TURN" translation="[675,25]" width="570" height="60" horizAlign="center" color="0xF6A55CFF" />
             <Label id="messageLabel" text="Choose a legal card" translation="[1265,28]" width="590" height="55" horizAlign="right" color="0xD9E8E1FF" />
             <Label id="directionLabel" text="CLOCKWISE →" translation="[65,92]" width="430" height="42" color="0x91A9A0FF" />
 
-            <!-- Adventure table -->
-            <Rectangle translation="[430,180]" width="1060" height="505" color="0x0A1C16FF" />
-            <Rectangle translation="[448,198]" width="1024" height="469" color="0x102A21FF" />
-            <Rectangle translation="[470,220]" width="980" height="425" color="0x14382CFF" />
-            <Rectangle translation="[510,260]" width="900" height="345" color="0x123126FF" />
+            <!-- Premium trail table -->
+            <Rectangle id="tableAura" translation="[390,150]" width="1140" height="570" color="0xF9731614" />
+            <Rectangle translation="[410,170]" width="1100" height="530" color="0x07130FFF" />
+            <Rectangle translation="[430,190]" width="1060" height="490" color="0x0A1C16FF" />
+            <Rectangle translation="[448,208]" width="1024" height="454" color="0x102A21FF" />
+            <Rectangle translation="[470,230]" width="980" height="410" color="0x14382CFF" />
+            <Rectangle translation="[510,270]" width="900" height="330" color="0x123126FF" />
+            <Animation duration="2.4" repeat="true" control="start"><FloatFieldInterpolator key="[0,0.5,1]" keyValue="[0.15,0.55,0.15]" fieldToInterp="tableAura.opacity" /></Animation>
 
-            <Group id="topBotGroup">
-                <Rectangle translation="[735,125]" width="450" height="110" color="0x0B1E18FF" />
-                <Rectangle translation="[750,140]" width="72" height="72" color="0x2A5947FF" />
-                <Label text="S" translation="[750,154]" width="72" height="45" horizAlign="center" color="0xFFFFFFFF" />
-                <Label text="SCOUT BOT" translation="[840,145]" width="300" height="42" color="0xFFFFFFFF" />
-                <Label id="topBotCount" text="7 CARDS" translation="[840,188]" width="300" height="36" color="0xA7BDB5FF" />
-            </Group>
+            <Group id="topBotGroup"><Rectangle translation="[720,118]" width="480" height="120" color="0x06100DFF" /><Rectangle translation="[732,130]" width="456" height="96" color="0x0B1E18FF" /><Rectangle translation="[750,142]" width="72" height="72" color="0x2A5947FF" /><Label text="S" translation="[750,156]" width="72" height="45" horizAlign="center" color="0xFFFFFFFF" /><Label text="SCOUT BOT" translation="[840,145]" width="300" height="42" color="0xFFFFFFFF" /><Label id="topBotCount" text="7 CARDS" translation="[840,188]" width="300" height="36" color="0xA7BDB5FF" /></Group>
+            <Group id="leftBotGroup"><Rectangle translation="[45,340]" width="375" height="145" color="0x06100DFF" /><Rectangle translation="[55,350]" width="355" height="125" color="0x0B1E18FF" /><Rectangle translation="[75,375]" width="72" height="72" color="0x2A5947FF" /><Label text="F" translation="[75,389]" width="72" height="45" horizAlign="center" color="0xFFFFFFFF" /><Label text="FOX BOT" translation="[165,373]" width="220" height="42" color="0xFFFFFFFF" /><Label id="leftBotCount" text="7 CARDS" translation="[165,418]" width="220" height="36" color="0xA7BDB5FF" /></Group>
+            <Group id="rightBotGroup"><Rectangle translation="[1500,340]" width="375" height="145" color="0x06100DFF" /><Rectangle translation="[1510,350]" width="355" height="125" color="0x0B1E18FF" /><Rectangle translation="[1530,375]" width="72" height="72" color="0x2A5947FF" /><Label text="B" translation="[1530,389]" width="72" height="45" horizAlign="center" color="0xFFFFFFFF" /><Label text="BEAR BOT" translation="[1620,373]" width="220" height="42" color="0xFFFFFFFF" /><Label id="rightBotCount" text="7 CARDS" translation="[1620,418]" width="220" height="36" color="0xA7BDB5FF" /></Group>
 
-            <Group id="leftBotGroup">
-                <Rectangle translation="[55,350]" width="355" height="125" color="0x0B1E18FF" />
-                <Rectangle translation="[75,375]" width="72" height="72" color="0x2A5947FF" />
-                <Label text="F" translation="[75,389]" width="72" height="45" horizAlign="center" color="0xFFFFFFFF" />
-                <Label text="FOX BOT" translation="[165,373]" width="220" height="42" color="0xFFFFFFFF" />
-                <Label id="leftBotCount" text="7 CARDS" translation="[165,418]" width="220" height="36" color="0xA7BDB5FF" />
-            </Group>
+            <Rectangle translation="[695,305]" width="245" height="320" color="0x020605FF" /><Rectangle translation="[705,315]" width="225" height="300" color="0x06100DFF" /><Rectangle translation="[718,328]" width="199" height="274" color="0x244B3CFF" /><Label text="DRAW" translation="[718,400]" width="199" height="60" horizAlign="center" color="0xFFFFFFFF" /><Label id="deckCount" text="0" translation="[718,480]" width="199" height="50" horizAlign="center" color="0xB7CAC3FF" /><Label text="TRAIL DECK" translation="[718,545]" width="199" height="40" horizAlign="center" color="0x6F8D82FF" />
+            <Rectangle translation="[965,305]" width="245" height="320" color="0x020605FF" /><Rectangle translation="[975,315]" width="225" height="300" color="0x06100DFF" /><Rectangle id="discardCard" translation="[988,328]" width="199" height="274" color="0x2E7D32FF" /><Label id="discardText" text="5" translation="[988,390]" width="199" height="150" horizAlign="center" vertAlign="center" color="0xFFFFFFFF" /><Label id="activeColorLabel" text="ACTIVE: GREEN" translation="[920,625]" width="335" height="42" horizAlign="center" color="0xB9C5CCFF" />
+            <Animation duration="1.6" repeat="true" control="start"><FloatFieldInterpolator key="[0,0.5,1]" keyValue="[0.88,1,0.88]" fieldToInterp="discardCard.opacity" /></Animation>
 
-            <Group id="rightBotGroup">
-                <Rectangle translation="[1510,350]" width="355" height="125" color="0x0B1E18FF" />
-                <Rectangle translation="[1530,375]" width="72" height="72" color="0x2A5947FF" />
-                <Label text="B" translation="[1530,389]" width="72" height="45" horizAlign="center" color="0xFFFFFFFF" />
-                <Label text="BEAR BOT" translation="[1620,373]" width="220" height="42" color="0xFFFFFFFF" />
-                <Label id="rightBotCount" text="7 CARDS" translation="[1620,418]" width="220" height="36" color="0xA7BDB5FF" />
-            </Group>
-
-            <Rectangle translation="[705,315]" width="225" height="300" color="0x06100DFF" />
-            <Rectangle translation="[718,328]" width="199" height="274" color="0x244B3CFF" />
-            <Label text="DRAW" translation="[718,400]" width="199" height="60" horizAlign="center" color="0xFFFFFFFF" />
-            <Label id="deckCount" text="0" translation="[718,480]" width="199" height="50" horizAlign="center" color="0xB7CAC3FF" />
-            <Label text="DECK" translation="[718,545]" width="199" height="40" horizAlign="center" color="0x6F8D82FF" />
-
-            <Rectangle translation="[975,315]" width="225" height="300" color="0x06100DFF" />
-            <Rectangle id="discardCard" translation="[988,328]" width="199" height="274" color="0x2E7D32FF" />
-            <Label id="discardText" text="5" translation="[988,390]" width="199" height="150" horizAlign="center" vertAlign="center" color="0xFFFFFFFF" />
-            <Label id="activeColorLabel" text="ACTIVE: GREEN" translation="[920,625]" width="335" height="42" horizAlign="center" color="0xB9C5CCFF" />
-
-            <Rectangle translation="[610,682]" width="700" height="60" color="0x0B1E18FF" />
-            <Label id="playerCount" text="YOU • 7 CARDS" translation="[630,695]" width="660" height="40" horizAlign="center" color="0xFFFFFFFF" />
-
+            <Rectangle translation="[590,675]" width="740" height="74" color="0x06100DFF" /><Rectangle translation="[610,687]" width="700" height="50" color="0x0B1E18FF" /><Label id="playerCount" text="YOU • 7 CARDS" translation="[630,695]" width="660" height="40" horizAlign="center" color="0xFFFFFFFF" />
             <Group id="handGroup">
                 <Rectangle id="selection" width="150" height="260" color="0xF6A55C88" />
                 <Rectangle id="card0" width="140" height="240" /><Label id="cardText0" width="140" height="100" horizAlign="center" vertAlign="center" />
@@ -121,52 +90,37 @@
                 <Rectangle id="card7" width="140" height="240" /><Label id="cardText7" width="140" height="100" horizAlign="center" vertAlign="center" />
                 <Rectangle id="card8" width="140" height="240" /><Label id="cardText8" width="140" height="100" horizAlign="center" vertAlign="center" />
                 <Rectangle id="card9" width="140" height="240" /><Label id="cardText9" width="140" height="100" horizAlign="center" vertAlign="center" />
+                <Animation duration="0.9" repeat="true" control="start"><FloatFieldInterpolator key="[0,0.5,1]" keyValue="[0.35,0.95,0.35]" fieldToInterp="selection.opacity" /></Animation>
             </Group>
-
             <Label id="footerLabel" text="LEFT/RIGHT: SELECT • OK: PLAY • DOWN: DRAW • PLAY/PAUSE: PAUSE" translation="[300,1022]" width="1320" height="42" horizAlign="center" color="0x91A9A0FF" />
-            <Timer id="botTimer" duration="1.15" repeat="false" />
-            <Timer id="bannerTimer" duration="1.1" repeat="false" />
+            <Timer id="botTimer" duration="1.15" repeat="false" /><Timer id="bannerTimer" duration="1.1" repeat="false" />
         </Group>
 
         <Group id="actionGroup" visible="false">
-            <Rectangle translation="[555,205]" width="810" height="185" color="0x06100DF5" />
-            <Rectangle translation="[570,220]" width="780" height="155" color="0x102A21FF" />
-            <Label id="actionText" text="SKIP!" translation="[590,255]" width="740" height="95" horizAlign="center" color="0xF6A55CFF" />
+            <Rectangle id="actionAura" translation="[525,180]" width="870" height="235" color="0xF9731633" /><Rectangle translation="[555,205]" width="810" height="185" color="0x06100DF5" /><Rectangle translation="[570,220]" width="780" height="155" color="0x102A21FF" /><Label id="actionText" text="SKIP!" translation="[590,255]" width="740" height="95" horizAlign="center" color="0xF6A55CFF" />
+            <Animation duration="0.55" repeat="true" control="start"><FloatFieldInterpolator key="[0,0.5,1]" keyValue="[0.15,0.9,0.15]" fieldToInterp="actionAura.opacity" /></Animation>
         </Group>
 
         <Group id="wildGroup" visible="false">
-            <Rectangle translation="[350,180]" width="1220" height="700" color="0x06100DF7" />
-            <Rectangle translation="[385,215]" width="1150" height="630" color="0x102A21FF" />
-            <Label text="CHOOSE YOUR TRAIL COLOR" translation="[510,285]" width="900" height="90" horizAlign="center" color="0xFFFFFFFF" />
-            <Label text="The next player must follow your route" translation="[560,380]" width="800" height="55" horizAlign="center" color="0x9FB7AEFF" />
-            <Rectangle translation="[760,455]" width="400" height="230" color="0x06100DFF" />
-            <Rectangle id="wildColorCard" translation="[780,475]" width="360" height="190" color="0xC62828FF" />
-            <Label id="wildColorText" text="RED" translation="[780,525]" width="360" height="90" horizAlign="center" color="0xFFFFFFFF" />
+            <Rectangle translation="[350,180]" width="1220" height="700" color="0x06100DF7" /><Rectangle translation="[385,215]" width="1150" height="630" color="0x102A21FF" />
+            <Label text="CHOOSE YOUR TRAIL COLOR" translation="[510,285]" width="900" height="90" horizAlign="center" color="0xFFFFFFFF" /><Label text="The next player must follow your route" translation="[560,380]" width="800" height="55" horizAlign="center" color="0x9FB7AEFF" />
+            <Rectangle id="wildAura" translation="[730,425]" width="460" height="290" color="0xF9731633" /><Rectangle translation="[760,455]" width="400" height="230" color="0x06100DFF" /><Rectangle id="wildColorCard" translation="[780,475]" width="360" height="190" color="0xC62828FF" /><Label id="wildColorText" text="RED" translation="[780,525]" width="360" height="90" horizAlign="center" color="0xFFFFFFFF" />
+            <Animation duration="0.8" repeat="true" control="start"><FloatFieldInterpolator key="[0,0.5,1]" keyValue="[0.2,0.9,0.2]" fieldToInterp="wildAura.opacity" /></Animation>
             <Label text="LEFT/RIGHT: CHANGE • OK: CONFIRM" translation="[560,735]" width="800" height="55" horizAlign="center" color="0xD9E8E1FF" />
         </Group>
 
         <Group id="pauseGroup" visible="false">
-            <Rectangle translation="[350,180]" width="1220" height="700" color="0x06100DF7" />
-            <Rectangle translation="[385,215]" width="1150" height="630" color="0x102A21FF" />
-            <Rectangle translation="[760,285]" width="400" height="70" color="0xF97316FF" />
-            <Label text="TRAIL PAUSED" translation="[760,298]" width="400" height="48" horizAlign="center" color="0xFFFFFFFF" />
-            <Label id="pauseEffects" text="EFFECTS: ON" translation="[610,455]" width="700" height="70" horizAlign="center" color="0xFFFFFFFF" />
-            <Label text="LEFT/RIGHT: TOGGLE EFFECTS" translation="[560,560]" width="800" height="55" horizAlign="center" color="0xB7CAC3FF" />
-            <Label text="OK OR PLAY/PAUSE: RESUME" translation="[560,650]" width="800" height="55" horizAlign="center" color="0xFFFFFFFF" />
-            <Label text="BACK: RETURN TO BASECAMP" translation="[610,735]" width="700" height="50" horizAlign="center" color="0x91A9A0FF" />
+            <Rectangle translation="[350,180]" width="1220" height="700" color="0x06100DF7" /><Rectangle translation="[385,215]" width="1150" height="630" color="0x102A21FF" /><Rectangle translation="[760,285]" width="400" height="70" color="0xF97316FF" /><Label text="TRAIL PAUSED" translation="[760,298]" width="400" height="48" horizAlign="center" color="0xFFFFFFFF" /><Label id="pauseEffects" text="EFFECTS: ON" translation="[610,455]" width="700" height="70" horizAlign="center" color="0xFFFFFFFF" /><Label text="LEFT/RIGHT: TOGGLE EFFECTS" translation="[560,560]" width="800" height="55" horizAlign="center" color="0xB7CAC3FF" /><Label text="OK OR PLAY/PAUSE: RESUME" translation="[560,650]" width="800" height="55" horizAlign="center" color="0xFFFFFFFF" /><Label text="BACK: RETURN TO BASECAMP" translation="[610,735]" width="700" height="50" horizAlign="center" color="0x91A9A0FF" />
         </Group>
 
         <Group id="winnerGroup" visible="false">
-            <Rectangle translation="[280,135]" width="1360" height="820" color="0x06100DF7" />
-            <Rectangle translation="[315,170]" width="1290" height="750" color="0x102A21FF" />
-            <Rectangle translation="[650,230]" width="620" height="75" color="0xF97316FF" />
-            <Label text="TRAIL COMPLETE" translation="[650,244]" width="620" height="48" horizAlign="center" color="0xFFFFFFFF" />
-            <Label id="winnerTitle" text="YOU WIN!" translation="[460,340]" width="1000" height="120" horizAlign="center" color="0xF6A55CFF" />
-            <Label id="winnerMessage" text="Great game" translation="[510,485]" width="900" height="75" horizAlign="center" color="0xFFFFFFFF" />
-            <Rectangle translation="[470,590]" width="980" height="105" color="0x0B1E18FF" />
-            <Label id="winnerStats" text="18 CARDS PLAYED • 4 DRAWN • 03:42" translation="[490,615]" width="940" height="60" horizAlign="center" color="0xD9E8E1FF" />
-            <Rectangle translation="[660,755]" width="600" height="100" color="0xF97316FF" />
-            <Label text="OK: PLAY AGAIN • BACK: MENU" translation="[660,777]" width="600" height="55" horizAlign="center" color="0xFFFFFFFF" />
+            <Rectangle translation="[280,135]" width="1360" height="820" color="0x06100DF7" /><Rectangle translation="[315,170]" width="1290" height="750" color="0x102A21FF" />
+            <Rectangle id="confetti1" translation="[430,205]" width="16" height="60" color="0xF97316FF" /><Rectangle id="confetti2" translation="[620,170]" width="16" height="60" color="0xF9A825FF" /><Rectangle id="confetti3" translation="[1260,185]" width="16" height="60" color="0x2E7D32FF" /><Rectangle id="confetti4" translation="[1450,220]" width="16" height="60" color="0x1565C0FF" />
+            <Animation duration="2.2" repeat="true" control="start"><Vector2DFieldInterpolator key="[0,1]" keyValue="[[430,205],[520,820]]" fieldToInterp="confetti1.translation" /></Animation>
+            <Animation duration="2.7" repeat="true" control="start"><Vector2DFieldInterpolator key="[0,1]" keyValue="[[620,170],[700,850]]" fieldToInterp="confetti2.translation" /></Animation>
+            <Animation duration="2.4" repeat="true" control="start"><Vector2DFieldInterpolator key="[0,1]" keyValue="[[1260,185],[1180,840]]" fieldToInterp="confetti3.translation" /></Animation>
+            <Animation duration="2.9" repeat="true" control="start"><Vector2DFieldInterpolator key="[0,1]" keyValue="[[1450,220],[1360,850]]" fieldToInterp="confetti4.translation" /></Animation>
+            <Rectangle translation="[650,230]" width="620" height="75" color="0xF97316FF" /><Label text="TRAIL COMPLETE" translation="[650,244]" width="620" height="48" horizAlign="center" color="0xFFFFFFFF" /><Label id="winnerTitle" text="YOU WIN!" translation="[460,340]" width="1000" height="120" horizAlign="center" color="0xF6A55CFF" /><Label id="winnerMessage" text="Great game" translation="[510,485]" width="900" height="75" horizAlign="center" color="0xFFFFFFFF" /><Rectangle translation="[470,590]" width="980" height="105" color="0x0B1E18FF" /><Label id="winnerStats" text="18 CARDS PLAYED • 4 DRAWN • 03:42" translation="[490,615]" width="940" height="60" horizAlign="center" color="0xD9E8E1FF" /><Rectangle translation="[660,755]" width="600" height="100" color="0xF97316FF" /><Label text="OK: PLAY AGAIN • BACK: MENU" translation="[660,777]" width="600" height="55" horizAlign="center" color="0xFFFFFFFF" />
         </Group>
     </children>
 </component>
