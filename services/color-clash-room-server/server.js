@@ -8,6 +8,7 @@ const WEB_ROOT = join(process.cwd(), '../../experiences/web/color-clash-controll
 const rooms = new Map();
 const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const colors = ['RED', 'GREEN', 'BLUE', 'GOLD'];
+const ONE_PIXEL_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
 
 function code() {
   let value = '';
@@ -25,6 +26,17 @@ function json(res, status, body) {
     'cache-control': 'no-store'
   });
   res.end(JSON.stringify(body));
+}
+
+function image(res, status, type, data) {
+  res.writeHead(status, {
+    'content-type': type,
+    'content-length': data.length,
+    'cache-control': 'no-store',
+    'access-control-allow-origin': '*',
+    connection: 'close'
+  });
+  res.end(data);
 }
 
 async function body(req) {
@@ -160,13 +172,41 @@ function applyCard(room, playerIndex, card, chosenColor) {
   game.turnIndex = target;
 }
 
+async function qrImage(res, url) {
+  const data = String(url.searchParams.get('data') || '').slice(0, 500);
+  if (!data) return image(res, 400, 'image/png', ONE_PIXEL_PNG);
+
+  try {
+    const source = `https://api.qrserver.com/v1/create-qr-code/?size=420x420&margin=12&data=${encodeURIComponent(data)}`;
+    const response = await fetch(source, { headers: { accept: 'image/png' } });
+    if (!response.ok) throw new Error(`QR service returned ${response.status}`);
+    const png = Buffer.from(await response.arrayBuffer());
+    return image(res, 200, response.headers.get('content-type') || 'image/png', png);
+  } catch (error) {
+    console.error('QR proxy failed:', error.message);
+    return image(res, 502, 'image/png', ONE_PIXEL_PNG);
+  }
+}
+
 async function api(req, res, url) {
   if (req.method === 'OPTIONS') return json(res, 204, {});
+  if (req.method === 'GET' && url.pathname === '/api/qr') return qrImage(res, url);
+
   if (req.method === 'POST' && url.pathname === '/api/rooms') {
     const roomCode = code();
     const room = { code: roomCode, status: 'lobby', version: 1, players: [], game: null, createdAt: Date.now(), updatedAt: Date.now() };
     rooms.set(roomCode, room);
     return json(res, 201, publicRoom(room));
+  }
+
+  const signal = url.pathname.match(/^\/api\/rooms\/([A-Z0-9]{4})\/start-signal\.png$/);
+  if (req.method === 'GET' && signal) {
+    const room = rooms.get(signal[1]);
+    if (room && room.status === 'lobby' && room.players.length > 0) {
+      startGame(room);
+      touch(room);
+    }
+    return image(res, room ? 200 : 404, 'image/png', ONE_PIXEL_PNG);
   }
 
   const match = url.pathname.match(/^\/api\/rooms\/([A-Z0-9]{4})(?:\/(join|start|state|play|draw))?$/);
