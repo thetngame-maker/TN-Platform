@@ -5,13 +5,15 @@ sub init()
   m.pollBusy = false
   m.activePollTask = invalid
   m.activeStartTask = invalid
+  m.activeRecoveryTask = invalid
   m.startPending = false
-  ids = ["homeGroup","loadingGroup","lobbyGroup","gameGroup","errorGroup","loadingMessage","joinUrl","qrCode","roomCode","lobbyStatus","playerList","startButton","startLabel","turnLabel","gameMessage","deckCount","discardCard","discardText","activeColor","gamePlayers","errorText","pollTimer","createTask"]
+  ids = ["homeGroup","loadingGroup","lobbyGroup","gameGroup","errorGroup","loadingMessage","joinUrl","qrCode","roomCode","lobbyStatus","playerList","startButton","startLabel","turnLabel","gameMessage","deckCount","discardCard","discardText","activeColor","gamePlayers","errorText","pollTimer","startRecoveryTimer","createTask"]
   for each id in ids
     m[id] = m.top.findNode(id)
   end for
   m.joinUrl.text = m.baseUrl
   m.pollTimer.observeField("fire", "pollRoom")
+  m.startRecoveryTimer.observeField("fire", "recoverStartedRoom")
   m.createTask.observeField("complete", "onCreateComplete")
   m.top.setFocus(true)
 end sub
@@ -47,27 +49,32 @@ end sub
 
 sub showHome()
   m.pollTimer.control = "stop"
+  m.startRecoveryTimer.control = "stop"
   m.pollBusy = false
   m.startPending = false
   m.room = invalid
   stopTask(m.createTask)
   destroyPollTask()
   destroyStartTask()
+  destroyRecoveryTask()
   showOnly("home")
 end sub
 
 sub createRoom()
   m.pollTimer.control = "stop"
+  m.startRecoveryTimer.control = "stop"
   m.pollBusy = false
   m.startPending = false
   destroyPollTask()
   destroyStartTask()
+  destroyRecoveryTask()
   showOnly("loading")
   m.loadingMessage.text = "Creating a live room on " + m.baseUrl
   runTask(m.createTask, "POST", m.baseUrl + "/api/rooms", "{}")
 end sub
 
 sub pollRoom()
+  if m.startPending then return
   if m.room = invalid or m.pollBusy then return
   m.pollBusy = true
   destroyPollTask()
@@ -98,6 +105,7 @@ sub startGame()
   m.startPending = true
   m.startLabel.text = "STARTING..."
   m.startButton.color = "0x8A3D0BFF"
+
   task = m.top.createChild("RoomRequestTask")
   m.activeStartTask = task
   task.observeField("complete", "onDynamicStartComplete")
@@ -106,7 +114,22 @@ sub startGame()
   task.payload = ""
   task.complete = false
   task.control = "RUN"
-  m.pollTimer.control = "start"
+
+  m.startRecoveryTimer.control = "start"
+  recoverStartedRoom()
+end sub
+
+sub recoverStartedRoom()
+  if not m.startPending or m.room = invalid then return
+  if m.activeRecoveryTask <> invalid then return
+  task = m.top.createChild("RoomRequestTask")
+  m.activeRecoveryTask = task
+  task.observeField("complete", "onRecoveryComplete")
+  task.method = "GET"
+  task.url = m.baseUrl + "/api/rooms/" + m.room.code + "?recover=" + CreateObject("roDateTime").AsSeconds().toStr()
+  task.payload = ""
+  task.complete = false
+  task.control = "RUN"
 end sub
 
 sub destroyStartTask()
@@ -115,6 +138,15 @@ sub destroyStartTask()
     m.activeStartTask.control = "STOP"
     m.top.removeChild(m.activeStartTask)
     m.activeStartTask = invalid
+  end if
+end sub
+
+sub destroyRecoveryTask()
+  if m.activeRecoveryTask <> invalid
+    m.activeRecoveryTask.unobserveField("complete")
+    m.activeRecoveryTask.control = "STOP"
+    m.top.removeChild(m.activeRecoveryTask)
+    m.activeRecoveryTask = invalid
   end if
 end sub
 
@@ -148,23 +180,51 @@ sub onDynamicStartComplete()
   task = m.activeStartTask
   if task = invalid or not task.complete then return
   if task.error = ""
-    handleResult(task, "start")
-  else
-    m.pollBusy = false
-    destroyStartTask()
-    pollRoom()
+    data = ParseJson(task.result)
+    if data <> invalid and data.status <> "lobby"
+      m.room = data
+      enterGameBoard()
+      return
+    end if
   end if
+  destroyStartTask()
+end sub
+
+sub onRecoveryComplete()
+  task = m.activeRecoveryTask
+  if task = invalid or not task.complete then return
+  if task.error = ""
+    data = ParseJson(task.result)
+    if data <> invalid
+      m.room = data
+      if m.room.status <> "lobby"
+        destroyRecoveryTask()
+        enterGameBoard()
+        return
+      end if
+    end if
+  end if
+  destroyRecoveryTask()
+end sub
+
+sub enterGameBoard()
+  m.startPending = false
+  m.pollBusy = false
+  m.startRecoveryTimer.control = "stop"
+  destroyStartTask()
+  destroyRecoveryTask()
+  showOnly("game")
+  renderGame()
+  m.pollTimer.control = "start"
 end sub
 
 sub handleResult(task as object, kind as string)
   if task.error <> ""
-    if kind = "poll" and m.startPending then return
     showError(task.error)
     return
   end if
   data = ParseJson(task.result)
   if data = invalid
-    if kind = "poll" and m.startPending then return
     showError("The room server returned an unreadable response.")
     return
   end if
@@ -174,28 +234,12 @@ sub handleResult(task as object, kind as string)
     renderLobby()
     m.pollTimer.control = "start"
     pollRoom()
-  else if kind = "start"
-    m.startPending = false
-    m.pollBusy = false
-    destroyStartTask()
-    showOnly("game")
-    renderGame()
-    m.pollTimer.control = "start"
   else
     if m.room.status = "lobby"
       showOnly("lobby")
-      if m.startPending
-        m.startLabel.text = "STARTING..."
-        m.startButton.color = "0x8A3D0BFF"
-      else
-        renderLobby()
-      end if
+      renderLobby()
     else
-      m.startPending = false
-      m.pollBusy = false
-      destroyStartTask()
-      showOnly("game")
-      renderGame()
+      enterGameBoard()
     end if
   end if
 end sub
@@ -283,10 +327,12 @@ end function
 
 sub showError(message as string)
   m.pollTimer.control = "stop"
+  m.startRecoveryTimer.control = "stop"
   m.pollBusy = false
   m.startPending = false
   destroyPollTask()
   destroyStartTask()
+  destroyRecoveryTask()
   m.errorText.text = message + chr(10) + chr(10) + "Confirm the Mac room server is running and both devices are on the same Wi-Fi."
   showOnly("error")
 end sub
