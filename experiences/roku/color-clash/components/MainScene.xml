@@ -64,8 +64,9 @@
       <Label text="OK: TRY AGAIN  •  BACK: HOME" translation="[590,645]" width="740" height="55" horizAlign="center" color="0xA7BDB5FF" />
     </Group>
 
+    <Timer id="pollTimer" duration="1" repeat="true" />
     <RoomRequestTask id="createTask" />
-    <RoomPollTask id="pollTask" />
+    <RoomRequestTask id="pollTask" />
     <Poster id="startSignal" translation="[1918,1078]" width="1" height="1" opacity="0.01" />
   </children>
 </component>
