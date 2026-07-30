@@ -3,17 +3,17 @@ sub init()
   m.mode = "home"
   m.room = invalid
   m.startPending = false
+  m.pollBusy = false
 
-  ids = ["homeGroup","loadingGroup","lobbyGroup","gameGroup","errorGroup","loadingMessage","joinUrl","qrCode","startSignal","roomCode","lobbyStatus","playerList","startButton","startLabel","turnLabel","gameMessage","deckCount","discardCard","discardText","activeColor","gamePlayers","errorText","createTask","pollTask"]
+  ids = ["homeGroup","loadingGroup","lobbyGroup","gameGroup","errorGroup","loadingMessage","joinUrl","qrCode","startSignal","roomCode","lobbyStatus","playerList","startButton","startLabel","turnLabel","gameMessage","deckCount","discardCard","discardText","activeColor","gamePlayers","errorText","pollTimer","createTask","pollTask"]
   for each id in ids
     m[id] = m.top.findNode(id)
   end for
 
   m.joinUrl.text = m.baseUrl
   m.createTask.observeField("complete", "onCreateComplete")
-  m.pollTask.observeField("result", "onPollResult")
-  m.pollTask.observeField("error", "onPollError")
-  m.pollTask.control = "RUN"
+  m.pollTask.observeField("complete", "onPollComplete")
+  m.pollTimer.observeField("fire", "pollRoom")
   m.top.setFocus(true)
 end sub
 
@@ -47,20 +47,22 @@ sub showOnly(name as string)
 end sub
 
 sub showHome()
-  m.pollTask.active = false
-  m.pollTask.roomUrl = ""
+  m.pollTimer.control = "stop"
+  m.pollBusy = false
   m.startPending = false
   m.room = invalid
   m.startSignal.uri = ""
   stopTask(m.createTask)
+  stopTask(m.pollTask)
   showOnly("home")
 end sub
 
 sub createRoom()
-  m.pollTask.active = false
-  m.pollTask.roomUrl = ""
+  m.pollTimer.control = "stop"
+  m.pollBusy = false
   m.startPending = false
   m.startSignal.uri = ""
+  stopTask(m.pollTask)
   showOnly("loading")
   m.loadingMessage.text = "Creating a live room on " + m.baseUrl
   runTask(m.createTask, "POST", m.baseUrl + "/api/rooms", "{}")
@@ -79,6 +81,9 @@ sub startGame()
 
   stamp = CreateObject("roDateTime").AsSeconds().toStr()
   m.startSignal.uri = m.baseUrl + "/api/rooms/" + m.room.code + "/start-signal.png?t=" + stamp
+
+  m.pollTimer.control = "start"
+  pollRoom()
 end sub
 
 sub stopTask(task as object)
@@ -91,7 +96,17 @@ sub runTask(task as object, method as string, url as string, payload as string)
   task.url = url
   task.payload = payload
   task.complete = false
+  task.result = ""
+  task.error = ""
+  task.statusCode = 0
   task.control = "RUN"
+end sub
+
+sub pollRoom()
+  if m.room = invalid or m.pollBusy then return
+  m.pollBusy = true
+  stamp = CreateObject("roDateTime").AsSeconds().toStr()
+  runTask(m.pollTask, "GET", m.baseUrl + "/api/rooms/" + m.room.code + "?v=" + stamp, "")
 end sub
 
 sub onCreateComplete()
@@ -110,14 +125,25 @@ sub onCreateComplete()
   m.room = data
   showOnly("lobby")
   renderLobby()
-  m.pollTask.roomUrl = m.baseUrl + "/api/rooms/" + m.room.code
-  m.pollTask.active = true
+  m.pollTimer.control = "start"
+  pollRoom()
 end sub
 
-sub onPollResult()
+sub onPollComplete()
+  if not m.pollTask.complete then return
+  m.pollBusy = false
+
+  if m.pollTask.error <> ""
+    if m.startPending
+      m.gameMessage.text = "Reconnecting to live table..."
+    else if m.mode = "lobby"
+      m.lobbyStatus.text = "Reconnecting to room server..."
+    end if
+    return
+  end if
+
   response = m.pollTask.result
   if response = invalid or response = "" then return
-
   data = ParseJson(response)
   if data = invalid then return
 
@@ -133,16 +159,6 @@ sub onPollResult()
     m.startPending = false
     showOnly("game")
     renderGame()
-  end if
-end sub
-
-sub onPollError()
-  message = m.pollTask.error
-  if message = invalid or message = "" then return
-  if m.startPending
-    m.gameMessage.text = "Reconnecting to live table..."
-  else if m.mode = "lobby"
-    m.lobbyStatus.text = "Reconnecting to room server..."
   end if
 end sub
 
@@ -241,8 +257,10 @@ function textColor(color as string) as string
 end function
 
 sub showError(message as string)
-  m.pollTask.active = false
+  m.pollTimer.control = "stop"
+  m.pollBusy = false
   m.startPending = false
+  stopTask(m.pollTask)
   m.errorText.text = message + chr(10) + chr(10) + "Confirm the Mac room server is running and both devices are on the same Wi-Fi."
   showOnly("error")
 end sub
