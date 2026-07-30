@@ -3,17 +3,20 @@ sub init()
   m.appState = "home"
   m.room = invalid
   m.startPending = false
+  m.pollBusy = false
+  m.pollIndex = 0
+  m.pollSequence = 0
 
-  ids = ["homeGroup","loadingGroup","lobbyGroup","gameGroup","errorGroup","loadingMessage","joinUrl","qrCode","startSignal","roomCode","lobbyStatus","playerList","startButton","startLabel","turnLabel","gameMessage","deckCount","discardCard","discardText","activeColor","gamePlayers","errorText","createTask","networkManager"]
+  ids = ["homeGroup","loadingGroup","lobbyGroup","gameGroup","errorGroup","loadingMessage","joinUrl","qrCode","startSignal","roomCode","lobbyStatus","playerList","startButton","startLabel","turnLabel","gameMessage","deckCount","discardCard","discardText","activeColor","gamePlayers","errorText","createTask","pollTaskA","pollTaskB","pollTimer"]
   for each id in ids
     m[id] = m.top.findNode(id)
   end for
 
   m.joinUrl.text = m.baseUrl
   m.createTask.observeField("complete", "onCreateComplete")
-  m.networkManager.observeField("updateId", "onNetworkUpdate")
-  m.networkManager.observeField("networkState", "onNetworkState")
-  m.networkManager.observeField("error", "onNetworkError")
+  m.pollTaskA.observeField("complete", "onPollAComplete")
+  m.pollTaskB.observeField("complete", "onPollBComplete")
+  m.pollTimer.observeField("fire", "onPollTimer")
   transitionTo("home")
   m.top.setFocus(true)
 end sub
@@ -45,7 +48,7 @@ sub transitionTo(state as string)
   m.errorGroup.visible = state = "error"
 
   if state = "home"
-    stopNetworkManager()
+    stopPolling()
     m.room = invalid
     m.startPending = false
     m.startSignal.uri = ""
@@ -53,7 +56,7 @@ sub transitionTo(state as string)
 end sub
 
 sub createRoom()
-  stopNetworkManager()
+  stopPolling()
   m.room = invalid
   m.startPending = false
   m.startSignal.uri = ""
@@ -90,22 +93,88 @@ sub onCreateComplete()
   m.room = data
   transitionTo("lobby")
   renderLobby()
-  startNetworkManager()
+  startPolling()
 end sub
 
-sub startNetworkManager()
+sub startPolling()
   if m.room = invalid then return
-  m.networkManager.control = "STOP"
-  m.networkManager.roomUrl = m.baseUrl + "/api/rooms/" + m.room.code
-  m.networkManager.snapshot = ""
-  m.networkManager.updateId = 0
-  m.networkManager.error = ""
-  m.networkManager.networkState = "idle"
-  m.networkManager.control = "RUN"
+  stopPolling()
+  m.pollBusy = false
+  m.pollIndex = 0
+  m.pollSequence = 0
+  m.pollTimer.control = "start"
+  runNextPoll()
 end sub
 
-sub stopNetworkManager()
-  if m.networkManager <> invalid then m.networkManager.control = "STOP"
+sub stopPolling()
+  if m.pollTimer <> invalid then m.pollTimer.control = "stop"
+  if m.pollTaskA <> invalid then m.pollTaskA.control = "STOP"
+  if m.pollTaskB <> invalid then m.pollTaskB.control = "STOP"
+  m.pollBusy = false
+end sub
+
+sub onPollTimer()
+  runNextPoll()
+end sub
+
+sub runNextPoll()
+  if m.room = invalid or m.pollBusy then return
+
+  m.pollBusy = true
+  m.pollSequence += 1
+  if m.pollIndex = 0
+    task = m.pollTaskA
+    m.pollIndex = 1
+  else
+    task = m.pollTaskB
+    m.pollIndex = 0
+  end if
+
+  task.control = "STOP"
+  task.method = "GET"
+  task.url = m.baseUrl + "/api/rooms/" + m.room.code + "?v=" + m.pollSequence.toStr()
+  task.payload = ""
+  task.complete = false
+  task.result = ""
+  task.error = ""
+  task.statusCode = 0
+  task.control = "RUN"
+end sub
+
+sub onPollAComplete()
+  handlePollComplete(m.pollTaskA)
+end sub
+
+sub onPollBComplete()
+  handlePollComplete(m.pollTaskB)
+end sub
+
+sub handlePollComplete(task as object)
+  if not task.complete then return
+  m.pollBusy = false
+
+  if task.error <> ""
+    showReconnectState()
+    return
+  end if
+
+  response = task.result
+  if response = invalid or response = "" then return
+
+  data = ParseJson(response)
+  if data = invalid then return
+
+  m.room = data
+  applyRoomState()
+end sub
+
+sub showReconnectState()
+  if m.appState = "lobby"
+    m.lobbyStatus.text = "Reconnecting to room server..."
+  else if m.appState = "starting" or m.appState = "playing" or m.appState = "reconnecting"
+    transitionTo("reconnecting")
+    m.gameMessage.text = "Reconnecting to live table..."
+  end if
 end sub
 
 sub startGame()
@@ -121,18 +190,6 @@ sub startGame()
 
   stamp = CreateObject("roDateTime").AsSeconds().toStr()
   m.startSignal.uri = m.baseUrl + "/api/rooms/" + m.room.code + "/start-signal.png?t=" + stamp
-end sub
-
-sub onNetworkUpdate()
-  if m.networkManager.updateId <= 0 then return
-  response = m.networkManager.snapshot
-  if response = invalid or response = "" then return
-
-  data = ParseJson(response)
-  if data = invalid then return
-
-  m.room = data
-  applyRoomState()
 end sub
 
 sub applyRoomState()
@@ -154,32 +211,6 @@ sub applyRoomState()
     m.startPending = false
     transitionTo("finished")
     renderGame()
-  end if
-end sub
-
-sub onNetworkState()
-  state = m.networkManager.networkState
-  if state = "connecting"
-    if m.appState = "lobby" then m.lobbyStatus.text = "Connecting to room server..."
-  else if state = "reconnecting"
-    if m.appState = "lobby"
-      m.lobbyStatus.text = "Reconnecting to room server..."
-    else if m.appState = "starting" or m.appState = "playing"
-      transitionTo("reconnecting")
-      m.gameMessage.text = "Reconnecting to live table..."
-    end if
-  else if state = "connected" and m.appState = "reconnecting"
-    applyRoomState()
-  end if
-end sub
-
-sub onNetworkError()
-  message = m.networkManager.error
-  if message = invalid or message = "" then return
-  if m.appState = "lobby"
-    m.lobbyStatus.text = "Reconnecting to room server..."
-  else if m.appState = "starting" or m.appState = "playing" or m.appState = "reconnecting"
-    m.gameMessage.text = "Reconnecting to live table..."
   end if
 end sub
 
@@ -278,7 +309,7 @@ function textColor(color as string) as string
 end function
 
 sub showError(message as string)
-  stopNetworkManager()
+  stopPolling()
   m.startPending = false
   m.errorText.text = message + chr(10) + chr(10) + "Confirm the Mac room server is running and both devices are on the same Wi-Fi."
   transitionTo("error")
