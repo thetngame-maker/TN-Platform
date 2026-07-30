@@ -3,14 +3,14 @@ sub init()
   m.mode = "home"
   m.room = invalid
   m.pollBusy = false
-  ids = ["homeGroup","loadingGroup","lobbyGroup","gameGroup","errorGroup","loadingMessage","joinUrl","roomCode","lobbyStatus","playerList","startButton","startLabel","turnLabel","gameMessage","deckCount","discardCard","discardText","activeColor","gamePlayers","errorText","pollTimer","createTask","pollTask","startTask"]
+  m.activePollTask = invalid
+  ids = ["homeGroup","loadingGroup","lobbyGroup","gameGroup","errorGroup","loadingMessage","joinUrl","roomCode","lobbyStatus","playerList","startButton","startLabel","turnLabel","gameMessage","deckCount","discardCard","discardText","activeColor","gamePlayers","errorText","pollTimer","createTask","startTask"]
   for each id in ids
     m[id] = m.top.findNode(id)
   end for
   m.joinUrl.text = m.baseUrl
   m.pollTimer.observeField("fire", "pollRoom")
   m.createTask.observeField("complete", "onCreateComplete")
-  m.pollTask.observeField("complete", "onPollComplete")
   m.startTask.observeField("complete", "onStartComplete")
   m.top.setFocus(true)
 end sub
@@ -49,14 +49,15 @@ sub showHome()
   m.pollBusy = false
   m.room = invalid
   stopTask(m.createTask)
-  stopTask(m.pollTask)
   stopTask(m.startTask)
+  destroyPollTask()
   showOnly("home")
 end sub
 
 sub createRoom()
   m.pollTimer.control = "stop"
   m.pollBusy = false
+  destroyPollTask()
   showOnly("loading")
   m.loadingMessage.text = "Creating a live room on " + m.baseUrl
   runTask(m.createTask, "POST", m.baseUrl + "/api/rooms", "{}")
@@ -65,12 +66,30 @@ end sub
 sub pollRoom()
   if m.room = invalid or m.pollBusy then return
   m.pollBusy = true
-  runTask(m.pollTask, "GET", m.baseUrl + "/api/rooms/" + m.room.code, "")
+  destroyPollTask()
+  task = m.top.createChild("RoomRequestTask")
+  m.activePollTask = task
+  task.observeField("complete", "onDynamicPollComplete")
+  task.method = "GET"
+  task.url = m.baseUrl + "/api/rooms/" + m.room.code + "?v=" + m.room.version.toStr()
+  task.payload = ""
+  task.complete = false
+  task.control = "RUN"
+end sub
+
+sub destroyPollTask()
+  if m.activePollTask <> invalid
+    m.activePollTask.unobserveField("complete")
+    m.activePollTask.control = "STOP"
+    m.top.removeChild(m.activePollTask)
+    m.activePollTask = invalid
+  end if
 end sub
 
 sub startGame()
   m.pollTimer.control = "stop"
   m.pollBusy = false
+  destroyPollTask()
   m.startLabel.text = "STARTING..."
   runTask(m.startTask, "POST", m.baseUrl + "/api/rooms/" + m.room.code + "/start", "{}")
 end sub
@@ -93,10 +112,12 @@ sub onCreateComplete()
   handleResult(m.createTask, "create")
 end sub
 
-sub onPollComplete()
-  if not m.pollTask.complete then return
+sub onDynamicPollComplete()
+  task = m.activePollTask
+  if task = invalid or not task.complete then return
   m.pollBusy = false
-  handleResult(m.pollTask, "poll")
+  handleResult(task, "poll")
+  destroyPollTask()
 end sub
 
 sub onStartComplete()
@@ -138,7 +159,7 @@ end sub
 sub renderLobby()
   m.roomCode.text = m.room.code
   count = m.room.players.Count()
-  m.lobbyStatus.text = count.toStr() + " player" + plural(count) + " connected"
+  m.lobbyStatus.text = count.toStr() + " player" + plural(count) + " connected • LIVE"
   names = ""
   for each player in m.room.players
     if names <> "" then names += "    •    "
@@ -204,6 +225,7 @@ end function
 sub showError(message as string)
   m.pollTimer.control = "stop"
   m.pollBusy = false
+  destroyPollTask()
   m.errorText.text = message + chr(10) + chr(10) + "Confirm the Mac room server is running and both devices are on the same Wi-Fi."
   showOnly("error")
 end sub
