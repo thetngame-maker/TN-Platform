@@ -65,7 +65,7 @@
     </Group>
 
     <Timer id="pollTimer" duration="1" repeat="true" />
-    <Timer id="startRecoveryTimer" duration="1.5" repeat="false" />
     <RoomRequestTask id="createTask" />
+    <Poster id="startSignal" translation="[1918,1078]" width="1" height="1" opacity="0.01" />
   </children>
 </component>
