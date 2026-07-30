@@ -1,116 +1,82 @@
 sub init()
   m.baseUrl = "http://192.168.1.127:8080"
-  m.mode = "home"
+  m.appState = "home"
   m.room = invalid
   m.startPending = false
-  m.pollBusy = false
 
-  ids = ["homeGroup","loadingGroup","lobbyGroup","gameGroup","errorGroup","loadingMessage","joinUrl","qrCode","startSignal","roomCode","lobbyStatus","playerList","startButton","startLabel","turnLabel","gameMessage","deckCount","discardCard","discardText","activeColor","gamePlayers","errorText","pollTimer","createTask","pollTask"]
+  ids = ["homeGroup","loadingGroup","lobbyGroup","gameGroup","errorGroup","loadingMessage","joinUrl","qrCode","startSignal","roomCode","lobbyStatus","playerList","startButton","startLabel","turnLabel","gameMessage","deckCount","discardCard","discardText","activeColor","gamePlayers","errorText","createTask","networkManager"]
   for each id in ids
     m[id] = m.top.findNode(id)
   end for
 
   m.joinUrl.text = m.baseUrl
   m.createTask.observeField("complete", "onCreateComplete")
-  m.pollTask.observeField("complete", "onPollComplete")
-  m.pollTimer.observeField("fire", "pollRoom")
+  m.networkManager.observeField("snapshot", "onNetworkSnapshot")
+  m.networkManager.observeField("networkState", "onNetworkState")
+  m.networkManager.observeField("error", "onNetworkError")
+  transitionTo("home")
   m.top.setFocus(true)
 end sub
 
 function onKeyEvent(key as string, press as boolean) as boolean
   if not press then return false
-  if m.mode = "home"
+
+  if m.appState = "home"
     if key = "OK" then createRoom()
-    return true
-  else if m.mode = "error"
+  else if m.appState = "error"
     if key = "OK" then createRoom()
-    if key = "back" then showHome()
-    return true
-  else if m.mode = "lobby"
+    if key = "back" then transitionTo("home")
+  else if m.appState = "lobby"
     if key = "OK" and not m.startPending and m.room <> invalid and m.room.players.Count() > 0 then startGame()
-    if key = "back" then showHome()
-    return true
-  else if m.mode = "game"
-    if key = "back" then showHome()
-    return true
+    if key = "back" then transitionTo("home")
+  else if m.appState = "starting" or m.appState = "playing" or m.appState = "finished" or m.appState = "reconnecting"
+    if key = "back" then transitionTo("home")
   end if
+
   return true
 end function
 
-sub showOnly(name as string)
-  m.homeGroup.visible = name = "home"
-  m.loadingGroup.visible = name = "loading"
-  m.lobbyGroup.visible = name = "lobby"
-  m.gameGroup.visible = name = "game"
-  m.errorGroup.visible = name = "error"
-  m.mode = name
-end sub
+sub transitionTo(state as string)
+  m.appState = state
+  m.homeGroup.visible = state = "home"
+  m.loadingGroup.visible = state = "creating"
+  m.lobbyGroup.visible = state = "lobby"
+  m.gameGroup.visible = state = "starting" or state = "playing" or state = "finished" or state = "reconnecting"
+  m.errorGroup.visible = state = "error"
 
-sub showHome()
-  m.pollTimer.control = "stop"
-  m.pollBusy = false
-  m.startPending = false
-  m.room = invalid
-  m.startSignal.uri = ""
-  stopTask(m.createTask)
-  stopTask(m.pollTask)
-  showOnly("home")
+  if state = "home"
+    stopNetworkManager()
+    m.room = invalid
+    m.startPending = false
+    m.startSignal.uri = ""
+  end if
 end sub
 
 sub createRoom()
-  m.pollTimer.control = "stop"
-  m.pollBusy = false
+  stopNetworkManager()
+  m.room = invalid
   m.startPending = false
   m.startSignal.uri = ""
-  stopTask(m.pollTask)
-  showOnly("loading")
+  transitionTo("creating")
   m.loadingMessage.text = "Creating a live room on " + m.baseUrl
-  runTask(m.createTask, "POST", m.baseUrl + "/api/rooms", "{}")
+  runCreateTask()
 end sub
 
-sub startGame()
-  if m.room = invalid or m.startPending then return
-  m.startPending = true
-  showOnly("game")
-  m.turnLabel.text = "DEALING CARDS..."
-  m.gameMessage.text = "Waiting for live table"
-  m.deckCount.text = "-- LEFT"
-  m.discardText.text = "..."
-  m.activeColor.text = "CONNECTING"
-  m.gamePlayers.text = playerSummary()
-
-  stamp = CreateObject("roDateTime").AsSeconds().toStr()
-  m.startSignal.uri = m.baseUrl + "/api/rooms/" + m.room.code + "/start-signal.png?t=" + stamp
-
-  m.pollTimer.control = "start"
-  pollRoom()
-end sub
-
-sub stopTask(task as object)
-  if task <> invalid then task.control = "STOP"
-end sub
-
-sub runTask(task as object, method as string, url as string, payload as string)
-  task.control = "STOP"
-  task.method = method
-  task.url = url
-  task.payload = payload
-  task.complete = false
-  task.result = ""
-  task.error = ""
-  task.statusCode = 0
-  task.control = "RUN"
-end sub
-
-sub pollRoom()
-  if m.room = invalid or m.pollBusy then return
-  m.pollBusy = true
-  stamp = CreateObject("roDateTime").AsSeconds().toStr()
-  runTask(m.pollTask, "GET", m.baseUrl + "/api/rooms/" + m.room.code + "?v=" + stamp, "")
+sub runCreateTask()
+  m.createTask.control = "STOP"
+  m.createTask.method = "POST"
+  m.createTask.url = m.baseUrl + "/api/rooms"
+  m.createTask.payload = "{}"
+  m.createTask.complete = false
+  m.createTask.result = ""
+  m.createTask.error = ""
+  m.createTask.statusCode = 0
+  m.createTask.control = "RUN"
 end sub
 
 sub onCreateComplete()
   if not m.createTask.complete then return
+
   if m.createTask.error <> ""
     showError(m.createTask.error)
     return
@@ -123,42 +89,102 @@ sub onCreateComplete()
   end if
 
   m.room = data
-  showOnly("lobby")
+  transitionTo("lobby")
   renderLobby()
-  m.pollTimer.control = "start"
-  pollRoom()
+  startNetworkManager()
 end sub
 
-sub onPollComplete()
-  if not m.pollTask.complete then return
-  m.pollBusy = false
+sub startNetworkManager()
+  if m.room = invalid then return
 
-  if m.pollTask.error <> ""
-    if m.startPending
-      m.gameMessage.text = "Reconnecting to live table..."
-    else if m.mode = "lobby"
-      m.lobbyStatus.text = "Reconnecting to room server..."
-    end if
-    return
-  end if
+  ' Critical ordering: configure the immutable room URL before starting the
+  ' long-lived Task. The Task captures this value once and owns all polling.
+  m.networkManager.control = "STOP"
+  m.networkManager.roomUrl = m.baseUrl + "/api/rooms/" + m.room.code
+  m.networkManager.snapshot = ""
+  m.networkManager.error = ""
+  m.networkManager.networkState = "idle"
+  m.networkManager.control = "RUN"
+end sub
 
-  response = m.pollTask.result
+sub stopNetworkManager()
+  if m.networkManager <> invalid then m.networkManager.control = "STOP"
+end sub
+
+sub startGame()
+  if m.room = invalid or m.startPending then return
+
+  m.startPending = true
+  transitionTo("starting")
+  m.turnLabel.text = "DEALING CARDS..."
+  m.gameMessage.text = "Waiting for the live table"
+  m.deckCount.text = "-- LEFT"
+  m.discardText.text = "..."
+  m.activeColor.text = "CONNECTING"
+  m.gamePlayers.text = playerSummary()
+
+  stamp = CreateObject("roDateTime").AsSeconds().toStr()
+  m.startSignal.uri = m.baseUrl + "/api/rooms/" + m.room.code + "/start-signal.png?t=" + stamp
+end sub
+
+sub onNetworkSnapshot()
+  response = m.networkManager.snapshot
   if response = invalid or response = "" then return
+
   data = ParseJson(response)
   if data = invalid then return
 
   m.room = data
+  applyRoomState()
+end sub
+
+sub applyRoomState()
+  if m.room = invalid then return
+
   if m.room.status = "lobby"
     if m.startPending
+      transitionTo("starting")
       m.gameMessage.text = "Dealing cards on server..."
     else
-      showOnly("lobby")
+      transitionTo("lobby")
       renderLobby()
     end if
-  else
+  else if m.room.status = "playing"
     m.startPending = false
-    showOnly("game")
+    transitionTo("playing")
     renderGame()
+  else if m.room.status = "finished"
+    m.startPending = false
+    transitionTo("finished")
+    renderGame()
+  end if
+end sub
+
+sub onNetworkState()
+  state = m.networkManager.networkState
+
+  if state = "connecting"
+    if m.appState = "lobby" then m.lobbyStatus.text = "Connecting to room server..."
+  else if state = "reconnecting"
+    if m.appState = "lobby"
+      m.lobbyStatus.text = "Reconnecting to room server..."
+    else if m.appState = "starting" or m.appState = "playing"
+      transitionTo("reconnecting")
+      m.gameMessage.text = "Reconnecting to live table..."
+    end if
+  else if state = "connected" and m.appState = "reconnecting"
+    applyRoomState()
+  end if
+end sub
+
+sub onNetworkError()
+  message = m.networkManager.error
+  if message = invalid or message = "" then return
+
+  if m.appState = "lobby"
+    m.lobbyStatus.text = "Reconnecting to room server..."
+  else if m.appState = "starting" or m.appState = "playing" or m.appState = "reconnecting"
+    m.gameMessage.text = "Reconnecting to live table..."
   end if
 end sub
 
@@ -205,6 +231,7 @@ sub renderGame()
   game = m.room.game
   turnName = "WAITING"
   list = ""
+
   for each player in game.players
     if player.id = game.turnPlayerId then turnName = player.name
     if list <> "" then list += "    •    "
@@ -257,10 +284,8 @@ function textColor(color as string) as string
 end function
 
 sub showError(message as string)
-  m.pollTimer.control = "stop"
-  m.pollBusy = false
+  stopNetworkManager()
   m.startPending = false
-  stopTask(m.pollTask)
   m.errorText.text = message + chr(10) + chr(10) + "Confirm the Mac room server is running and both devices are on the same Wi-Fi."
-  showOnly("error")
+  transitionTo("error")
 end sub
