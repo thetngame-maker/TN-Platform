@@ -19,7 +19,9 @@ sub execute()
   transfer.SetMessagePort(port)
   transfer.SetUrl(m.top.url)
   transfer.AddHeader("Content-Type", "application/json")
-  transfer.EnableEncodings(true)
+  transfer.AddHeader("Accept", "application/json")
+  transfer.AddHeader("Cache-Control", "no-cache")
+  transfer.AddHeader("Connection", "close")
 
   started = false
   if m.top.method = "POST"
@@ -52,6 +54,11 @@ sub execute()
   if code < 200 or code >= 300
     if response = invalid or response = "" then response = "HTTP " + code.toStr()
     failRequest(response)
+    return
+  end if
+
+  if response = invalid or response = ""
+    failRequest("EMPTY_RESPONSE")
     return
   end if
 
