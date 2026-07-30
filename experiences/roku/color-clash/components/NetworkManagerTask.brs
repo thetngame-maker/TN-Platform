@@ -11,27 +11,50 @@ sub runNetworkManager()
   end if
 
   m.top.networkState = "connecting"
+  sequence = 0
 
   while true
-    stamp = CreateObject("roDateTime").AsSeconds().toStr()
+    sequence += 1
+    port = CreateObject("roMessagePort")
     transfer = CreateObject("roUrlTransfer")
-    transfer.SetUrl(roomUrl + "?v=" + stamp)
+    transfer.SetMessagePort(port)
+    transfer.SetUrl(roomUrl + "?v=" + sequence.toStr())
     transfer.AddHeader("Content-Type", "application/json")
+    transfer.AddHeader("Cache-Control", "no-cache")
 
-    response = transfer.GetToString()
-    code = transfer.GetResponseCode()
-    m.top.statusCode = code
-
-    if code >= 200 and code < 300 and response <> invalid and response <> ""
-      m.top.error = ""
-      m.top.networkState = "connected"
-      m.top.snapshot = response
-    else
-      if response = invalid or response = "" then response = "HTTP " + code.toStr()
-      m.top.error = response
+    started = transfer.AsyncGetToString()
+    if not started
+      m.top.error = "REQUEST_START_FAILED"
       m.top.networkState = "reconnecting"
-    end if
+      sleep(1000)
+    else
+      event = wait(5000, port)
 
-    sleep(1000)
+      if event = invalid
+        transfer.AsyncCancel()
+        m.top.error = "REQUEST_TIMEOUT"
+        m.top.networkState = "reconnecting"
+      else if type(event) <> "roUrlEvent"
+        transfer.AsyncCancel()
+        m.top.error = "UNEXPECTED_NETWORK_EVENT"
+        m.top.networkState = "reconnecting"
+      else
+        code = event.GetResponseCode()
+        response = event.GetString()
+        m.top.statusCode = code
+
+        if code >= 200 and code < 300 and response <> invalid and response <> ""
+          m.top.error = ""
+          m.top.snapshot = response
+          m.top.networkState = "connected"
+        else
+          if response = invalid or response = "" then response = "HTTP " + code.toStr()
+          m.top.error = response
+          m.top.networkState = "reconnecting"
+        end if
+      end if
+
+      sleep(1000)
+    end if
   end while
 end sub
