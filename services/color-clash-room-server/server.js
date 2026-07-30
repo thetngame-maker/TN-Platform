@@ -188,9 +188,10 @@ async function api(req, res, url) {
     return json(res, 201, { room: publicRoom(room), player: { id: player.id, name: player.name, token: player.token } });
   }
 
-  if (req.method === 'POST' && match[2] === 'start') {
+  if ((req.method === 'POST' || req.method === 'GET') && match[2] === 'start') {
+    if (room.status === 'playing' || room.status === 'finished') return json(res, 200, publicRoom(room));
     if (room.players.length < 1) return json(res, 409, { error: 'At least one player must join' });
-    if (room.status !== 'lobby') return json(res, 409, { error: 'Game already started' });
+    if (room.status !== 'lobby') return json(res, 409, { error: 'Game cannot be started' });
     startGame(room);
     touch(room);
     return json(res, 200, publicRoom(room));

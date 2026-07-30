@@ -92,19 +92,21 @@ end sub
 
 sub startGame()
   if m.activeStartTask <> invalid or m.startPending then return
+  m.pollTimer.control = "stop"
+  m.pollBusy = false
+  destroyPollTask()
   m.startPending = true
   m.startLabel.text = "STARTING..."
   m.startButton.color = "0x8A3D0BFF"
   task = m.top.createChild("RoomRequestTask")
   m.activeStartTask = task
   task.observeField("complete", "onDynamicStartComplete")
-  task.method = "POST"
-  task.url = m.baseUrl + "/api/rooms/" + m.room.code + "/start"
-  task.payload = "{}"
+  task.method = "GET"
+  task.url = m.baseUrl + "/api/rooms/" + m.room.code + "/start?t=" + CreateObject("roDateTime").AsSeconds().toStr()
+  task.payload = ""
   task.complete = false
   task.control = "RUN"
   m.pollTimer.control = "start"
-  pollRoom()
 end sub
 
 sub destroyStartTask()
@@ -148,11 +150,10 @@ sub onDynamicStartComplete()
   if task.error = ""
     handleResult(task, "start")
   else
-    m.startPending = false
-    renderLobby()
-    m.pollTimer.control = "start"
+    m.pollBusy = false
+    destroyStartTask()
+    pollRoom()
   end if
-  destroyStartTask()
 end sub
 
 sub handleResult(task as object, kind as string)
@@ -175,6 +176,7 @@ sub handleResult(task as object, kind as string)
     pollRoom()
   else if kind = "start"
     m.startPending = false
+    m.pollBusy = false
     destroyStartTask()
     showOnly("game")
     renderGame()
@@ -190,6 +192,7 @@ sub handleResult(task as object, kind as string)
       end if
     else
       m.startPending = false
+      m.pollBusy = false
       destroyStartTask()
       showOnly("game")
       renderGame()
