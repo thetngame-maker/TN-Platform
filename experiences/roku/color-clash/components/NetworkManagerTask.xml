@@ -2,7 +2,8 @@
 <component name="NetworkManagerTask" extends="Task">
   <interface>
     <field id="roomUrl" type="string" value="" />
-    <field id="snapshot" type="string" value="" alwaysNotify="true" />
+    <field id="snapshot" type="string" value="" />
+    <field id="updateId" type="integer" value="0" alwaysNotify="true" />
     <field id="networkState" type="string" value="idle" alwaysNotify="true" />
     <field id="error" type="string" value="" alwaysNotify="true" />
     <field id="statusCode" type="integer" value="0" />

@@ -11,7 +11,7 @@ sub init()
 
   m.joinUrl.text = m.baseUrl
   m.createTask.observeField("complete", "onCreateComplete")
-  m.networkManager.observeField("snapshot", "onNetworkSnapshot")
+  m.networkManager.observeField("updateId", "onNetworkUpdate")
   m.networkManager.observeField("networkState", "onNetworkState")
   m.networkManager.observeField("error", "onNetworkError")
   transitionTo("home")
@@ -76,7 +76,6 @@ end sub
 
 sub onCreateComplete()
   if not m.createTask.complete then return
-
   if m.createTask.error <> ""
     showError(m.createTask.error)
     return
@@ -96,12 +95,10 @@ end sub
 
 sub startNetworkManager()
   if m.room = invalid then return
-
-  ' Critical ordering: configure the immutable room URL before starting the
-  ' long-lived Task. The Task captures this value once and owns all polling.
   m.networkManager.control = "STOP"
   m.networkManager.roomUrl = m.baseUrl + "/api/rooms/" + m.room.code
   m.networkManager.snapshot = ""
+  m.networkManager.updateId = 0
   m.networkManager.error = ""
   m.networkManager.networkState = "idle"
   m.networkManager.control = "RUN"
@@ -113,7 +110,6 @@ end sub
 
 sub startGame()
   if m.room = invalid or m.startPending then return
-
   m.startPending = true
   transitionTo("starting")
   m.turnLabel.text = "DEALING CARDS..."
@@ -127,7 +123,8 @@ sub startGame()
   m.startSignal.uri = m.baseUrl + "/api/rooms/" + m.room.code + "/start-signal.png?t=" + stamp
 end sub
 
-sub onNetworkSnapshot()
+sub onNetworkUpdate()
+  if m.networkManager.updateId <= 0 then return
   response = m.networkManager.snapshot
   if response = invalid or response = "" then return
 
@@ -162,7 +159,6 @@ end sub
 
 sub onNetworkState()
   state = m.networkManager.networkState
-
   if state = "connecting"
     if m.appState = "lobby" then m.lobbyStatus.text = "Connecting to room server..."
   else if state = "reconnecting"
@@ -180,7 +176,6 @@ end sub
 sub onNetworkError()
   message = m.networkManager.error
   if message = invalid or message = "" then return
-
   if m.appState = "lobby"
     m.lobbyStatus.text = "Reconnecting to room server..."
   else if m.appState = "starting" or m.appState = "playing" or m.appState = "reconnecting"
@@ -231,7 +226,6 @@ sub renderGame()
   game = m.room.game
   turnName = "WAITING"
   list = ""
-
   for each player in game.players
     if player.id = game.turnPlayerId then turnName = player.name
     if list <> "" then list += "    •    "

@@ -12,6 +12,7 @@ sub runNetworkManager()
 
   m.top.networkState = "connecting"
   sequence = 0
+  updateId = 0
 
   while true
     sequence += 1
@@ -26,7 +27,6 @@ sub runNetworkManager()
     if not started
       m.top.error = "REQUEST_START_FAILED"
       m.top.networkState = "reconnecting"
-      sleep(1000)
     else
       event = wait(5000, port)
 
@@ -46,6 +46,8 @@ sub runNetworkManager()
         if code >= 200 and code < 300 and response <> invalid and response <> ""
           m.top.error = ""
           m.top.snapshot = response
+          updateId += 1
+          m.top.updateId = updateId
           m.top.networkState = "connected"
         else
           if response = invalid or response = "" then response = "HTTP " + code.toStr()
@@ -53,8 +55,8 @@ sub runNetworkManager()
           m.top.networkState = "reconnecting"
         end if
       end if
-
-      sleep(1000)
     end if
+
+    sleep(1000)
   end while
 end sub
