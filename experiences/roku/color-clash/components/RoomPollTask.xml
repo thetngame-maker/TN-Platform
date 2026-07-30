@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="RoomPollTask" extends="Task">
+  <interface>
+    <field id="roomUrl" type="string" value="" />
+    <field id="active" type="boolean" value="false" />
+    <field id="result" type="string" value="" alwaysNotify="true" />
+    <field id="error" type="string" value="" alwaysNotify="true" />
+    <field id="statusCode" type="integer" value="0" />
+  </interface>
+  <script type="text/brightscript" uri="pkg:/components/RoomPollTask.brs" />
+</component>
