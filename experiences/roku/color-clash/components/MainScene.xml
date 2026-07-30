@@ -25,16 +25,18 @@
     </Group>
 
     <Group id="lobbyGroup" visible="false">
-      <Label text="JOIN THE TABLE" translation="[360,205]" width="1200" height="85" horizAlign="center" color="0xFFFFFFFF" />
-      <Label text="Open this address on each phone" translation="[510,305]" width="900" height="50" horizAlign="center" color="0xA7BDB5FF" />
-      <Label id="joinUrl" text="http://192.168.1.127:8080" translation="[410,365]" width="1100" height="65" horizAlign="center" color="0xF6A55CFF" />
-      <Label text="ROOM CODE" translation="[720,475]" width="480" height="52" horizAlign="center" color="0x91A9A0FF" />
-      <Label id="roomCode" text="----" translation="[470,525]" width="980" height="165" horizAlign="center" color="0xF97316FF" />
-      <Label id="lobbyStatus" text="Waiting for players..." translation="[510,710]" width="900" height="55" horizAlign="center" color="0xFFFFFFFF" />
-      <Label id="playerList" text="" translation="[410,775]" width="1100" height="120" horizAlign="center" color="0xD9E8E1FF" wrap="true" />
-      <Rectangle id="startButton" translation="[600,915]" width="720" height="90" color="0x18382DFF" />
-      <Label id="startLabel" text="WAITING FOR A PLAYER" translation="[600,932]" width="720" height="58" horizAlign="center" color="0x91A9A0FF" />
-      <Label text="OK: START GAME  •  BACK: CANCEL" translation="[610,1020]" width="700" height="42" horizAlign="center" color="0x6F8D82FF" />
+      <Label text="SCAN TO JOIN" translation="[360,190]" width="1200" height="80" horizAlign="center" color="0xFFFFFFFF" />
+      <Rectangle translation="[235,285]" width="470" height="470" color="0xFFFFFFFF" />
+      <Poster id="qrCode" translation="[255,305]" width="430" height="430" loadDisplayMode="scaleToFit" />
+      <Label text="ROOM CODE" translation="[880,300]" width="700" height="52" horizAlign="center" color="0x91A9A0FF" />
+      <Label id="roomCode" text="----" translation="[820,355]" width="820" height="165" horizAlign="center" color="0xF97316FF" />
+      <Label text="Or enter this address manually" translation="[850,545]" width="760" height="45" horizAlign="center" color="0xA7BDB5FF" />
+      <Label id="joinUrl" text="http://192.168.1.127:8080" translation="[790,595]" width="880" height="60" horizAlign="center" color="0xF6A55CFF" />
+      <Label id="lobbyStatus" text="Waiting for players..." translation="[760,690]" width="940" height="55" horizAlign="center" color="0xFFFFFFFF" />
+      <Label id="playerList" text="" translation="[760,750]" width="940" height="95" horizAlign="center" color="0xD9E8E1FF" wrap="true" />
+      <Rectangle id="startButton" translation="[850,875]" width="760" height="90" color="0x18382DFF" />
+      <Label id="startLabel" text="WAITING FOR A PLAYER" translation="[850,892]" width="760" height="58" horizAlign="center" color="0x91A9A0FF" />
+      <Label text="OK: START GAME  •  BACK: CANCEL" translation="[875,995]" width="710" height="42" horizAlign="center" color="0x6F8D82FF" />
     </Group>
 
     <Group id="gameGroup" visible="false">
@@ -64,7 +66,5 @@
 
     <Timer id="pollTimer" duration="1" repeat="true" />
     <RoomRequestTask id="createTask" />
-    <RoomRequestTask id="pollTask" />
-    <RoomRequestTask id="startTask" />
   </children>
 </component>
