@@ -4,14 +4,14 @@ sub init()
   m.room = invalid
   m.pollBusy = false
   m.activePollTask = invalid
-  ids = ["homeGroup","loadingGroup","lobbyGroup","gameGroup","errorGroup","loadingMessage","joinUrl","roomCode","lobbyStatus","playerList","startButton","startLabel","turnLabel","gameMessage","deckCount","discardCard","discardText","activeColor","gamePlayers","errorText","pollTimer","createTask","startTask"]
+  m.activeStartTask = invalid
+  ids = ["homeGroup","loadingGroup","lobbyGroup","gameGroup","errorGroup","loadingMessage","joinUrl","qrCode","roomCode","lobbyStatus","playerList","startButton","startLabel","turnLabel","gameMessage","deckCount","discardCard","discardText","activeColor","gamePlayers","errorText","pollTimer","createTask"]
   for each id in ids
     m[id] = m.top.findNode(id)
   end for
   m.joinUrl.text = m.baseUrl
   m.pollTimer.observeField("fire", "pollRoom")
   m.createTask.observeField("complete", "onCreateComplete")
-  m.startTask.observeField("complete", "onStartComplete")
   m.top.setFocus(true)
 end sub
 
@@ -49,8 +49,8 @@ sub showHome()
   m.pollBusy = false
   m.room = invalid
   stopTask(m.createTask)
-  stopTask(m.startTask)
   destroyPollTask()
+  destroyStartTask()
   showOnly("home")
 end sub
 
@@ -58,6 +58,7 @@ sub createRoom()
   m.pollTimer.control = "stop"
   m.pollBusy = false
   destroyPollTask()
+  destroyStartTask()
   showOnly("loading")
   m.loadingMessage.text = "Creating a live room on " + m.baseUrl
   runTask(m.createTask, "POST", m.baseUrl + "/api/rooms", "{}")
@@ -87,11 +88,29 @@ sub destroyPollTask()
 end sub
 
 sub startGame()
+  if m.activeStartTask <> invalid then return
   m.pollTimer.control = "stop"
   m.pollBusy = false
   destroyPollTask()
   m.startLabel.text = "STARTING..."
-  runTask(m.startTask, "POST", m.baseUrl + "/api/rooms/" + m.room.code + "/start", "{}")
+  m.startButton.color = "0x8A3D0BFF"
+  task = m.top.createChild("RoomRequestTask")
+  m.activeStartTask = task
+  task.observeField("complete", "onDynamicStartComplete")
+  task.method = "POST"
+  task.url = m.baseUrl + "/api/rooms/" + m.room.code + "/start"
+  task.payload = "{}"
+  task.complete = false
+  task.control = "RUN"
+end sub
+
+sub destroyStartTask()
+  if m.activeStartTask <> invalid
+    m.activeStartTask.unobserveField("complete")
+    m.activeStartTask.control = "STOP"
+    m.top.removeChild(m.activeStartTask)
+    m.activeStartTask = invalid
+  end if
 end sub
 
 sub stopTask(task as object)
@@ -120,9 +139,11 @@ sub onDynamicPollComplete()
   destroyPollTask()
 end sub
 
-sub onStartComplete()
-  if not m.startTask.complete then return
-  handleResult(m.startTask, "start")
+sub onDynamicStartComplete()
+  task = m.activeStartTask
+  if task = invalid or not task.complete then return
+  handleResult(task, "start")
+  destroyStartTask()
 end sub
 
 sub handleResult(task as object, kind as string)
@@ -158,6 +179,9 @@ end sub
 
 sub renderLobby()
   m.roomCode.text = m.room.code
+  joinLink = m.baseUrl + "/?room=" + m.room.code
+  m.joinUrl.text = joinLink
+  m.qrCode.uri = "https://api.qrserver.com/v1/create-qr-code/?size=420x420&margin=12&data=" + urlEncode(joinLink)
   count = m.room.players.Count()
   m.lobbyStatus.text = count.toStr() + " player" + plural(count) + " connected • LIVE"
   names = ""
@@ -165,7 +189,7 @@ sub renderLobby()
     if names <> "" then names += "    •    "
     names += "✓ " + player.name
   end for
-  if names = "" then names = "Waiting for phones to join..."
+  if names = "" then names = "Scan the QR code to join"
   m.playerList.text = names
   if count > 0
     m.startButton.color = "0xF97316FF"
@@ -201,6 +225,18 @@ sub renderGame()
   end if
 end sub
 
+function urlEncode(value as string) as string
+  encoded = value
+  encoded = encoded.Replace("%", "%25")
+  encoded = encoded.Replace(":", "%3A")
+  encoded = encoded.Replace("/", "%2F")
+  encoded = encoded.Replace("?", "%3F")
+  encoded = encoded.Replace("=", "%3D")
+  encoded = encoded.Replace("&", "%26")
+  encoded = encoded.Replace(" ", "%20")
+  return encoded
+end function
+
 function plural(count as integer) as string
   if count = 1 then return ""
   return "s"
@@ -226,6 +262,7 @@ sub showError(message as string)
   m.pollTimer.control = "stop"
   m.pollBusy = false
   destroyPollTask()
+  destroyStartTask()
   m.errorText.text = message + chr(10) + chr(10) + "Confirm the Mac room server is running and both devices are on the same Wi-Fi."
   showOnly("error")
 end sub
