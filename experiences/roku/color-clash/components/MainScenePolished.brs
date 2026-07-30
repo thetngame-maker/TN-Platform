@@ -7,20 +7,20 @@ sub init()
   m.requestKind = "poll"
   m.startPending = false
 
-  ids = ["homeGroup","loadingGroup","lobbyGroup","gameGroup","errorGroup","loadingMessage","joinUrl","qrCode","roomCode","lobbyStatus","playerList","startButton","startLabel","turnLabel","gameMessage","deckCount","discardCard","discardText","activeColor","gamePlayers","errorText","pollTimer","createTask"]
+  ids = ["homeGroup","loadingGroup","lobbyGroup","gameGroup","errorGroup","loadingMessage","joinUrl","qrCode","roomCode","lobbyStatus","playerList","startButton","startLabel","turnLabel","gameMessage","deckCount","discardCard","discardText","activeColor","gamePlayers","errorText","pollTimer","startRecoveryTimer","createTask"]
   for each id in ids
     m[id] = m.top.findNode(id)
   end for
 
   m.joinUrl.text = m.baseUrl
   m.pollTimer.observeField("fire", "pollRoom")
+  m.startRecoveryTimer.observeField("fire", "forcePostStartRefresh")
   m.createTask.observeField("complete", "onCreateComplete")
   m.top.setFocus(true)
 end sub
 
 function onKeyEvent(key as string, press as boolean) as boolean
   if not press then return false
-
   if m.mode = "home"
     if key = "OK" then createRoom()
     return true
@@ -36,7 +36,6 @@ function onKeyEvent(key as string, press as boolean) as boolean
     if key = "back" then showHome()
     return true
   end if
-
   return true
 end function
 
@@ -51,6 +50,7 @@ end sub
 
 sub showHome()
   m.pollTimer.control = "stop"
+  m.startRecoveryTimer.control = "stop"
   m.requestBusy = false
   m.startPending = false
   m.room = invalid
@@ -61,6 +61,7 @@ end sub
 
 sub createRoom()
   m.pollTimer.control = "stop"
+  m.startRecoveryTimer.control = "stop"
   m.requestBusy = false
   m.startPending = false
   destroyRequestTask()
@@ -71,7 +72,6 @@ end sub
 
 sub startGame()
   if m.room = invalid or m.startPending then return
-
   m.startPending = true
   showOnly("game")
   m.turnLabel.text = "DEALING CARDS..."
@@ -84,6 +84,19 @@ sub startGame()
   destroyRequestTask()
   m.requestBusy = false
   requestRoom("start")
+  m.startRecoveryTimer.control = "start"
+end sub
+
+sub forcePostStartRefresh()
+  m.startRecoveryTimer.control = "stop"
+  if not m.startPending or m.room = invalid then return
+
+  ' The server has already received the start command. Do not wait forever
+  ' for that response callback on Roku; cancel it and fetch the room cleanly.
+  destroyRequestTask()
+  m.requestBusy = false
+  m.gameMessage.text = "Loading live table..."
+  requestRoom("poll")
   m.pollTimer.control = "start"
 end sub
 
@@ -94,7 +107,6 @@ end sub
 
 sub requestRoom(kind as string)
   if m.room = invalid or m.requestBusy then return
-
   m.requestBusy = true
   m.requestKind = kind
   destroyRequestTask()
@@ -143,13 +155,11 @@ sub onCreateComplete()
     showError(m.createTask.error)
     return
   end if
-
   data = ParseJson(m.createTask.result)
   if data = invalid
     showError("The room server returned an unreadable response.")
     return
   end if
-
   m.room = data
   showOnly("lobby")
   renderLobby()
@@ -160,21 +170,17 @@ end sub
 sub onRequestResult()
   task = m.activeRequestTask
   if task = invalid then return
-
   response = task.result
   if response = invalid or response = "" then return
 
   requestError = task.error
   statusCode = task.statusCode
-  kind = m.requestKind
-
   m.requestBusy = false
   destroyRequestTask()
 
   if requestError <> ""
     if m.startPending
-      m.gameMessage.text = "HTTP " + statusCode.toStr() + " • retrying"
-      requestRoom("start")
+      m.gameMessage.text = "HTTP " + statusCode.toStr() + " • waiting for room"
       return
     end if
     showError(requestError)
@@ -184,7 +190,7 @@ sub onRequestResult()
   data = ParseJson(response)
   if data = invalid
     if m.startPending
-      m.gameMessage.text = "HTTP " + statusCode.toStr() + " • unreadable response"
+      m.gameMessage.text = "HTTP " + statusCode.toStr() + " • waiting for room"
       return
     end if
     showError("The room server returned an unreadable response.")
@@ -192,16 +198,15 @@ sub onRequestResult()
   end if
 
   m.room = data
-
   if m.room.status = "lobby"
     if m.startPending
-      m.gameMessage.text = "HTTP " + statusCode.toStr() + " • room still in lobby"
-      requestRoom("start")
+      m.gameMessage.text = "Room still starting..."
     else
       showOnly("lobby")
       renderLobby()
     end if
   else
+    m.startRecoveryTimer.control = "stop"
     m.startPending = false
     showOnly("game")
     renderGame()
@@ -214,11 +219,9 @@ sub renderLobby()
   joinLink = m.baseUrl + "/?room=" + m.room.code
   m.joinUrl.text = joinLink
   m.qrCode.uri = "https://api.qrserver.com/v1/create-qr-code/?size=420x420&margin=12&data=" + urlEncode(joinLink)
-
   count = m.room.players.Count()
   m.lobbyStatus.text = count.toStr() + " player" + plural(count) + " connected • LIVE"
   m.playerList.text = playerSummary()
-
   if count > 0
     m.startButton.color = "0xF97316FF"
     m.startLabel.color = "0xFFFFFFFF"
@@ -248,7 +251,6 @@ sub renderGame()
     m.gameMessage.text = "Waiting for the live table"
     return
   end if
-
   game = m.room.game
   turnName = "WAITING"
   list = ""
@@ -257,7 +259,6 @@ sub renderGame()
     if list <> "" then list += "    •    "
     list += player.name + ": " + player.cardCount.toStr()
   end for
-
   m.turnLabel.text = turnName.toUpper() + "'S TURN"
   m.gameMessage.text = game.message
   m.deckCount.text = game.deckCount.toStr() + " LEFT"
@@ -266,7 +267,6 @@ sub renderGame()
   m.activeColor.text = "ACTIVE: " + game.activeColor
   m.activeColor.color = textColor(game.activeColor)
   m.gamePlayers.text = list
-
   if m.room.status = "finished" then m.turnLabel.text = "TRAIL COMPLETE"
 end sub
 
@@ -305,6 +305,7 @@ end function
 
 sub showError(message as string)
   m.pollTimer.control = "stop"
+  m.startRecoveryTimer.control = "stop"
   m.requestBusy = false
   m.startPending = false
   destroyRequestTask()
