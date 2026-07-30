@@ -23,6 +23,12 @@ function show(name){Object.values(views).forEach(v=>v.classList.remove('active')
 function normalizedCode(){return roomInput.value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4)}
 roomInput.addEventListener('input',()=>{roomInput.value=normalizedCode()});
 
+const roomFromLink=new URLSearchParams(window.location.search).get('room');
+if(roomFromLink){
+  roomInput.value=String(roomFromLink).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4);
+  nameInput.focus();
+}
+
 async function api(path,options={}){
   const headers={'content-type':'application/json',...(playerToken?{'x-player-token':playerToken}:{})};
   const response=await fetch(path,{headers,...options});
