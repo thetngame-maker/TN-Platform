@@ -2,18 +2,18 @@ sub init()
   m.baseUrl = "http://192.168.1.127:8080"
   m.mode = "home"
   m.room = invalid
-  m.requestBusy = false
-  m.activeRequestTask = invalid
   m.startPending = false
 
-  ids = ["homeGroup","loadingGroup","lobbyGroup","gameGroup","errorGroup","loadingMessage","joinUrl","qrCode","startSignal","roomCode","lobbyStatus","playerList","startButton","startLabel","turnLabel","gameMessage","deckCount","discardCard","discardText","activeColor","gamePlayers","errorText","pollTimer","createTask"]
+  ids = ["homeGroup","loadingGroup","lobbyGroup","gameGroup","errorGroup","loadingMessage","joinUrl","qrCode","startSignal","roomCode","lobbyStatus","playerList","startButton","startLabel","turnLabel","gameMessage","deckCount","discardCard","discardText","activeColor","gamePlayers","errorText","createTask","pollTask"]
   for each id in ids
     m[id] = m.top.findNode(id)
   end for
 
   m.joinUrl.text = m.baseUrl
-  m.pollTimer.observeField("fire", "pollRoom")
   m.createTask.observeField("complete", "onCreateComplete")
+  m.pollTask.observeField("result", "onPollResult")
+  m.pollTask.observeField("error", "onPollError")
+  m.pollTask.control = "RUN"
   m.top.setFocus(true)
 end sub
 
@@ -47,22 +47,20 @@ sub showOnly(name as string)
 end sub
 
 sub showHome()
-  m.pollTimer.control = "stop"
-  m.requestBusy = false
+  m.pollTask.active = false
+  m.pollTask.roomUrl = ""
   m.startPending = false
   m.room = invalid
   m.startSignal.uri = ""
   stopTask(m.createTask)
-  destroyRequestTask()
   showOnly("home")
 end sub
 
 sub createRoom()
-  m.pollTimer.control = "stop"
-  m.requestBusy = false
+  m.pollTask.active = false
+  m.pollTask.roomUrl = ""
   m.startPending = false
   m.startSignal.uri = ""
-  destroyRequestTask()
   showOnly("loading")
   m.loadingMessage.text = "Creating a live room on " + m.baseUrl
   runTask(m.createTask, "POST", m.baseUrl + "/api/rooms", "{}")
@@ -70,7 +68,6 @@ end sub
 
 sub startGame()
   if m.room = invalid or m.startPending then return
-
   m.startPending = true
   showOnly("game")
   m.turnLabel.text = "DEALING CARDS..."
@@ -80,45 +77,8 @@ sub startGame()
   m.activeColor.text = "CONNECTING"
   m.gamePlayers.text = playerSummary()
 
-  ' Fire-and-forget start signal. Poster loading runs independently from the
-  ' room polling Task, so the TV never waits on a start callback.
   stamp = CreateObject("roDateTime").AsSeconds().toStr()
   m.startSignal.uri = m.baseUrl + "/api/rooms/" + m.room.code + "/start-signal.png?t=" + stamp
-
-  ' Keep the same polling path that already detects players in the lobby.
-  m.pollTimer.control = "start"
-  if not m.requestBusy then pollRoom()
-end sub
-
-sub pollRoom()
-  if m.room = invalid or m.requestBusy then return
-  requestRoom()
-end sub
-
-sub requestRoom()
-  if m.room = invalid or m.requestBusy then return
-
-  m.requestBusy = true
-  destroyRequestTask()
-
-  task = m.top.createChild("RoomRequestTask")
-  m.activeRequestTask = task
-  task.observeField("result", "onRequestResult")
-  task.method = "GET"
-
-  stamp = CreateObject("roDateTime").AsSeconds().toStr()
-  task.url = m.baseUrl + "/api/rooms/" + m.room.code + "?v=" + stamp
-  task.payload = ""
-  task.control = "RUN"
-end sub
-
-sub destroyRequestTask()
-  if m.activeRequestTask <> invalid
-    m.activeRequestTask.unobserveField("result")
-    m.activeRequestTask.control = "STOP"
-    m.top.removeChild(m.activeRequestTask)
-    m.activeRequestTask = invalid
-  end if
 end sub
 
 sub stopTask(task as object)
@@ -150,39 +110,16 @@ sub onCreateComplete()
   m.room = data
   showOnly("lobby")
   renderLobby()
-  m.pollTimer.control = "start"
-  pollRoom()
+  m.pollTask.roomUrl = m.baseUrl + "/api/rooms/" + m.room.code
+  m.pollTask.active = true
 end sub
 
-sub onRequestResult()
-  task = m.activeRequestTask
-  if task = invalid then return
-
-  response = task.result
+sub onPollResult()
+  response = m.pollTask.result
   if response = invalid or response = "" then return
 
-  requestError = task.error
-  m.requestBusy = false
-  destroyRequestTask()
-
-  if requestError <> ""
-    if m.startPending
-      m.gameMessage.text = "Reconnecting to live table..."
-      return
-    end if
-    showError(requestError)
-    return
-  end if
-
   data = ParseJson(response)
-  if data = invalid
-    if m.startPending
-      m.gameMessage.text = "Waiting for live table..."
-      return
-    end if
-    showError("The room server returned an unreadable response.")
-    return
-  end if
+  if data = invalid then return
 
   m.room = data
   if m.room.status = "lobby"
@@ -196,6 +133,16 @@ sub onRequestResult()
     m.startPending = false
     showOnly("game")
     renderGame()
+  end if
+end sub
+
+sub onPollError()
+  message = m.pollTask.error
+  if message = invalid or message = "" then return
+  if m.startPending
+    m.gameMessage.text = "Reconnecting to live table..."
+  else if m.mode = "lobby"
+    m.lobbyStatus.text = "Reconnecting to room server..."
   end if
 end sub
 
@@ -294,10 +241,8 @@ function textColor(color as string) as string
 end function
 
 sub showError(message as string)
-  m.pollTimer.control = "stop"
-  m.requestBusy = false
+  m.pollTask.active = false
   m.startPending = false
-  destroyRequestTask()
   m.errorText.text = message + chr(10) + chr(10) + "Confirm the Mac room server is running and both devices are on the same Wi-Fi."
   showOnly("error")
 end sub
