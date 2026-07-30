@@ -5,6 +5,7 @@ sub init()
   m.pollBusy = false
   m.activePollTask = invalid
   m.activeStartTask = invalid
+  m.startPending = false
   ids = ["homeGroup","loadingGroup","lobbyGroup","gameGroup","errorGroup","loadingMessage","joinUrl","qrCode","roomCode","lobbyStatus","playerList","startButton","startLabel","turnLabel","gameMessage","deckCount","discardCard","discardText","activeColor","gamePlayers","errorText","pollTimer","createTask"]
   for each id in ids
     m[id] = m.top.findNode(id)
@@ -25,7 +26,7 @@ function onKeyEvent(key as string, press as boolean) as boolean
     if key = "back" then showHome()
     return true
   else if m.mode = "lobby"
-    if key = "OK" and m.room <> invalid and m.room.players.Count() > 0 then startGame()
+    if key = "OK" and not m.startPending and m.room <> invalid and m.room.players.Count() > 0 then startGame()
     if key = "back" then showHome()
     return true
   else if m.mode = "game"
@@ -47,6 +48,7 @@ end sub
 sub showHome()
   m.pollTimer.control = "stop"
   m.pollBusy = false
+  m.startPending = false
   m.room = invalid
   stopTask(m.createTask)
   destroyPollTask()
@@ -57,6 +59,7 @@ end sub
 sub createRoom()
   m.pollTimer.control = "stop"
   m.pollBusy = false
+  m.startPending = false
   destroyPollTask()
   destroyStartTask()
   showOnly("loading")
@@ -88,10 +91,8 @@ sub destroyPollTask()
 end sub
 
 sub startGame()
-  if m.activeStartTask <> invalid then return
-  m.pollTimer.control = "stop"
-  m.pollBusy = false
-  destroyPollTask()
+  if m.activeStartTask <> invalid or m.startPending then return
+  m.startPending = true
   m.startLabel.text = "STARTING..."
   m.startButton.color = "0x8A3D0BFF"
   task = m.top.createChild("RoomRequestTask")
@@ -102,6 +103,8 @@ sub startGame()
   task.payload = "{}"
   task.complete = false
   task.control = "RUN"
+  m.pollTimer.control = "start"
+  pollRoom()
 end sub
 
 sub destroyStartTask()
@@ -142,17 +145,25 @@ end sub
 sub onDynamicStartComplete()
   task = m.activeStartTask
   if task = invalid or not task.complete then return
-  handleResult(task, "start")
+  if task.error = ""
+    handleResult(task, "start")
+  else
+    m.startPending = false
+    renderLobby()
+    m.pollTimer.control = "start"
+  end if
   destroyStartTask()
 end sub
 
 sub handleResult(task as object, kind as string)
   if task.error <> ""
+    if kind = "poll" and m.startPending then return
     showError(task.error)
     return
   end if
   data = ParseJson(task.result)
   if data = invalid
+    if kind = "poll" and m.startPending then return
     showError("The room server returned an unreadable response.")
     return
   end if
@@ -163,14 +174,23 @@ sub handleResult(task as object, kind as string)
     m.pollTimer.control = "start"
     pollRoom()
   else if kind = "start"
+    m.startPending = false
+    destroyStartTask()
     showOnly("game")
     renderGame()
     m.pollTimer.control = "start"
   else
     if m.room.status = "lobby"
       showOnly("lobby")
-      renderLobby()
+      if m.startPending
+        m.startLabel.text = "STARTING..."
+        m.startButton.color = "0x8A3D0BFF"
+      else
+        renderLobby()
+      end if
     else
+      m.startPending = false
+      destroyStartTask()
       showOnly("game")
       renderGame()
     end if
@@ -261,6 +281,7 @@ end function
 sub showError(message as string)
   m.pollTimer.control = "stop"
   m.pollBusy = false
+  m.startPending = false
   destroyPollTask()
   destroyStartTask()
   m.errorText.text = message + chr(10) + chr(10) + "Confirm the Mac room server is running and both devices are on the same Wi-Fi."
