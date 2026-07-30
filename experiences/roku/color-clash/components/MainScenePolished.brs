@@ -4,8 +4,8 @@ sub init()
   m.room = invalid
   m.pollBusy = false
   m.activePollTask = invalid
-  m.activeStartTask = invalid
   m.startPending = false
+  m.startSent = false
 
   ids = ["homeGroup","loadingGroup","lobbyGroup","gameGroup","errorGroup","loadingMessage","joinUrl","qrCode","roomCode","lobbyStatus","playerList","startButton","startLabel","turnLabel","gameMessage","deckCount","discardCard","discardText","activeColor","gamePlayers","errorText","pollTimer","createTask"]
   for each id in ids
@@ -53,10 +53,10 @@ sub showHome()
   m.pollTimer.control = "stop"
   m.pollBusy = false
   m.startPending = false
+  m.startSent = false
   m.room = invalid
   stopTask(m.createTask)
   destroyPollTask()
-  destroyStartTask()
   showOnly("home")
 end sub
 
@@ -64,8 +64,8 @@ sub createRoom()
   m.pollTimer.control = "stop"
   m.pollBusy = false
   m.startPending = false
+  m.startSent = false
   destroyPollTask()
-  destroyStartTask()
   showOnly("loading")
   m.loadingMessage.text = "Creating a live room on " + m.baseUrl
   runTask(m.createTask, "POST", m.baseUrl + "/api/rooms", "{}")
@@ -75,11 +75,10 @@ sub startGame()
   if m.room = invalid or m.startPending then return
 
   m.startPending = true
+  m.startSent = false
   m.startLabel.text = "STARTING..."
   m.startButton.color = "0x8A3D0BFF"
 
-  ' Move to the shared board immediately. The normal room poll below is the
-  ' single source of truth that completes the transition once status=playing.
   showOnly("game")
   m.turnLabel.text = "DEALING CARDS..."
   m.gameMessage.text = "Starting the live table"
@@ -88,19 +87,10 @@ sub startGame()
   m.activeColor.text = "CONNECTING"
   m.gamePlayers.text = playerSummary()
 
-  destroyStartTask()
-  task = m.top.createChild("RoomRequestTask")
-  m.activeStartTask = task
-  task.observeField("complete", "onStartComplete")
-  task.method = "GET"
-  task.url = m.baseUrl + "/api/rooms/" + m.room.code + "/start?t=" + CreateObject("roDateTime").AsSeconds().toStr()
-  task.payload = ""
-  task.complete = false
-  task.control = "RUN"
-
-  ' Keep using the same polling mechanism already proven in the lobby.
-  m.pollBusy = false
+  ' Cancel any in-flight lobby refresh. The next request in the same queue
+  ' starts the room and receives the complete dealt game state.
   destroyPollTask()
+  m.pollBusy = false
   m.pollTimer.control = "start"
   pollRoom()
 end sub
@@ -110,11 +100,20 @@ sub pollRoom()
 
   m.pollBusy = true
   destroyPollTask()
+
   task = m.top.createChild("RoomRequestTask")
   m.activePollTask = task
   task.observeField("complete", "onPollComplete")
   task.method = "GET"
-  task.url = m.baseUrl + "/api/rooms/" + m.room.code + "?v=" + CreateObject("roDateTime").AsSeconds().toStr()
+
+  stamp = CreateObject("roDateTime").AsSeconds().toStr()
+  if m.startPending and not m.startSent
+    m.startSent = true
+    task.url = m.baseUrl + "/api/rooms/" + m.room.code + "/start?t=" + stamp
+  else
+    task.url = m.baseUrl + "/api/rooms/" + m.room.code + "?v=" + stamp
+  end if
+
   task.payload = ""
   task.complete = false
   task.control = "RUN"
@@ -126,15 +125,6 @@ sub destroyPollTask()
     m.activePollTask.control = "STOP"
     m.top.removeChild(m.activePollTask)
     m.activePollTask = invalid
-  end if
-end sub
-
-sub destroyStartTask()
-  if m.activeStartTask <> invalid
-    m.activeStartTask.unobserveField("complete")
-    m.activeStartTask.control = "STOP"
-    m.top.removeChild(m.activeStartTask)
-    m.activeStartTask = invalid
   end if
 end sub
 
@@ -171,25 +161,6 @@ sub onCreateComplete()
   pollRoom()
 end sub
 
-sub onStartComplete()
-  task = m.activeStartTask
-  if task = invalid or not task.complete then return
-
-  if task.error = ""
-    data = ParseJson(task.result)
-    if data <> invalid
-      m.room = data
-      if m.room.status <> "lobby"
-        m.startPending = false
-        renderGame()
-      end if
-    end if
-  end if
-
-  ' A missed or delayed start callback is harmless because room polling remains active.
-  destroyStartTask()
-end sub
-
 sub onPollComplete()
   task = m.activePollTask
   if task = invalid or not task.complete then return
@@ -201,7 +172,9 @@ sub onPollComplete()
 
   if requestError <> ""
     if m.startPending
-      m.gameMessage.text = "Waiting for the live table..."
+      ' Retry the idempotent start request on the next timer tick.
+      m.startSent = false
+      m.gameMessage.text = "Retrying the live table..."
       return
     end if
     showError(requestError)
@@ -210,7 +183,11 @@ sub onPollComplete()
 
   data = ParseJson(result)
   if data = invalid
-    if m.startPending then return
+    if m.startPending
+      m.startSent = false
+      m.gameMessage.text = "Waiting for the live table..."
+      return
+    end if
     showError("The room server returned an unreadable response.")
     return
   end if
@@ -218,6 +195,8 @@ sub onPollComplete()
   m.room = data
   if m.room.status = "lobby"
     if m.startPending
+      ' The start endpoint is idempotent, so retry if the room remained a lobby.
+      m.startSent = false
       showOnly("game")
       m.turnLabel.text = "DEALING CARDS..."
       m.gameMessage.text = "Waiting for the server"
@@ -227,7 +206,7 @@ sub onPollComplete()
     end if
   else
     m.startPending = false
-    destroyStartTask()
+    m.startSent = false
     showOnly("game")
     renderGame()
   end if
@@ -331,8 +310,8 @@ sub showError(message as string)
   m.pollTimer.control = "stop"
   m.pollBusy = false
   m.startPending = false
+  m.startSent = false
   destroyPollTask()
-  destroyStartTask()
   m.errorText.text = message + chr(10) + chr(10) + "Confirm the Mac room server is running and both devices are on the same Wi-Fi."
   showOnly("error")
 end sub
