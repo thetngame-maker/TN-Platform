@@ -2,7 +2,7 @@
 set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
-OUT_FILE="$DIST_DIR/tn-game-network-diagnostics-v0.1.0.zip"
+OUT_FILE="$DIST_DIR/tn-game-network-diagnostics-v0.2.0.zip"
 rm -rf "$DIST_DIR"
 mkdir -p "$DIST_DIR"
 cd "$ROOT_DIR"
