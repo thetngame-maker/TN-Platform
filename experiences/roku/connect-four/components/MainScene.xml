@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="MainScene" extends="Scene">
+  <script type="text/brightscript" uri="pkg:/components/MainScene.brs" />
+  <children>
+    <Rectangle width="1920" height="1080" color="0x06110EFF" />
+    <Rectangle translation="[90,70]" width="300" height="70" color="0xF97316FF" />
+    <Label text="TN GAME" translation="[110,82]" width="260" height="50" horizAlign="center" color="0xFFFFFFFF" />
+    <Label text="CONNECT FOUR" translation="[430,76]" width="600" height="60" color="0xFFFFFFFF" />
+    <Label id="title" text="PRESS OK TO CREATE A ROOM" translation="[360,190]" width="1200" height="80" horizAlign="center" color="0xF6A55CFF" />
+    <Label id="subtitle" text="Phone-controlled multiplayer test" translation="[400,275]" width="1120" height="55" horizAlign="center" color="0xA7BDB5FF" />
+    <Group id="boardGroup" translation="[560,330]" visible="false" />
+    <Label id="roomLabel" text="" translation="[410,900]" width="1100" height="55" horizAlign="center" color="0xFFFFFFFF" />
+    <Label id="playersLabel" text="" translation="[410,965]" width="1100" height="45" horizAlign="center" color="0xA7BDB5FF" />
+    <TNNetworkTask id="netA" />
+    <TNNetworkTask id="netB" />
+    <Timer id="pollTimer" duration="0.75" repeat="true" />
+  </children>
+</component>
