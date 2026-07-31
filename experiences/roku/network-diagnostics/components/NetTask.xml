@@ -5,6 +5,8 @@
     <field id="result" type="string" alwaysNotify="true" />
     <field id="status" type="integer" alwaysNotify="true" />
     <field id="elapsedMs" type="integer" alwaysNotify="true" />
+    <field id="error" type="string" alwaysNotify="true" />
+    <field id="eventType" type="string" alwaysNotify="true" />
     <field id="complete" type="boolean" alwaysNotify="true" />
   </interface>
   <script type="text/brightscript" uri="pkg:/components/NetTask.brs" />
