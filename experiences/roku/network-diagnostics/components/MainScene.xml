@@ -3,14 +3,16 @@
   <script type="text/brightscript" uri="pkg:/components/MainScene.brs" />
   <children>
     <Rectangle width="1920" height="1080" color="0x06110EFF" />
-    <Label text="TN GAME DIRECT NETWORK PROBE" translation="[120,80]" width="1680" height="80" horizAlign="center" color="0xF97316FF" />
-    <Label id="connection" text="STARTING..." translation="[160,205]" width="1600" height="70" horizAlign="center" color="0xFFFFFFFF" />
-    <Label text="RESULT" translation="[160,315]" width="1600" height="55" horizAlign="center" color="0x91A9A0FF" />
-    <Label id="counter" text="--" translation="[160,365]" width="1600" height="230" horizAlign="center" color="0xFFFFFFFF" />
-    <Label id="metrics" text="One request" translation="[160,620]" width="1600" height="60" horizAlign="center" color="0xD9E8E1FF" />
-    <Label id="message" text="http://192.168.1.127:8090/" translation="[160,700]" width="1600" height="55" horizAlign="center" color="0xF6A55CFF" />
-    <Label id="raw" text="Waiting" translation="[260,790]" width="1400" height="170" horizAlign="left" wrap="true" color="0x91A9A0FF" />
-    <Label text="Watch the Mac server Terminal for one GET / request" translation="[160,1000]" width="1600" height="45" horizAlign="center" color="0x6F8D82FF" />
+    <Label text="TN GAME ASYNC NETWORK PROBE" translation="[120,70]" width="1680" height="80" horizAlign="center" color="0xF97316FF" />
+    <Label id="connection" text="STARTING ASYNC REQUEST..." translation="[160,180]" width="1600" height="70" horizAlign="center" color="0xFFFFFFFF" />
+    <Label id="counter" text="10" translation="[160,260]" width="1600" height="150" horizAlign="center" color="0xFFFFFFFF" />
+    <Label id="metrics" text="Waiting for roUrlEvent" translation="[160,430]" width="1600" height="65" horizAlign="center" color="0xD9E8E1FF" />
+    <Label id="message" text="http://192.168.1.127:8090/" translation="[160,520]" width="1600" height="60" horizAlign="center" color="0xF6A55CFF" />
+    <Label id="event" text="Event: --" translation="[260,620]" width="1400" height="55" horizAlign="left" color="0x91A9A0FF" />
+    <Label id="failure" text="Failure: --" translation="[260,690]" width="1400" height="80" horizAlign="left" wrap="true" color="0xFFB4A2FF" />
+    <Label id="raw" text="Body: --" translation="[260,790]" width="1400" height="170" horizAlign="left" wrap="true" color="0x91A9A0FF" />
+    <Label text="The Mac server Terminal should show one GET / request" translation="[160,1000]" width="1600" height="45" horizAlign="center" color="0x6F8D82FF" />
     <NetTask id="probeTask" />
+    <Timer id="countdown" duration="1.0" repeat="true" />
   </children>
 </component>
