@@ -25,6 +25,7 @@ sub poll()
   m.busy = true
   m.requests += 1
   m.sequence += 1
+
   if m.index = 0
     task = m.taskA
     m.index = 1
@@ -32,10 +33,20 @@ sub poll()
     task = m.taskB
     m.index = 0
   end if
+
   task.control = "STOP"
   task.complete = false
+  task.result = ""
+  task.error = ""
+  task.eventType = "QUEUED"
+  task.status = 0
+  task.elapsedMs = 0
   task.url = m.baseUrl + "/api/test/state?v=" + m.sequence.toStr()
   task.control = "RUN"
+
+  m.connection.text = "REQUESTING..."
+  m.connection.color = "0xFFFFFFFF"
+  m.message.text = "GET /api/test/state • request " + m.requests.toStr()
   renderMetrics(0)
 end sub
 
@@ -50,26 +61,31 @@ end sub
 sub handle(task as object)
   if not task.complete then return
   m.busy = false
-  if task.status < 200 or task.status >= 300 or task.result = ""
-    m.connection.text = "DISCONNECTED • HTTP " + task.status.toStr()
+
+  if task.error <> ""
+    m.connection.text = "FAILED • " + task.error
     m.connection.color = "0xFF6B6BFF"
-    m.message.text = "No usable JSON response"
-    renderMetrics(task.elapsedMs)
-    return
-  end if
-  data = ParseJson(task.result)
-  if data = invalid
-    m.connection.text = "CONNECTED • JSON ERROR"
-    m.connection.color = "0xFFD166FF"
+    m.message.text = "HTTP " + task.status.toStr() + " • " + task.eventType
     m.raw.text = task.result
     renderMetrics(task.elapsedMs)
     return
   end if
+
+  data = ParseJson(task.result)
+  if data = invalid
+    m.connection.text = "CONNECTED • JSON ERROR"
+    m.connection.color = "0xFFD166FF"
+    m.message.text = "HTTP " + task.status.toStr() + " • " + task.eventType
+    m.raw.text = task.result
+    renderMetrics(task.elapsedMs)
+    return
+  end if
+
   m.responses += 1
   m.connection.text = "CONNECTED • LIVE"
   m.connection.color = "0x69F0AEFF"
   m.counter.text = data.counter.toStr()
-  m.message.text = data.message + " • " + data.color.toUpper()
+  m.message.text = data.message + " • " + data.color.toUpper() + " • VERSION " + data.version.toStr()
   m.raw.text = task.result
   renderMetrics(task.elapsedMs)
 end sub
