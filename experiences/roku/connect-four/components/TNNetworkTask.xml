@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="TNNetworkTask" extends="Task">
+  <interface>
+    <field id="requestId" type="integer" />
+    <field id="url" type="string" />
+    <field id="responseId" type="integer" alwaysNotify="true" />
+    <field id="statusCode" type="integer" />
+    <field id="body" type="string" />
+    <field id="failureReason" type="string" />
+  </interface>
+  <script type="text/brightscript" uri="pkg:/components/TNNetworkTask.brs" />
+</component>
