@@ -27,7 +27,7 @@ function publicRoom(room) {
     code: room.code,
     status: room.status,
     version: room.version,
-    players: room.players.map((p, i) => ({ id: p.id, name: p.name, piece: i + 1 })),
+    players: room.players.map((player, index) => ({ id: player.id, name: player.name, piece: index + 1 })),
     game: room.game
   };
 }
@@ -40,99 +40,234 @@ function readBody(req) {
   return new Promise((resolve, reject) => {
     let raw = '';
     req.on('data', chunk => { raw += chunk; });
-    req.on('end', () => { try { resolve(raw ? JSON.parse(raw) : {}); } catch (error) { reject(error); } });
+    req.on('end', () => {
+      try { resolve(raw ? JSON.parse(raw) : {}); }
+      catch (error) { reject(error); }
+    });
     req.on('error', reject);
   });
 }
 function hasWinner(board, piece) {
-  const directions = [[0,1],[1,0],[1,1],[1,-1]];
-  for (let row = 0; row < 6; row++) for (let col = 0; col < 7; col++) {
-    if (board[row][col] !== piece) continue;
-    for (const [dr, dc] of directions) {
-      let count = 1;
-      while (count < 4) {
-        const r = row + dr * count;
-        const c = col + dc * count;
-        if (r < 0 || r >= 6 || c < 0 || c >= 7 || board[r][c] !== piece) break;
-        count++;
+  const directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
+  for (let row = 0; row < 6; row++) {
+    for (let col = 0; col < 7; col++) {
+      if (board[row][col] !== piece) continue;
+      for (const [dr, dc] of directions) {
+        let count = 1;
+        while (count < 4) {
+          const nextRow = row + dr * count;
+          const nextCol = col + dc * count;
+          if (nextRow < 0 || nextRow >= 6 || nextCol < 0 || nextCol >= 7 || board[nextRow][nextCol] !== piece) break;
+          count += 1;
+        }
+        if (count === 4) return true;
       }
-      if (count === 4) return true;
     }
   }
   return false;
 }
 function page(roomCode = '') {
-  const buttons = [0,1,2,3,4,5,6].map(c => `<button onclick="drop(${c})">${c + 1}</button>`).join('');
-  return `<!doctype html><html><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font-family:system-ui;background:#06110e;color:#fff;margin:0;padding:28px}main{max-width:680px;margin:auto}.brand{color:#ff7417;font-weight:900}input,button{font:inherit;padding:16px;border-radius:14px;border:1px solid #27604c}input{width:100%;box-sizing:border-box;background:#0b1e18;color:#fff;margin:8px 0 18px}button{background:#ff7417;color:#fff;font-weight:900;margin:6px}.columns{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}.columns button{margin:0;padding:18px 0}.status{color:#a7bdb5;margin:18px 0}</style><main><h1><span class="brand">TN GAME</span> CONNECT FOUR</h1><section id="join"><h2>Join the board</h2><input id="room" placeholder="Room code" value="${roomCode}"><input id="name" placeholder="Player name"><button onclick="join()">JOIN GAME</button></section><section id="game" hidden><h2 id="turn">Connected</h2><div class="status" id="status"></div><div class="columns">${buttons}</div></section></main><script>let code='',token='';async function join(){code=room.value.trim().toUpperCase();const r=await fetch('/api/rooms/'+code+'/join',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name:name.value})});const d=await r.json();if(!r.ok)return alert(d.error);token=d.player.token;join.hidden=true;game.hidden=false;poll()}async function drop(column){const r=await fetch('/api/rooms/'+code+'/move',{method:'POST',headers:{'content-type':'application/json','x-player-token':token},body:JSON.stringify({column})});const d=await r.json();status.textContent=r.ok?'Piece dropped':d.error;poll()}async function poll(){if(!code)return;const r=await fetch('/api/rooms/'+code);const d=await r.json();if(d.game){const p=d.players.find(x=>x.id===d.game.turnPlayerId);turn.textContent=d.status==='finished'?(d.game.winnerName?d.game.winnerName+' wins!':'Draw game'):(p?p.name+"'s turn":'Waiting')}setTimeout(poll,700)}</script></html>`;
+  const buttons = [0, 1, 2, 3, 4, 5, 6]
+    .map(column => `<button type="button" onclick="dropPiece(${column})">${column + 1}</button>`)
+    .join('');
+
+  return `<!doctype html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TN Game Connect Four</title>
+<style>
+body{font-family:system-ui;background:#06110e;color:#fff;margin:0;padding:28px}
+main{max-width:680px;margin:auto}.brand{color:#ff7417;font-weight:900}
+input,button{font:inherit;padding:16px;border-radius:14px;border:1px solid #27604c}
+input{width:100%;box-sizing:border-box;background:#0b1e18;color:#fff;margin:8px 0 18px}
+button{background:#ff7417;color:#fff;font-weight:900;margin:6px}
+.columns{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}.columns button{margin:0;padding:18px 0}
+.status{color:#a7bdb5;margin:18px 0}
+</style>
+</head>
+<body>
+<main>
+<h1><span class="brand">TN GAME</span> CONNECT FOUR</h1>
+<section id="joinPanel">
+<h2>Join the board</h2>
+<input id="roomInput" placeholder="Room code" value="${roomCode}" autocomplete="off">
+<input id="playerNameInput" placeholder="Player name" autocomplete="nickname">
+<button type="button" onclick="joinGame()">JOIN GAME</button>
+</section>
+<section id="gamePanel" hidden>
+<h2 id="turnLabel">Connected</h2>
+<div class="status" id="statusLabel"></div>
+<div class="columns">${buttons}</div>
+</section>
+</main>
+<script>
+let activeRoomCode = '';
+let playerToken = '';
+let pollTimer = null;
+
+async function joinGame() {
+  const roomField = document.getElementById('roomInput');
+  const playerField = document.getElementById('playerNameInput');
+  activeRoomCode = roomField.value.trim().toUpperCase();
+  const playerName = playerField.value.trim();
+
+  if (playerName.length < 2) {
+    alert('Enter a player name');
+    playerField.focus();
+    return;
+  }
+
+  const response = await fetch('/api/rooms/' + activeRoomCode + '/join', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ name: playerName })
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    alert(data.error || 'Could not join the game');
+    return;
+  }
+
+  playerToken = data.player.token;
+  document.getElementById('joinPanel').hidden = true;
+  document.getElementById('gamePanel').hidden = false;
+  pollRoom();
+}
+
+async function dropPiece(column) {
+  const response = await fetch('/api/rooms/' + activeRoomCode + '/move', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-player-token': playerToken },
+    body: JSON.stringify({ column })
+  });
+  const data = await response.json();
+  document.getElementById('statusLabel').textContent = response.ok ? 'Piece dropped' : (data.error || 'Move failed');
+  pollRoom();
+}
+
+async function pollRoom() {
+  if (!activeRoomCode) return;
+  clearTimeout(pollTimer);
+  try {
+    const response = await fetch('/api/rooms/' + activeRoomCode, { cache: 'no-store' });
+    const room = await response.json();
+    if (room.game) {
+      const currentPlayer = room.players.find(player => player.id === room.game.turnPlayerId);
+      document.getElementById('turnLabel').textContent = room.status === 'finished'
+        ? (room.game.winnerName ? room.game.winnerName + ' wins!' : 'Draw game')
+        : (currentPlayer ? currentPlayer.name + "'s turn" : 'Waiting');
+      document.getElementById('statusLabel').textContent = room.game.message || '';
+    } else {
+      document.getElementById('turnLabel').textContent = 'Waiting for the Roku host';
+    }
+  } catch (error) {
+    document.getElementById('statusLabel').textContent = 'Reconnecting…';
+  }
+  pollTimer = setTimeout(pollRoom, 700);
+}
+</script>
+</body>
+</html>`;
 }
 
 const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-  if (req.method === 'OPTIONS') return json(res, 204, {});
-  if (req.method === 'GET' && url.pathname === '/') return send(res, 200, 'text/html; charset=utf-8', page(url.searchParams.get('room') || ''));
-  if ((req.method === 'POST' && url.pathname === '/api/rooms') || (req.method === 'GET' && url.pathname === '/api/rooms/create')) {
-    return json(res, 201, publicRoom(createRoom()));
-  }
+  try {
+    const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    if (req.method === 'OPTIONS') return json(res, 204, {});
+    if (req.method === 'GET' && url.pathname === '/') {
+      return send(res, 200, 'text/html; charset=utf-8', page(url.searchParams.get('room') || ''));
+    }
+    if ((req.method === 'POST' && url.pathname === '/api/rooms') || (req.method === 'GET' && url.pathname === '/api/rooms/create')) {
+      return json(res, 201, publicRoom(createRoom()));
+    }
 
-  const match = url.pathname.match(/^\/api\/rooms\/([A-Z0-9]{4})(?:\/(join|start|move))?$/);
-  if (!match) return json(res, 404, { error: 'Not found' });
-  const room = rooms.get(match[1]);
-  if (!room) return json(res, 404, { error: 'Room not found' });
-  if (req.method === 'GET' && !match[2]) return json(res, 200, publicRoom(room));
+    const match = url.pathname.match(/^\/api\/rooms\/([A-Z0-9]{4})(?:\/(join|start|move))?$/);
+    if (!match) return json(res, 404, { error: 'Not found' });
 
-  if (req.method === 'POST' && match[2] === 'join') {
-    if (room.status !== 'lobby') return json(res, 409, { error: 'Game already started' });
-    if (room.players.length >= 2) return json(res, 409, { error: 'Room is full' });
-    const data = await readBody(req);
-    const name = String(data.name || '').trim().slice(0, 18);
-    if (name.length < 2) return json(res, 400, { error: 'Enter a player name' });
-    const player = { id: crypto.randomUUID(), token: crypto.randomBytes(16).toString('hex'), name };
-    room.players.push(player);
-    touch(room);
-    return json(res, 201, { room: publicRoom(room), player });
-  }
+    const room = rooms.get(match[1]);
+    if (!room) return json(res, 404, { error: 'Room not found' });
+    if (req.method === 'GET' && !match[2]) return json(res, 200, publicRoom(room));
 
-  if ((req.method === 'GET' || req.method === 'POST') && match[2] === 'start') {
-    if (room.players.length < 1) return json(res, 409, { error: 'At least one player must join' });
-    if (room.status === 'lobby') {
-      room.status = 'playing';
-      room.game = { board: emptyBoard(), turnPlayerId: room.players[0].id, winnerName: '', message: 'Game started' };
+    if (req.method === 'POST' && match[2] === 'join') {
+      if (room.status !== 'lobby') return json(res, 409, { error: 'Game already started' });
+      if (room.players.length >= 2) return json(res, 409, { error: 'Room is full' });
+      const data = await readBody(req);
+      const playerName = String(data.name || '').trim().slice(0, 18);
+      if (playerName.length < 2) return json(res, 400, { error: 'Enter a player name' });
+      const player = {
+        id: crypto.randomUUID(),
+        token: crypto.randomBytes(16).toString('hex'),
+        name: playerName
+      };
+      room.players.push(player);
       touch(room);
+      return json(res, 201, { room: publicRoom(room), player });
     }
-    return json(res, 200, publicRoom(room));
-  }
 
-  if (req.method === 'POST' && match[2] === 'move') {
-    if (room.status !== 'playing') return json(res, 409, { error: 'Game is not active' });
-    const player = room.players.find(p => p.token === req.headers['x-player-token']);
-    if (!player) return json(res, 401, { error: 'Invalid player' });
-    if (room.game.turnPlayerId !== player.id) return json(res, 409, { error: 'Not your turn' });
-    const data = await readBody(req);
-    const col = Number(data.column);
-    if (!Number.isInteger(col) || col < 0 || col > 6) return json(res, 400, { error: 'Invalid column' });
-    let row = -1;
-    for (let r = 5; r >= 0; r--) if (room.game.board[r][col] === 0) { row = r; break; }
-    if (row < 0) return json(res, 409, { error: 'Column is full' });
-    const index = room.players.findIndex(p => p.id === player.id);
-    const piece = index + 1;
-    room.game.board[row][col] = piece;
-    if (hasWinner(room.game.board, piece)) {
-      room.status = 'finished';
-      room.game.winnerName = player.name;
-      room.game.message = player.name + ' connected four!';
-    } else if (room.game.board.every(r => r.every(Boolean))) {
-      room.status = 'finished';
-      room.game.message = 'Draw game';
-    } else {
-      const next = room.players.length === 1 ? player : room.players[(index + 1) % room.players.length];
-      room.game.turnPlayerId = next.id;
-      room.game.message = player.name + ' dropped in column ' + (col + 1);
+    if ((req.method === 'GET' || req.method === 'POST') && match[2] === 'start') {
+      if (room.players.length < 1) return json(res, 409, { error: 'At least one player must join' });
+      if (room.status === 'lobby') {
+        room.status = 'playing';
+        room.game = {
+          board: emptyBoard(),
+          turnPlayerId: room.players[0].id,
+          winnerName: '',
+          message: 'Game started'
+        };
+        touch(room);
+      }
+      return json(res, 200, publicRoom(room));
     }
-    touch(room);
-    return json(res, 200, publicRoom(room));
-  }
 
-  return json(res, 404, { error: 'Not found' });
+    if (req.method === 'POST' && match[2] === 'move') {
+      if (room.status !== 'playing') return json(res, 409, { error: 'Game is not active' });
+      const player = room.players.find(candidate => candidate.token === req.headers['x-player-token']);
+      if (!player) return json(res, 401, { error: 'Invalid player' });
+      if (room.game.turnPlayerId !== player.id) return json(res, 409, { error: 'Not your turn' });
+
+      const data = await readBody(req);
+      const column = Number(data.column);
+      if (!Number.isInteger(column) || column < 0 || column > 6) return json(res, 400, { error: 'Invalid column' });
+
+      let row = -1;
+      for (let candidateRow = 5; candidateRow >= 0; candidateRow--) {
+        if (room.game.board[candidateRow][column] === 0) {
+          row = candidateRow;
+          break;
+        }
+      }
+      if (row < 0) return json(res, 409, { error: 'Column is full' });
+
+      const playerIndex = room.players.findIndex(candidate => candidate.id === player.id);
+      const piece = playerIndex + 1;
+      room.game.board[row][column] = piece;
+
+      if (hasWinner(room.game.board, piece)) {
+        room.status = 'finished';
+        room.game.winnerName = player.name;
+        room.game.message = player.name + ' connected four!';
+      } else if (room.game.board.every(boardRow => boardRow.every(Boolean))) {
+        room.status = 'finished';
+        room.game.message = 'Draw game';
+      } else {
+        const nextPlayer = room.players.length === 1
+          ? player
+          : room.players[(playerIndex + 1) % room.players.length];
+        room.game.turnPlayerId = nextPlayer.id;
+        room.game.message = player.name + ' dropped in column ' + (column + 1);
+      }
+      touch(room);
+      return json(res, 200, publicRoom(room));
+    }
+
+    return json(res, 404, { error: 'Not found' });
+  } catch (error) {
+    console.error(error);
+    return json(res, 500, { error: 'Server error' });
+  }
 });
 
-server.listen(PORT, '0.0.0.0', () => console.log(`TN Game Connect Four: http://0.0.0.0:${PORT}`));
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`TN Game Connect Four: http://0.0.0.0:${PORT}`);
+});
