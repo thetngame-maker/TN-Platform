@@ -11,37 +11,39 @@ sub run()
   transfer.InitClientCertificates()
   transfer.SetUrl(m.top.url)
   transfer.AddHeader("Accept", "application/json")
+  transfer.AddHeader("Content-Type", "application/json")
   transfer.AddHeader("Cache-Control", "no-store")
   transfer.AddHeader("Connection", "close")
-  if not transfer.AsyncGetToString()
-    m.top.statusCode = -1
-    m.top.failureReason = "REQUEST_START_FAILED"
-    m.top.body = ""
-    m.top.responseId = startedId
+  ok = false
+  if m.top.method = "POST"
+    ok = transfer.AsyncPostFromString(m.top.payload)
+  else
+    ok = transfer.AsyncGetToString()
+  end if
+  if not ok
+    finish(startedId, -1, "", "REQUEST_START_FAILED")
     return
   end if
   event = wait(10000, port)
   if event = invalid
     transfer.AsyncCancel()
-    m.top.statusCode = -2
-    m.top.failureReason = "REQUEST_TIMEOUT"
-    m.top.body = ""
-    m.top.responseId = startedId
+    finish(startedId, -2, "", "REQUEST_TIMEOUT")
     return
   end if
   if type(event) <> "roUrlEvent"
-    m.top.statusCode = -3
-    m.top.failureReason = "UNEXPECTED_EVENT"
-    m.top.body = ""
-    m.top.responseId = startedId
+    finish(startedId, -3, "", "UNEXPECTED_EVENT")
     return
   end if
-  body = event.GetString()
-  if body = invalid then body = ""
+  response = event.GetString()
+  if response = invalid then response = ""
   reason = event.GetFailureReason()
   if reason = invalid then reason = ""
-  m.top.statusCode = event.GetResponseCode()
-  m.top.failureReason = reason
+  finish(startedId, event.GetResponseCode(), response, reason)
+end sub
+
+sub finish(id as integer, code as integer, body as string, reason as string)
+  m.top.statusCode = code
   m.top.body = body
-  m.top.responseId = startedId
+  m.top.failureReason = reason
+  m.top.responseId = id
 end sub
