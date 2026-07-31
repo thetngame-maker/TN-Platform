@@ -8,7 +8,6 @@
     <Rectangle translation="[110,100]" width="255" height="66" color="0xF97316FF" />
     <Label text="THE TN GAME" translation="[130,114]" width="215" height="44" horizAlign="center" color="0xFFFFFFFF" />
     <Label text="COLOR CLASH" translation="[395,105]" width="600" height="60" color="0xFFFFFFFF" />
-
     <Group id="homeGroup">
       <Label text="PHONE PARTY" translation="[360,255]" width="1200" height="115" horizAlign="center" color="0xFFFFFFFF" />
       <Label text="Use private hands on your phones while the Roku becomes the shared table." translation="[330,390]" width="1260" height="60" horizAlign="center" color="0xA7BDB5FF" />
@@ -16,14 +15,12 @@
       <Rectangle translation="[560,550]" width="800" height="115" color="0xF97316FF" />
       <Label text="CREATE LIVE ROOM" translation="[560,574]" width="800" height="70" horizAlign="center" color="0xFFFFFFFF" />
       <Label text="Press OK to connect this Roku to the room server" translation="[500,735]" width="920" height="52" horizAlign="center" color="0xD9E8E1FF" />
-      <Label id="serverLabel" text="SERVER: 192.168.1.127:8080" translation="[500,815]" width="920" height="48" horizAlign="center" color="0x6F8D82FF" />
+      <Label text="SERVER: 192.168.1.127:8080" translation="[500,815]" width="920" height="48" horizAlign="center" color="0x6F8D82FF" />
     </Group>
-
     <Group id="loadingGroup" visible="false">
       <Label text="CONNECTING TO TRAIL TABLE..." translation="[360,420]" width="1200" height="90" horizAlign="center" color="0xF6A55CFF" />
       <Label id="loadingMessage" text="Creating room" translation="[500,535]" width="920" height="55" horizAlign="center" color="0xD9E8E1FF" />
     </Group>
-
     <Group id="lobbyGroup" visible="false">
       <Label text="SCAN TO JOIN" translation="[360,190]" width="1200" height="80" horizAlign="center" color="0xFFFFFFFF" />
       <Rectangle translation="[235,285]" width="470" height="470" color="0xFFFFFFFF" />
@@ -38,7 +35,6 @@
       <Label id="startLabel" text="WAITING FOR A PLAYER" translation="[850,892]" width="760" height="58" horizAlign="center" color="0x91A9A0FF" />
       <Label text="OK: START GAME  •  BACK: CANCEL" translation="[875,995]" width="710" height="42" horizAlign="center" color="0x6F8D82FF" />
     </Group>
-
     <Group id="gameGroup" visible="false">
       <Label id="turnLabel" text="PLAYER'S TURN" translation="[600,195]" width="720" height="70" horizAlign="center" color="0xF6A55CFF" />
       <Label id="gameMessage" text="Game started" translation="[420,275]" width="1080" height="55" horizAlign="center" color="0xD9E8E1FF" />
@@ -56,18 +52,14 @@
       <Label id="gamePlayers" text="" translation="[420,895]" width="1080" height="95" horizAlign="center" color="0xD9E8E1FF" wrap="true" />
       <Label text="Play from your phone  •  BACK: leave board" translation="[560,1015]" width="800" height="42" horizAlign="center" color="0x6F8D82FF" />
     </Group>
-
     <Group id="errorGroup" visible="false">
       <Rectangle translation="[390,335]" width="1140" height="390" color="0x0B1E18FF" />
       <Label text="COULD NOT CONNECT" translation="[510,400]" width="900" height="80" horizAlign="center" color="0xF6A55CFF" />
       <Label id="errorText" text="Start the room server on your Mac." translation="[500,505]" width="920" height="105" horizAlign="center" color="0xFFFFFFFF" wrap="true" />
       <Label text="OK: TRY AGAIN  •  BACK: HOME" translation="[590,645]" width="740" height="55" horizAlign="center" color="0xA7BDB5FF" />
     </Group>
-
-    <RoomRequestTask id="createTask" />
-    <RoomRequestTask id="pollTaskA" />
-    <RoomRequestTask id="pollTaskB" />
-    <Timer id="pollTimer" duration="1.0" repeat="true" />
-    <Poster id="startSignal" translation="[1918,1078]" width="1" height="1" opacity="0.01" />
+    <TNNetworkTask id="netA" />
+    <TNNetworkTask id="netB" />
+    <Timer id="pollTimer" duration="0.75" repeat="true" />
   </children>
 </component>

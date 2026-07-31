@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
-OUT_FILE="$DIST_DIR/color-clash-roku-v1.0.4.zip"
+OUT_FILE="$DIST_DIR/color-clash-roku-v1.1.0.zip"
 
 rm -rf "$DIST_DIR"
 mkdir -p "$DIST_DIR"
