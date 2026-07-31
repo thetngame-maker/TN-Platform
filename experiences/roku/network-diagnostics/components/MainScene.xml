@@ -3,16 +3,14 @@
   <script type="text/brightscript" uri="pkg:/components/MainScene.brs" />
   <children>
     <Rectangle width="1920" height="1080" color="0x06110EFF" />
-    <Label text="TN GAME NETWORK DIAGNOSTICS" translation="[120,80]" width="1680" height="80" horizAlign="center" color="0xF97316FF" />
-    <Label id="connection" text="CONNECTING..." translation="[160,205]" width="1600" height="70" horizAlign="center" color="0xFFFFFFFF" />
-    <Label text="SERVER VALUE" translation="[160,315]" width="1600" height="55" horizAlign="center" color="0x91A9A0FF" />
+    <Label text="TN GAME DIRECT NETWORK PROBE" translation="[120,80]" width="1680" height="80" horizAlign="center" color="0xF97316FF" />
+    <Label id="connection" text="STARTING..." translation="[160,205]" width="1600" height="70" horizAlign="center" color="0xFFFFFFFF" />
+    <Label text="RESULT" translation="[160,315]" width="1600" height="55" horizAlign="center" color="0x91A9A0FF" />
     <Label id="counter" text="--" translation="[160,365]" width="1600" height="230" horizAlign="center" color="0xFFFFFFFF" />
-    <Label id="metrics" text="Requests: 0    Responses: 0    Latency: -- ms" translation="[160,620]" width="1600" height="60" horizAlign="center" color="0xD9E8E1FF" />
-    <Label id="message" text="Waiting for server" translation="[160,700]" width="1600" height="55" horizAlign="center" color="0xF6A55CFF" />
-    <Label id="raw" text="{}" translation="[260,790]" width="1400" height="170" horizAlign="left" wrap="true" color="0x91A9A0FF" />
-    <Label text="Phone controls: http://192.168.1.127:8090" translation="[160,1000]" width="1600" height="45" horizAlign="center" color="0x6F8D82FF" />
-    <NetTask id="taskA" />
-    <NetTask id="taskB" />
-    <Timer id="timer" duration="1.0" repeat="true" />
+    <Label id="metrics" text="One request" translation="[160,620]" width="1600" height="60" horizAlign="center" color="0xD9E8E1FF" />
+    <Label id="message" text="http://192.168.1.127:8090/" translation="[160,700]" width="1600" height="55" horizAlign="center" color="0xF6A55CFF" />
+    <Label id="raw" text="Waiting" translation="[260,790]" width="1400" height="170" horizAlign="left" wrap="true" color="0x91A9A0FF" />
+    <Label text="Watch the Mac server Terminal for one GET / request" translation="[160,1000]" width="1600" height="45" horizAlign="center" color="0x6F8D82FF" />
+    <NetTask id="probeTask" />
   </children>
 </component>
