@@ -53,7 +53,7 @@ sub buildBoard()
       slot.height = 92
       slot.translation = [c * 102, r * 102]
       slot.color = "0x173B8FFF"
-      piece = m.boardGroup.createChild("Ellipse")
+      piece = m.boardGroup.createChild("Rectangle")
       piece.width = 72
       piece.height = 72
       piece.translation = [c * 102 + 10, r * 102 + 10]
@@ -70,7 +70,7 @@ sub createRoom()
   m.state = "creating"
   m.title.text = "CREATING ROOM..."
   m.subtitle.text = "Connecting to the Connect Four server"
-  send("create", "POST", m.baseUrl + "/api/rooms", "{}")
+  send("create", "GET", m.baseUrl + "/api/rooms/create?v=" + m.seq.toStr(), "")
 end sub
 
 sub send(kind as string, method as string, url as string, payload as string)
@@ -141,7 +141,7 @@ sub applyRoom()
   if m.room.status = "lobby"
     m.state = "lobby"
     m.boardGroup.visible = false
-    m.title.text = "SCAN OR ENTER ROOM " + m.room.code
+    m.title.text = "ENTER ROOM " + m.room.code
     m.subtitle.text = m.baseUrl + "/?room=" + m.room.code
     m.roomLabel.text = m.room.players.Count().toStr() + " player(s) connected"
     m.playersLabel.text = playerNames()
