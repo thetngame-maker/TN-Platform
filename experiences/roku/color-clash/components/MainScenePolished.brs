@@ -120,6 +120,7 @@ sub handleNetwork(task as object)
     m.room = data
     m.startPending = false
     applyRoomState()
+    requestRoom()
   else if kind = "poll"
     m.room = data
     applyRoomState()
@@ -146,7 +147,8 @@ sub startGame()
   m.discardText.text = "..."
   m.activeColor.text = "CONNECTING"
   m.gamePlayers.text = playerSummary()
-  sendRequest("start", "POST", m.baseUrl + "/api/rooms/" + m.room.code + "/start", "{}")
+  stamp = CreateObject("roDateTime").AsSeconds().toStr() + m.requestSeq.toStr()
+  sendRequest("start", "GET", m.baseUrl + "/api/rooms/" + m.room.code + "/start?v=" + stamp, "")
 end sub
 
 sub applyRoomState()
