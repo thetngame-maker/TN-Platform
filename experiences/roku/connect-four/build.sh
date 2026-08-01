@@ -3,7 +3,7 @@
 set -euo pipefail
 
 APP_NAME="tn-game-connect-four"
-VERSION="v0.2.7-brand"
+VERSION="v0.2.8-colors"
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
 IMAGE_DIR="$ROOT_DIR/images"
@@ -68,33 +68,36 @@ def token(base, edge, highlight, shadow, empty=False):
                     if d > radius:
                         samples.append((0, 0, 0, 0))
                         continue
+                    rim = d / radius
                     if empty:
-                        rim = d / radius
-                        if rim > 0.88:
-                            color = edge
+                        color = edge if rim > 0.88 else base
+                    elif rim > 0.88:
+                        color = edge
+                    else:
+                        light_d = math.hypot(dx + radius * 0.30, dy + radius * 0.34)
+                        shadow_d = math.hypot(dx - radius * 0.34, dy - radius * 0.42)
+                        if light_d < radius * 0.34:
+                            color = highlight
+                        elif shadow_d < radius * 0.44 and dy > 0:
+                            color = shadow
                         else:
                             color = base
-                    else:
-                        rim = d / radius
-                        if rim > 0.88:
-                            color = edge
-                        else:
-                            light_d = math.hypot(dx + radius * 0.30, dy + radius * 0.34)
-                            shadow_d = math.hypot(dx - radius * 0.34, dy - radius * 0.42)
-                            if light_d < radius * 0.34:
-                                color = highlight
-                            elif shadow_d < radius * 0.44 and dy > 0:
-                                color = shadow
-                            else:
-                                color = base
                     samples.append((*color, 255))
             row.append(blend(samples))
         pixels.append(row)
     return pixels
 
 write_png(OUT / 'token-empty.png', token((8, 34, 27), (29, 79, 63), (0, 0, 0), (0, 0, 0), True))
-write_png(OUT / 'token-orange.png', token((249, 115, 22), (177, 61, 6), (255, 184, 112), (209, 74, 5)))
-write_png(OUT / 'token-gold.png', token((255, 213, 79), (196, 142, 0), (255, 241, 160), (225, 166, 0)))
+palettes = {
+    'orange': ((249,115,22),(177,61,6),(255,184,112),(209,74,5)),
+    'gold': ((255,213,79),(196,142,0),(255,241,160),(225,166,0)),
+    'blue': ((59,130,246),(29,78,216),(147,197,253),(37,99,235)),
+    'purple': ((168,85,247),(107,33,168),(216,180,254),(126,34,206)),
+    'green': ((34,197,94),(21,128,61),(134,239,172),(22,163,74)),
+    'pink': ((236,72,153),(157,23,77),(251,182,206),(219,39,119)),
+}
+for name, colors in palettes.items():
+    write_png(OUT / f'token-{name}.png', token(*colors))
 PY
 
 rm -f "$OUTPUT"
