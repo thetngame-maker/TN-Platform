@@ -3,7 +3,7 @@
 set -euo pipefail
 
 APP_NAME="tn-game-connect-four"
-VERSION="v0.3.5"
+VERSION="v0.2.2-stable"
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
 OUTPUT="$DIST_DIR/${APP_NAME}-${VERSION}.zip"
