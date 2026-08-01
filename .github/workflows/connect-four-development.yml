@@ -1,0 +1,44 @@
+name: Connect Four Development
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'experiences/roku/connect-four/**'
+      - '.github/workflows/connect-four-development.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build stable development package
+        run: |
+          chmod +x experiences/roku/connect-four/build.sh
+          chmod +x experiences/roku/connect-four/build-thin-client-v1.sh
+          chmod +x experiences/roku/connect-four/build-render-production.sh
+          chmod +x experiences/roku/connect-four/build-complete-loop-v1.1.sh
+          chmod +x experiences/roku/connect-four/build-two-player-v1.2.sh
+          chmod +x experiences/roku/connect-four/build-gameplay-polish-v1.3.sh
+          chmod +x experiences/roku/connect-four/build-session-controls-v1.4.sh
+          chmod +x experiences/roku/connect-four/build-development.sh
+          experiences/roku/connect-four/build-development.sh
+
+      - name: Verify Roku package
+        run: |
+          ZIP='experiences/roku/connect-four/dist/tn-game-connect-four-dev.zip'
+          test -f "$ZIP"
+          unzip -Z1 "$ZIP" | grep -qx manifest
+          unzip -Z1 "$ZIP" | grep -qx components/DisplayLoopTask.brs
+          unzip -p "$ZIP" components/MainScene.brs | grep -q 'tn-game-connect-four-server.onrender.com'
+          ! unzip -p "$ZIP" components/MainScene.brs | grep -q '192\.168\.1\.127'
+
+      - name: Upload development artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tn-game-connect-four-dev
+          path: experiences/roku/connect-four/dist/tn-game-connect-four-dev.zip
+          if-no-files-found: error
+          retention-days: 14
