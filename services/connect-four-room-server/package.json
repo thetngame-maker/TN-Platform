@@ -2,5 +2,5 @@
   "name": "tn-game-connect-four-room-server",
   "version": "0.1.0",
   "private": true,
-  "scripts": { "start": "node server.js" }
+  "scripts": { "start": "node phone-polish-v1.6.js" }
 }
