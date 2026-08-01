@@ -1,0 +1,30 @@
+name: Connect Four Auto Start Build
+
+on:
+  push:
+    branches:
+      - fix/connect-four-auto-start
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build fixed Roku package
+        run: |
+          chmod +x experiences/roku/connect-four/build.sh
+          chmod +x experiences/roku/connect-four/build-auto-start-fix.sh
+          experiences/roku/connect-four/build-auto-start-fix.sh
+
+      - name: Upload Roku ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: tn-game-connect-four-v0.3.3-auto-start
+          path: experiences/roku/connect-four/dist/tn-game-connect-four-v0.3.3-auto-start.zip
+          if-no-files-found: error
