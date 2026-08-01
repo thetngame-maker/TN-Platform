@@ -6,9 +6,11 @@ sub init()
   m.requestId = 0
   m.playerColors = ["orange", "gold"]
   m.lobbySelection = 0
+  m.modeSelection = 0
+  m.gameMode = "human"
+  m.difficulty = "easy"
 
   m.productTitle = m.top.findNode("productTitle")
-  m.versionLabel = m.top.findNode("versionLabel")
   m.lobbyGroup = m.top.findNode("lobbyGroup")
   m.lobbyMessage = m.top.findNode("lobbyMessage")
   m.connectCard = m.top.findNode("connectCard")
@@ -17,7 +19,12 @@ sub init()
   m.connectPrompt = m.top.findNode("connectPrompt")
   m.colorClashPrompt = m.top.findNode("colorClashPrompt")
   m.triviaPrompt = m.top.findNode("triviaPrompt")
-
+  m.modeGroup = m.top.findNode("modeGroup")
+  m.modeMessage = m.top.findNode("modeMessage")
+  m.modeHuman = m.top.findNode("modeHuman")
+  m.modeEasy = m.top.findNode("modeEasy")
+  m.modeMedium = m.top.findNode("modeMedium")
+  m.modeHard = m.top.findNode("modeHard")
   m.statusCard = m.top.findNode("statusCard")
   m.statusAccent = m.top.findNode("statusAccent")
   m.title = m.top.findNode("title")
@@ -44,40 +51,62 @@ end sub
 
 function onKeyEvent(key as string, press as boolean) as boolean
   if not press then return false
-
   if m.state = "lobby"
     if key = "left"
       m.lobbySelection -= 1
       if m.lobbySelection < 0 then m.lobbySelection = 2
       updateLobbySelection()
-      return true
     else if key = "right"
       m.lobbySelection += 1
       if m.lobbySelection > 2 then m.lobbySelection = 0
       updateLobbySelection()
-      return true
     else if key = "OK"
-      if m.lobbySelection = 0
-        createRoom()
-      else
-        m.lobbyMessage.text = "COMING SOON  •  Choose Connect Four to play now"
-      end if
-      return true
+      if m.lobbySelection = 0 then showModeSelect() else m.lobbyMessage.text = "COMING SOON  •  Choose Connect Four to play now"
+    else
+      return false
     end if
-  else
-    if key = "OK"
-      if m.state = "error"
-        createRoom()
-      else if m.state = "finished" and m.roomCode <> ""
-        restartGame()
-      end if
-      return true
-    else if key = "back"
-      showLobby()
-      return true
-    end if
+    return true
   end if
 
+  if m.state = "mode"
+    if key = "up"
+      m.modeSelection -= 1
+      if m.modeSelection < 0 then m.modeSelection = 3
+      updateModeSelection()
+    else if key = "down"
+      m.modeSelection += 1
+      if m.modeSelection > 3 then m.modeSelection = 0
+      updateModeSelection()
+    else if key = "OK"
+      if m.modeSelection = 0
+        m.gameMode = "human"
+        m.difficulty = "easy"
+      else
+        m.gameMode = "bot"
+        if m.modeSelection = 1 then m.difficulty = "easy"
+        if m.modeSelection = 2 then m.difficulty = "medium"
+        if m.modeSelection = 3 then m.difficulty = "hard"
+      end if
+      createRoom()
+    else if key = "back"
+      showLobby()
+    else
+      return false
+    end if
+    return true
+  end if
+
+  if key = "OK"
+    if m.state = "error"
+      createRoom()
+    else if m.state = "finished" and m.roomCode <> ""
+      restartGame()
+    end if
+    return true
+  else if key = "back"
+    showLobby()
+    return true
+  end if
   return false
 end function
 
@@ -89,10 +118,21 @@ sub showLobby()
   m.playerColors = ["orange", "gold"]
   m.productTitle.text = "TN GAME CONNECT"
   m.lobbyGroup.visible = true
+  m.modeGroup.visible = false
   showGameChrome(false)
   resetPlayerCards()
   clearBoard()
   updateLobbySelection()
+end sub
+
+sub showModeSelect()
+  m.state = "mode"
+  m.productTitle.text = "CONNECT FOUR"
+  m.lobbyGroup.visible = false
+  m.modeGroup.visible = true
+  showGameChrome(false)
+  m.modeSelection = 0
+  updateModeSelection()
 end sub
 
 sub updateLobbySelection()
@@ -102,19 +142,33 @@ sub updateLobbySelection()
   m.connectPrompt.text = "AVAILABLE"
   m.colorClashPrompt.text = "COMING SOON"
   m.triviaPrompt.text = "COMING SOON"
-
   if m.lobbySelection = 0
     m.connectCard.uri = "pkg:/images/lobby-card-selected.png"
     m.connectPrompt.text = "PRESS OK TO PLAY"
     m.lobbyMessage.text = "Use LEFT and RIGHT to choose a game"
   else if m.lobbySelection = 1
     m.colorClashCard.uri = "pkg:/images/lobby-card-selected.png"
-    m.colorClashPrompt.text = "COMING SOON"
     m.lobbyMessage.text = "Color Clash is the next card game planned"
   else
     m.triviaCard.uri = "pkg:/images/lobby-card-selected.png"
-    m.triviaPrompt.text = "COMING SOON"
     m.lobbyMessage.text = "TN Trivia will support teams and local questions"
+  end if
+end sub
+
+sub updateModeSelection()
+  cards = [m.modeHuman, m.modeEasy, m.modeMedium, m.modeHard]
+  for i = 0 to 3
+    cards[i].uri = "pkg:/images/mode-card.png"
+  end for
+  cards[m.modeSelection].uri = "pkg:/images/mode-card-selected.png"
+  if m.modeSelection = 0
+    m.modeMessage.text = "Two phones compete head-to-head"
+  else if m.modeSelection = 1
+    m.modeMessage.text = "Easy bot makes relaxed, random moves"
+  else if m.modeSelection = 2
+    m.modeMessage.text = "Medium bot blocks wins and favors strong columns"
+  else
+    m.modeMessage.text = "Hard bot plans several moves ahead"
   end if
 end sub
 
@@ -193,13 +247,16 @@ sub createRoom()
   m.state = "creating"
   m.productTitle.text = "CONNECT FOUR"
   m.lobbyGroup.visible = false
+  m.modeGroup.visible = false
   showGameChrome(true)
   m.title.text = "CREATING ROOM..."
-  m.subtitle.text = "Connecting to the TN Game server"
+  if m.gameMode = "bot" then m.subtitle.text = "Preparing " + UCase(m.difficulty) + " bot mode" else m.subtitle.text = "Preparing two-player mode"
   m.roomLabel.text = ""
   m.playersLabel.text = ""
   m.boardGroup.visible = false
-  sendRequest("create", "GET", m.baseUrl + "/api/rooms/create", "")
+  url = m.baseUrl + "/api/rooms/create?mode=" + m.gameMode
+  if m.gameMode = "bot" then url += "&difficulty=" + m.difficulty
+  sendRequest("create", "GET", url, "")
 end sub
 
 sub restartGame()
@@ -218,7 +275,6 @@ sub sendRequest(kind as string, method as string, url as string, payload as stri
   if m.busy then return
   m.busy = true
   m.requestId += 1
-
   task = m.top.createChild("TNNetworkTask")
   task.requestId = m.requestId
   task.requestKind = kind
@@ -232,7 +288,6 @@ end sub
 sub onNetworkResponse(event as object)
   task = event.getRoSGNode()
   if task = invalid then return
-
   kind = task.requestKind
   statusCode = task.statusCode
   body = task.body
@@ -240,7 +295,6 @@ sub onNetworkResponse(event as object)
   task.unobserveField("responseId")
   m.top.removeChild(task)
   m.busy = false
-
   if statusCode < 200 or statusCode >= 300
     if kind = "tv"
       m.subtitle.text = "Reconnecting to game server..."
@@ -251,7 +305,6 @@ sub onNetworkResponse(event as object)
     m.subtitle.text = statusCode.toStr() + " " + failureReason
     return
   end if
-
   data = ParseJson(body)
   if data = invalid
     if kind = "tv"
@@ -263,7 +316,6 @@ sub onNetworkResponse(event as object)
     m.subtitle.text = "Press OK to try again"
     return
   end if
-
   if kind = "create"
     if data.code = invalid
       m.state = "error"
@@ -276,10 +328,7 @@ sub onNetworkResponse(event as object)
     requestTvState()
     return
   end if
-
-  if kind = "tv" or kind = "restart"
-    applyTvState(data)
-  end if
+  if kind = "tv" or kind = "restart" then applyTvState(data)
 end sub
 
 sub onPoll()
@@ -294,7 +343,6 @@ sub applyTvState(data as object)
   m.roomLabel.text = valueOr(data.roomLabel, "")
   m.playersLabel.text = valueOr(data.playersLabel, "")
   applyPlayers(data.players, data.currentPlayerId)
-
   if data.screen = "playing" or data.screen = "finished"
     m.boardGroup.visible = true
     renderBoard(data.board)
@@ -312,7 +360,6 @@ sub applyPlayers(players as dynamic, currentPlayerId as dynamic)
     if players.Count() > 0 then p1 = players[0]
     if players.Count() > 1 then p2 = players[1]
   end if
-
   if p1 <> invalid
     m.playerColors[0] = p1.color
     m.playerOneName.text = UCase(p1.name)
@@ -324,13 +371,16 @@ sub applyPlayers(players as dynamic, currentPlayerId as dynamic)
     m.playerOneColor.text = "CHOOSE COLOR"
     m.playerOneTurn.text = ""
   end if
-
   if p2 <> invalid
     m.playerColors[1] = p2.color
     m.playerTwoName.text = UCase(p2.name)
     m.playerTwoColor.text = colorName(p2.color)
     m.playerTwoToken.uri = colorAsset(p2.color)
-    if currentPlayerId <> invalid and p2.id = currentPlayerId then m.playerTwoTurn.text = "YOUR TURN" else m.playerTwoTurn.text = ""
+    if currentPlayerId <> invalid and p2.id = currentPlayerId
+      if p2.isBot = true then m.playerTwoTurn.text = "BOT THINKING" else m.playerTwoTurn.text = "YOUR TURN"
+    else
+      m.playerTwoTurn.text = ""
+    end if
   else
     m.playerTwoName.text = "PLAYER 2"
     m.playerTwoColor.text = "CHOOSE COLOR"
