@@ -1,7 +1,7 @@
 title=TN Game Connect Four
 major_version=0
-minor_version=2
-build_version=9
+minor_version=3
+build_version=0
 ui_resolutions=fhd
 splash_color=#06110E
 splash_min_time=250
