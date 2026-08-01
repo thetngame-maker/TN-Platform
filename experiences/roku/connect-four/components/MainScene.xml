@@ -8,7 +8,7 @@
     <Rectangle translation="[78,56]" width="292" height="72" color="0xF97316FF" />
     <Label text="TN GAME" translation="[94,68]" width="260" height="50" horizAlign="center" color="0xFFFFFFFF" />
     <Label text="CONNECT FOUR" translation="[405,62]" width="560" height="60" color="0xFFFFFFFF" />
-    <Label id="versionLabel" text="v0.3.0" translation="[1650,68]" width="190" height="40" horizAlign="right" color="0x56786DFF" />
+    <Label id="versionLabel" text="v0.3.1" translation="[1650,68]" width="190" height="40" horizAlign="right" color="0x56786DFF" />
 
     <Label id="title" text="PRESS OK TO CREATE A ROOM" translation="[320,160]" width="1280" height="76" horizAlign="center" color="0xF6A55CFF" />
     <Label id="subtitle" text="Server-powered Connect Four" translation="[360,238]" width="1200" height="48" horizAlign="center" color="0xA7BDB5FF" />
@@ -32,6 +32,7 @@
     <Label id="playersLabel" text="" translation="[410,1024]" width="1100" height="38" horizAlign="center" color="0x6F9488FF" />
 
     <TNNetworkTask id="netA" />
-    <Timer id="pollTimer" duration="0.5" repeat="true" />
+    <TNNetworkTask id="netB" />
+    <Timer id="pollTimer" duration="0.75" repeat="true" />
   </children>
 </component>
