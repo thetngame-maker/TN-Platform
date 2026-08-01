@@ -10,8 +10,13 @@ WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "$WORK_DIR"' EXIT
 
 # Preserve the proven Render URL, QR flow, and persistent DisplayLoopTask sync.
+# build-render-production.sh now produces the v1.0.1 display-sync package directly.
 ./build-render-production.sh
-cp "$ROOT_DIR/dist/tn-game-connect-four-render-production.zip" "$BASE_ZIP"
+
+if [ ! -f "$BASE_ZIP" ]; then
+  echo "Expected synchronized Roku build not found: $BASE_ZIP" >&2
+  exit 1
+fi
 
 unzip -q "$BASE_ZIP" -d "$WORK_DIR/package"
 
@@ -81,7 +86,7 @@ rm -f "$OUTPUT_ZIP"
 (
   cd "$WORK_DIR/package"
   zip -qr "$OUTPUT_ZIP" . \
-    -x '*.DS_Store' '__MACOSX/*' '*.backup*' '*.v11-backup*'
+    -x '*.DS_Store' '__MACOSX/*' '*.backup*' '*.v11-backup*' '*thin-client-backup*'
 )
 
 unzip -Z1 "$OUTPUT_ZIP" | grep -qx 'manifest'
