@@ -3,7 +3,10 @@ name: Connect Four Auto Start Build
 on:
   push:
     branches:
-      - fix/connect-four-auto-start
+      - main
+    paths:
+      - '.github/workflows/connect-four-auto-start-build.yml'
+      - 'experiences/roku/connect-four/**'
   workflow_dispatch:
 
 permissions:
