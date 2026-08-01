@@ -1,0 +1,31 @@
+name: Connect Four Gameplay Polish v1.1 Build
+
+on:
+  push:
+    branches:
+      - feature/connect-four-gameplay-polish-v1.1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build gameplay polish Roku package
+        run: |
+          chmod +x experiences/roku/connect-four/build.sh
+          chmod +x experiences/roku/connect-four/build-thin-client-v1.sh
+          chmod +x experiences/roku/connect-four/build-gameplay-polish-v1.1.sh
+          experiences/roku/connect-four/build-gameplay-polish-v1.1.sh
+
+      - name: Upload Roku ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: tn-game-connect-four-v1.1.0-gameplay-polish
+          path: experiences/roku/connect-four/dist/tn-game-connect-four-v1.1.0-gameplay-polish.zip
+          if-no-files-found: error
