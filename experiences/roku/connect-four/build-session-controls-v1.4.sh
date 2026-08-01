@@ -9,7 +9,6 @@ OUTPUT_ZIP="$ROOT_DIR/dist/tn-game-connect-four-v1.4.1-menu-fix.zip"
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "$WORK_DIR"' EXIT
 
-# Build directly from the confirmed working v1.3.1 sync-fix package.
 ./build-gameplay-polish-v1.3.sh
 
 if [ ! -f "$BASE_ZIP" ]; then
@@ -21,74 +20,65 @@ unzip -q "$BASE_ZIP" -d "$WORK_DIR/package"
 
 python3 - <<'PY' "$WORK_DIR/package/components/MainScene.brs"
 from pathlib import Path
+import re
 import sys
 
 path = Path(sys.argv[1])
 text = path.read_text()
 
-text = text.replace(
-    'm.versionLabel.text = "v1.3.1 SYNC FIX"',
-    'm.versionLabel.text = "v1.4.1 MENU FIX"',
-)
+text = text.replace('m.versionLabel.text = "v1.3.1 SYNC FIX"', 'm.versionLabel.text = "v1.4.1 MENU FIX"')
 
-# Track whether incoming display updates should be ignored after leaving a room.
+# Add one state guard without depending on the exact generated applyTvState layout.
 needle = '  m.busy = false\n'
 if needle not in text:
     raise SystemExit('Could not find init busy flag')
 text = text.replace(needle, '  m.busy = false\n  m.ignoreTvState = false\n', 1)
 
-# The Back button should leave the current room cleanly and return to mode select.
-needle = '''  else if key = "back"
+# Back leaves the room and returns to mode selection.
+old = '''  else if key = "back"
     showLobby()
     return true
   end if'''
-replacement = '''  else if key = "back"
+new = '''  else if key = "back"
     leaveCurrentRoom()
     return true
   end if'''
-if needle not in text:
+if old not in text:
     raise SystemExit('Could not find in-game Back handler')
-text = text.replace(needle, replacement, 1)
+text = text.replace(old, new, 1)
 
-# Re-enable server display updates only when a new room is intentionally created.
-needle = '''sub createRoom()
-  m.pollTimer.control = "stop"'''
-replacement = '''sub createRoom()
-  m.ignoreTvState = false
-  m.pollTimer.control = "stop"'''
-if needle not in text:
-    raise SystemExit('Could not find createRoom start')
-text = text.replace(needle, replacement, 1)
-
-# Ignore late responses from the old room after returning to mode selection.
-needle = '''sub applyTvState(data as object)
-  if data.screen = invalid then return'''
-replacement = '''sub applyTvState(data as object)
-  if m.ignoreTvState = true then return
-  if data.screen = invalid then return'''
-if needle not in text:
-    raise SystemExit('Could not find applyTvState start')
-text = text.replace(needle, replacement, 1)
-
-# Give finished games concise remote instructions while preserving draw handling.
-text = text.replace(
-    'm.subtitle.text = "No open moves • Press OK to play again"',
-    'm.subtitle.text = "OK: play again • BACK: change mode"',
+# Re-enable display updates whenever a new room is created.
+text, count = re.subn(
+    r'(sub createRoom\(\)\s*\n)',
+    r'\1  m.ignoreTvState = false\n',
+    text,
+    count=1,
 )
-text = text.replace(
-    'm.subtitle.text = "Press OK to play again"',
-    'm.subtitle.text = "OK: play again • BACK: change mode"',
-)
+if count != 1:
+    raise SystemExit('Could not patch createRoom')
 
-# Explicitly hide all game-layer nodes before revealing mode selection. This prevents
-# both the board and player cards from remaining over the menu while a late poll returns.
+# Ignore any final stateJson event delivered after the user leaves the room.
+text, count = re.subn(
+    r'(sub onDisplayState\(event as object\)\s*\n)',
+    r'\1  if m.ignoreTvState = true then return\n',
+    text,
+    count=1,
+)
+if count != 1:
+    raise SystemExit('Could not patch onDisplayState')
+
+text = text.replace('m.subtitle.text = "No open moves • Press OK to play again"', 'm.subtitle.text = "OK: play again • BACK: change mode"')
+text = text.replace('m.subtitle.text = "Press OK to play again"', 'm.subtitle.text = "OK: play again • BACK: change mode"')
+
 text += '''
 
 sub leaveCurrentRoom()
   m.ignoreTvState = true
   m.pollTimer.control = "stop"
+  if m.displayLoop <> invalid then m.displayLoop.control = "STOP"
   m.roomCode = ""
   m.busy = false
+  m.state = "mode"
   m.joinGroup.visible = false
   m.boardGroup.visible = false
   m.statusCard.visible = false
@@ -119,7 +109,7 @@ unzip -Z1 "$OUTPUT_ZIP" | grep -qx 'components/DisplayLoopTask.brs'
 unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -q 'v1.4.1 MENU FIX'
 unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -q 'm.ignoreTvState = true'
 unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -q 'if m.ignoreTvState = true then return'
-unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -q 'm.boardGroup.visible = false'
+unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -q 'm.displayLoop.control = "STOP"'
 unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -q 'BACK: change mode'
 unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -q 'DRAW GAME'
 unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -q 'TWO PLAYER MATCH'
