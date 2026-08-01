@@ -11,6 +11,8 @@ sub init()
   m.difficulty = "easy"
 
   m.productTitle = m.top.findNode("productTitle")
+  m.versionLabel = m.top.findNode("versionLabel")
+  m.versionLabel.text = "v0.3.2 QR"
   m.lobbyGroup = m.top.findNode("lobbyGroup")
   m.lobbyMessage = m.top.findNode("lobbyMessage")
   m.connectCard = m.top.findNode("connectCard")
@@ -45,6 +47,7 @@ sub init()
 
   m.pollTimer.observeField("fire", "onPoll")
   buildBoard()
+  buildJoinPanel()
   showLobby()
   m.top.setFocus(true)
 end sub
@@ -119,6 +122,7 @@ sub showLobby()
   m.productTitle.text = "TN GAME CONNECT"
   m.lobbyGroup.visible = true
   m.modeGroup.visible = false
+  m.joinGroup.visible = false
   showGameChrome(false)
   resetPlayerCards()
   clearBoard()
@@ -130,6 +134,7 @@ sub showModeSelect()
   m.productTitle.text = "CONNECT FOUR"
   m.lobbyGroup.visible = false
   m.modeGroup.visible = true
+  m.joinGroup.visible = false
   showGameChrome(false)
   m.modeSelection = 0
   updateModeSelection()
@@ -180,7 +185,95 @@ sub showGameChrome(visible as boolean)
   m.footerCard.visible = visible
   m.roomLabel.visible = visible
   m.playersLabel.visible = visible
-  if not visible then m.boardGroup.visible = false
+  if not visible
+    m.boardGroup.visible = false
+    m.joinGroup.visible = false
+  end if
+end sub
+
+sub buildJoinPanel()
+  m.joinGroup = m.top.createChild("Group")
+  m.joinGroup.translation = [745, 285]
+  m.joinGroup.visible = false
+
+  shadow = m.joinGroup.createChild("Rectangle")
+  shadow.translation = [12, 14]
+  shadow.width = 430
+  shadow.height = 575
+  shadow.color = "0x00000066"
+
+  card = m.joinGroup.createChild("Poster")
+  card.width = 430
+  card.height = 575
+  card.loadWidth = 430
+  card.loadHeight = 575
+  card.loadDisplayMode = "scaleToFit"
+  card.uri = "pkg:/images/player-card.png"
+
+  heading = m.joinGroup.createChild("Label")
+  heading.translation = [25, 20]
+  heading.width = 380
+  heading.height = 52
+  heading.horizAlign = "center"
+  heading.font = "font:LargeBoldSystemFont"
+  heading.color = "0xFFFFFFFF"
+  heading.text = "SCAN TO JOIN"
+
+  m.qrPoster = m.joinGroup.createChild("Poster")
+  m.qrPoster.translation = [65, 82]
+  m.qrPoster.width = 300
+  m.qrPoster.height = 300
+  m.qrPoster.loadWidth = 300
+  m.qrPoster.loadHeight = 300
+  m.qrPoster.loadDisplayMode = "scaleToFit"
+
+  codeCaption = m.joinGroup.createChild("Label")
+  codeCaption.translation = [25, 397]
+  codeCaption.width = 380
+  codeCaption.height = 38
+  codeCaption.horizAlign = "center"
+  codeCaption.font = "font:MediumBoldSystemFont"
+  codeCaption.color = "0xA7BDB5FF"
+  codeCaption.text = "ROOM CODE"
+
+  m.joinCode = m.joinGroup.createChild("Label")
+  m.joinCode.translation = [25, 430]
+  m.joinCode.width = 380
+  m.joinCode.height = 70
+  m.joinCode.horizAlign = "center"
+  m.joinCode.font = "font:LargeBoldSystemFont"
+  m.joinCode.color = "0xF97316FF"
+
+  m.joinHint = m.joinGroup.createChild("Label")
+  m.joinHint.translation = [20, 510]
+  m.joinHint.width = 390
+  m.joinHint.height = 42
+  m.joinHint.horizAlign = "center"
+  m.joinHint.font = "font:MediumBoldSystemFont"
+  m.joinHint.color = "0xFFFFFFFF"
+  m.joinHint.text = "OPEN CAMERA ON YOUR PHONE"
+end sub
+
+function encodeUrl(value as string) as string
+  transfer = CreateObject("roUrlTransfer")
+  return transfer.Escape(value)
+end function
+
+sub showJoinPanel()
+  if m.roomCode = "" then return
+  joinUrl = m.baseUrl + "/?room=" + m.roomCode
+  m.joinCode.text = m.roomCode
+  m.qrPoster.uri = "https://quickchart.io/qr?size=300&margin=1&ecLevel=M&text=" + encodeUrl(joinUrl)
+  m.joinGroup.visible = true
+  m.boardGroup.visible = false
+  m.title.text = "JOIN ROOM " + m.roomCode
+  if m.gameMode = "bot"
+    m.subtitle.text = "Scan to challenge the " + UCase(m.difficulty) + " bot"
+  else
+    m.subtitle.text = "Scan with each phone to join"
+  end if
+  m.roomLabel.text = "ROOM CODE  " + m.roomCode
+  m.playersLabel.text = joinUrl
 end sub
 
 sub resetPlayerCards()
@@ -248,6 +341,7 @@ sub createRoom()
   m.productTitle.text = "CONNECT FOUR"
   m.lobbyGroup.visible = false
   m.modeGroup.visible = false
+  m.joinGroup.visible = false
   showGameChrome(true)
   m.title.text = "CREATING ROOM..."
   if m.gameMode = "bot" then m.subtitle.text = "Preparing " + UCase(m.difficulty) + " bot mode" else m.subtitle.text = "Preparing two-player mode"
@@ -324,6 +418,8 @@ sub onNetworkResponse(event as object)
       return
     end if
     m.roomCode = data.code
+    m.state = "room"
+    showJoinPanel()
     m.pollTimer.control = "start"
     requestTvState()
     return
@@ -338,17 +434,23 @@ end sub
 sub applyTvState(data as object)
   if data.screen = invalid then return
   m.state = data.screen
-  m.title.text = valueOr(data.title, "TN GAME CONNECT FOUR")
-  m.subtitle.text = valueOr(data.subtitle, "")
-  m.roomLabel.text = valueOr(data.roomLabel, "")
-  m.playersLabel.text = valueOr(data.playersLabel, "")
   applyPlayers(data.players, data.currentPlayerId)
-  if data.screen = "playing" or data.screen = "finished"
-    m.boardGroup.visible = true
-    renderBoard(data.board)
+  if data.screen = "lobby"
+    if data.code <> invalid then m.roomCode = data.code
+    showJoinPanel()
   else
-    m.boardGroup.visible = false
-    clearBoard()
+    m.joinGroup.visible = false
+    m.title.text = valueOr(data.title, "TN GAME CONNECT FOUR")
+    m.subtitle.text = valueOr(data.subtitle, "")
+    m.roomLabel.text = "ROOM " + m.roomCode
+    m.playersLabel.text = valueOr(data.playersLabel, "")
+    if data.screen = "playing" or data.screen = "finished"
+      m.boardGroup.visible = true
+      renderBoard(data.board)
+    else
+      m.boardGroup.visible = false
+      clearBoard()
+    end if
   end if
 end sub
 
