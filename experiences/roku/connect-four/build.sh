@@ -3,7 +3,7 @@
 set -euo pipefail
 
 APP_NAME="tn-game-connect-four"
-VERSION="v0.2.9-rounded"
+VERSION="v0.3.0-lobby"
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
 IMAGE_DIR="$ROOT_DIR/images"
@@ -121,7 +121,6 @@ def rounded_rect(width, height, radius, fill, border=None, border_width=0, scale
     return pixels
 
 
-# Perfect circular game pieces.
 write_png(OUT / 'token-empty.png', 192, 192, token((8, 34, 27), (29, 79, 63), (0, 0, 0), (0, 0, 0), True))
 palettes = {
     'orange': ((249,115,22),(177,61,6),(255,184,112),(209,74,5)),
@@ -134,13 +133,14 @@ palettes = {
 for name, colors in palettes.items():
     write_png(OUT / f'token-{name}.png', 192, 192, token(*colors))
 
-# Rounded TV surfaces matching the mobile controller.
 surfaces = [
     ('brand-pill.png', 300, 76, 24, (249, 115, 22), None, 0),
     ('status-card.png', 1280, 132, 28, (10, 28, 22), (38, 96, 76), 3),
     ('board-card.png', 790, 680, 34, (11, 37, 29), (42, 112, 89), 4),
     ('player-card.png', 300, 380, 34, (16, 44, 34), (42, 112, 89), 3),
-    ('footer-card.png', 1060, 82, 28, (8, 23, 18), (33, 72, 60), 3),
+    ('footer-card.png', 1060, 92, 28, (8, 23, 18), (33, 72, 60), 3),
+    ('lobby-card.png', 500, 500, 38, (10, 31, 24), (33, 72, 60), 4),
+    ('lobby-card-selected.png', 500, 500, 38, (16, 44, 34), (249, 115, 22), 8),
 ]
 for name, width, height, radius, fill, border, border_width in surfaces:
     write_png(OUT / name, width, height, rounded_rect(width, height, radius, fill, border, border_width))
