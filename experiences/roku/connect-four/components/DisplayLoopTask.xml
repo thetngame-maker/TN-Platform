@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="DisplayLoopTask" extends="Task">
+  <interface>
+    <field id="baseUrl" type="string" />
+    <field id="mode" type="string" />
+    <field id="difficulty" type="string" />
+    <field id="stateJson" type="string" alwaysNotify="true" />
+    <field id="errorText" type="string" alwaysNotify="true" />
+  </interface>
+  <script type="text/brightscript" uri="pkg:/components/DisplayLoopTask.brs" />
+</component>
