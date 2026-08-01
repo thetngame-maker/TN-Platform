@@ -2,6 +2,7 @@
 <component name="TNNetworkTask" extends="Task">
   <interface>
     <field id="requestId" type="integer" />
+    <field id="requestKind" type="string" />
     <field id="method" type="string" />
     <field id="url" type="string" />
     <field id="payload" type="string" />
