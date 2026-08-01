@@ -18,12 +18,12 @@
     <Group id="boardGroup" translation="[560,360]" visible="false" />
 
     <Rectangle id="playerOneCard" translation="[100,370]" width="330" height="150" color="0x0B1E18FF" visible="false" />
-    <Rectangle translation="[126,398]" width="24" height="94" color="0xF97316FF" />
+    <Rectangle id="playerOneSwatch" translation="[126,398]" width="24" height="94" color="0xF97316FF" visible="false" />
     <Label id="playerOneName" text="PLAYER 1" translation="[175,396]" width="225" height="48" color="0xFFFFFFFF" visible="false" />
     <Label id="playerOneRole" text="ORANGE" translation="[175,450]" width="225" height="38" color="0xA7BDB5FF" visible="false" />
 
     <Rectangle id="playerTwoCard" translation="[1390,370]" width="330" height="150" color="0x0B1E18FF" visible="false" />
-    <Rectangle translation="[1416,398]" width="24" height="94" color="0xFFD54FFF" />
+    <Rectangle id="playerTwoSwatch" translation="[1416,398]" width="24" height="94" color="0xFFD54FFF" visible="false" />
     <Label id="playerTwoName" text="PLAYER 2" translation="[1465,396]" width="225" height="48" color="0xFFFFFFFF" visible="false" />
     <Label id="playerTwoRole" text="GOLD" translation="[1465,450]" width="225" height="38" color="0xA7BDB5FF" visible="false" />
 
