@@ -7,6 +7,10 @@ on:
     paths:
       - '.github/workflows/connect-four-auto-start-build.yml'
       - 'experiences/roku/connect-four/**'
+  pull_request:
+    paths:
+      - '.github/workflows/connect-four-auto-start-build.yml'
+      - 'experiences/roku/connect-four/**'
   workflow_dispatch:
 
 permissions:
