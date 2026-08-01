@@ -38,7 +38,6 @@ end sub
 
 function onKeyEvent(key as string, press as boolean) as boolean
   if not press then return false
-
   if key = "OK"
     if m.state = "home" or m.state = "error"
       createRoom()
@@ -48,7 +47,6 @@ function onKeyEvent(key as string, press as boolean) as boolean
   else if key = "back"
     showHome()
   end if
-
   return true
 end function
 
@@ -85,7 +83,6 @@ end sub
 sub buildBoard()
   m.cells = []
   m.slots = []
-
   for c = 0 to 6
     label = m.columnLabels.createChild("Label")
     label.text = (c + 1).toStr()
@@ -95,7 +92,6 @@ sub buildBoard()
     label.horizAlign = "center"
     label.color = "0x7FA99CFF"
   end for
-
   for r = 0 to 5
     row = []
     slotRow = []
@@ -105,13 +101,11 @@ sub buildBoard()
       slot.height = 94
       slot.translation = [c * 102, r * 96]
       slot.color = "0x245BC5FF"
-
       piece = m.boardGroup.createChild("Rectangle")
       piece.width = 72
       piece.height = 72
       piece.translation = [c * 102 + 11, r * 96 + 11]
       piece.color = "0xE8F1EDFF"
-
       slotRow.push(slot)
       row.push(piece)
     end for
@@ -144,6 +138,7 @@ end sub
 
 sub restartGame()
   if m.roomCode = "" then return
+  m.pollTimer.control = "stop"
   m.title.text = "NEW ROUND"
   m.subtitle.text = "Resetting the board..."
   sendRequest("restart", "POST", m.baseUrl + "/api/rooms/" + m.roomCode + "/restart", "{}")
@@ -157,7 +152,6 @@ end sub
 sub sendRequest(kind as string, method as string, url as string, payload as string)
   if m.busy then return
   m.busy = true
-
   if m.nextNet = 0
     task = m.netA
     m.netAKind = kind
@@ -167,7 +161,6 @@ sub sendRequest(kind as string, method as string, url as string, payload as stri
     m.netBKind = kind
     m.nextNet = 0
   end if
-
   task.control = "STOP"
   task.requestId = task.requestId + 1
   task.method = method
@@ -195,6 +188,7 @@ sub handleNetworkResponse(task as object, kind as string)
   if task.statusCode < 200 or task.statusCode >= 300
     if kind = "tv"
       m.subtitle.text = "Reconnecting to game server..."
+      scheduleNextPoll()
       return
     end if
     m.state = "error"
@@ -207,6 +201,7 @@ sub handleNetworkResponse(task as object, kind as string)
   if data = invalid
     if kind = "tv"
       m.subtitle.text = "Waiting for display state..."
+      scheduleNextPoll()
       return
     end if
     m.state = "error"
@@ -223,39 +218,47 @@ sub handleNetworkResponse(task as object, kind as string)
       return
     end if
     m.roomCode = data.code
-    requestTvState()
-    m.pollTimer.control = "start"
+    m.state = "lobby"
+    m.title.text = "JOIN ROOM " + m.roomCode
+    m.subtitle.text = m.baseUrl + "/?room=" + m.roomCode
+    m.roomLabel.text = "0 of 2 players connected"
+    m.playersLabel.text = "Waiting for players"
+    scheduleNextPoll()
     return
   end if
 
   if kind = "tv" or kind = "restart"
     applyTvState(data)
+    scheduleNextPoll()
   end if
 end sub
 
+sub scheduleNextPoll()
+  if m.roomCode = "" then return
+  m.pollTimer.control = "stop"
+  m.pollTimer.control = "start"
+end sub
+
 sub onPoll()
+  m.pollTimer.control = "stop"
   requestTvState()
 end sub
 
 sub applyTvState(data as object)
   if data.screen = invalid then return
-
   m.state = data.screen
   m.title.text = valueOr(data.title, "TN GAME CONNECT FOUR")
   m.subtitle.text = valueOr(data.subtitle, "")
   m.roomLabel.text = valueOr(data.roomLabel, "")
   m.playersLabel.text = valueOr(data.playersLabel, "")
   applyPlayers(data.players, data.currentPlayerId)
-
   if data.screen = "playing" or data.screen = "finished"
     showGameChrome(true)
     renderBoard(data.board, data.winningCells, data.lastMove)
   else
     showGameChrome(false)
     clearBoard()
-    if data.joinUrl <> invalid
-      m.subtitle.text = data.joinUrl
-    end if
+    if data.joinUrl <> invalid then m.subtitle.text = data.joinUrl
   end if
 end sub
 
@@ -266,7 +269,6 @@ sub applyPlayers(players as dynamic, currentPlayerId as dynamic)
     if players.Count() > 0 then p1 = players[0]
     if players.Count() > 1 then p2 = players[1]
   end if
-
   if p1 <> invalid
     m.playerOneName.text = p1.name.toUpper()
     if currentPlayerId <> invalid and p1.id = currentPlayerId
@@ -280,7 +282,6 @@ sub applyPlayers(players as dynamic, currentPlayerId as dynamic)
     m.playerOneName.text = "PLAYER 1"
     m.playerOneRole.text = "ORANGE"
   end if
-
   if p2 <> invalid
     m.playerTwoName.text = p2.name.toUpper()
     if currentPlayerId <> invalid and p2.id = currentPlayerId
@@ -311,7 +312,6 @@ end function
 
 sub renderBoard(board as dynamic, winningCells as dynamic, lastMove as dynamic)
   if board = invalid then return
-
   for r = 0 to 5
     for c = 0 to 6
       value = board[r][c]
@@ -322,7 +322,6 @@ sub renderBoard(board as dynamic, winningCells as dynamic, lastMove as dynamic)
       else
         m.cells[r][c].color = "0xE8F1EDFF"
       end if
-
       if isWinningCell(winningCells, r, c)
         m.slots[r][c].color = "0xFFFFFFFF"
       else if lastMove <> invalid and lastMove.row = r and lastMove.col = c
