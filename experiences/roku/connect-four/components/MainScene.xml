@@ -3,42 +3,50 @@
   <script type="text/brightscript" uri="pkg:/components/MainScene.brs" />
   <children>
     <Rectangle width="1920" height="1080" color="0x06110EFF" />
-    <Rectangle translation="[0,0]" width="1920" height="10" color="0xF97316FF" />
+    <Rectangle translation="[0,0]" width="1920" height="8" color="0xF97316FF" />
 
-    <Rectangle translation="[60,44]" width="286" height="76" color="0xF97316FF" />
-    <Label text="TN GAME" translation="[76,57]" width="254" height="50" horizAlign="center" color="0xFFFFFFFF" />
-    <Label text="CONNECT FOUR" translation="[390,55]" width="560" height="60" color="0xFFFFFFFF" />
-    <Label id="versionLabel" text="v0.2.7 BRAND" translation="[1530,68]" width="310" height="40" horizAlign="right" color="0x6F9488FF" />
+    <Rectangle translation="[72,48]" width="300" height="76" color="0xF97316FF" />
+    <Label text="TN GAME" translation="[92,61]" width="260" height="50" horizAlign="center" color="0xFFFFFFFF" />
+    <Label text="CONNECT FOUR" translation="[408,58]" width="560" height="60" color="0xFFFFFFFF" />
+    <Label id="versionLabel" text="v0.2.8 COLORS" translation="[1560,68]" width="280" height="40" horizAlign="right" color="0x7FA99CFF" />
 
-    <Rectangle translation="[390,132]" width="1140" height="116" color="0x0B1E18EE" />
-    <Rectangle translation="[390,132]" width="1140" height="5" color="0xF97316FF" />
-    <Label id="title" text="PRESS OK TO CREATE A ROOM" translation="[410,145]" width="1100" height="58" horizAlign="center" color="0xFFFFFFFF" />
-    <Label id="subtitle" text="Server-powered Connect Four" translation="[430,201]" width="1060" height="38" horizAlign="center" color="0xA7BDB5FF" />
+    <Rectangle translation="[320,146]" width="1280" height="132" color="0x0A1C16EE" />
+    <Rectangle translation="[320,146]" width="1280" height="6" color="0xF97316FF" />
+    <Label id="title" text="PRESS OK TO CREATE A ROOM" translation="[340,160]" width="1240" height="64" horizAlign="center" color="0xFFFFFFFF" />
+    <Label id="subtitle" text="Choose your colors on the phone" translation="[380,220]" width="1160" height="42" horizAlign="center" color="0xA7BDB5FF" />
 
-    <Group id="boardGroup" translation="[610,310]" visible="false">
-      <Rectangle translation="[-48,-48]" width="796" height="642" color="0x02080699" />
-      <Rectangle translation="[-60,-60]" width="796" height="642" color="0x163F32FF" />
-      <Rectangle translation="[-48,-48]" width="772" height="618" color="0x245D4AFF" />
-      <Rectangle translation="[-48,-48]" width="772" height="7" color="0xF97316FF" />
+    <Group id="boardGroup" translation="[608,318]" visible="false">
+      <Rectangle translation="[-42,-70]" width="790" height="680" color="0x02080688" />
+      <Rectangle translation="[-54,-82]" width="790" height="680" color="0x0B251DFF" />
+      <Rectangle translation="[-54,-82]" width="790" height="8" color="0xF97316FF" />
 
-      <Rectangle translation="[-470,92]" width="300" height="350" color="0x0B1E18FF" />
-      <Rectangle translation="[-470,92]" width="10" height="350" color="0xF97316FF" />
-      <Poster uri="pkg:/images/token-orange.png" translation="[-400,126]" width="160" height="160" loadWidth="160" loadHeight="160" loadDisplayMode="scaleToFit" />
-      <Label text="PLAYER 1" translation="[-446,302]" width="252" height="46" horizAlign="center" color="0xFFFFFFFF" />
-      <Label text="ORANGE" translation="[-446,348]" width="252" height="34" horizAlign="center" color="0xF6A55CFF" />
-      <Label text="YOUR TURN" translation="[-446,398]" width="252" height="38" horizAlign="center" color="0xFFFFFFFF" />
+      <Label text="1" translation="[0,-55]" width="92" height="40" horizAlign="center" color="0xA7BDB5FF" />
+      <Label text="2" translation="[100,-55]" width="92" height="40" horizAlign="center" color="0xA7BDB5FF" />
+      <Label text="3" translation="[200,-55]" width="92" height="40" horizAlign="center" color="0xA7BDB5FF" />
+      <Label text="4" translation="[300,-55]" width="92" height="40" horizAlign="center" color="0xA7BDB5FF" />
+      <Label text="5" translation="[400,-55]" width="92" height="40" horizAlign="center" color="0xA7BDB5FF" />
+      <Label text="6" translation="[500,-55]" width="92" height="40" horizAlign="center" color="0xA7BDB5FF" />
+      <Label text="7" translation="[600,-55]" width="92" height="40" horizAlign="center" color="0xA7BDB5FF" />
 
-      <Rectangle translation="[870,92]" width="300" height="350" color="0x0B1E18FF" />
-      <Rectangle translation="[1160,92]" width="10" height="350" color="0xFFD54FFF" />
-      <Poster uri="pkg:/images/token-gold.png" translation="[940,126]" width="160" height="160" loadWidth="160" loadHeight="160" loadDisplayMode="scaleToFit" />
-      <Label text="PLAYER 2" translation="[894,302]" width="252" height="46" horizAlign="center" color="0xFFFFFFFF" />
-      <Label text="GOLD" translation="[894,348]" width="252" height="34" horizAlign="center" color="0xFFD54FFF" />
+      <Rectangle translation="[-430,72]" width="300" height="380" color="0x102C22FF" />
+      <Rectangle translation="[-430,72]" width="12" height="380" color="0xF97316FF" />
+      <Poster id="playerOneToken" translation="[-390,96]" width="220" height="220" loadWidth="220" loadHeight="220" loadDisplayMode="scaleToFit" uri="pkg:/images/token-orange.png" />
+      <Label id="playerOneName" text="PLAYER 1" translation="[-405,318]" width="250" height="44" horizAlign="center" color="0xFFFFFFFF" />
+      <Label id="playerOneColor" text="ORANGE" translation="[-405,360]" width="250" height="34" horizAlign="center" color="0xF6A55CFF" />
+      <Label id="playerOneTurn" text="" translation="[-405,405]" width="250" height="38" horizAlign="center" color="0xFFFFFFFF" />
+
+      <Rectangle translation="[830,72]" width="300" height="380" color="0x102C22FF" />
+      <Rectangle translation="[1118,72]" width="12" height="380" color="0xFFD54FFF" />
+      <Poster id="playerTwoToken" translation="[870,96]" width="220" height="220" loadWidth="220" loadHeight="220" loadDisplayMode="scaleToFit" uri="pkg:/images/token-gold.png" />
+      <Label id="playerTwoName" text="PLAYER 2" translation="[855,318]" width="250" height="44" horizAlign="center" color="0xFFFFFFFF" />
+      <Label id="playerTwoColor" text="GOLD" translation="[855,360]" width="250" height="34" horizAlign="center" color="0xFFD54FFF" />
+      <Label id="playerTwoTurn" text="" translation="[855,405]" width="250" height="38" horizAlign="center" color="0xFFFFFFFF" />
     </Group>
 
-    <Rectangle translation="[440,932]" width="1040" height="96" color="0x0B1E18EE" />
-    <Rectangle translation="[440,932]" width="1040" height="4" color="0x21483CFF" />
-    <Label id="roomLabel" text="" translation="[460,944]" width="1000" height="40" horizAlign="center" color="0xFFFFFFFF" />
-    <Label id="playersLabel" text="" translation="[460,984]" width="1000" height="32" horizAlign="center" color="0x7FA99CFF" />
+    <Rectangle translation="[430,964]" width="1060" height="82" color="0x081712EE" />
+    <Rectangle translation="[430,964]" width="1060" height="4" color="0x21483CFF" />
+    <Label id="roomLabel" text="" translation="[450,972]" width="1020" height="38" horizAlign="center" color="0xFFFFFFFF" />
+    <Label id="playersLabel" text="" translation="[450,1009]" width="1020" height="30" horizAlign="center" color="0x7FA99CFF" />
 
     <Timer id="pollTimer" duration="0.75" repeat="true" />
   </children>
