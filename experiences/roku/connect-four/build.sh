@@ -3,7 +3,7 @@
 set -euo pipefail
 
 APP_NAME="tn-game-connect-four"
-VERSION="v0.3.0-lobby"
+VERSION="v0.3.1-bot"
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
 IMAGE_DIR="$ROOT_DIR/images"
@@ -29,10 +29,8 @@ from pathlib import Path
 OUT = Path('images')
 OUT.mkdir(exist_ok=True)
 
-
 def chunk(kind: bytes, data: bytes) -> bytes:
     return struct.pack('>I', len(data)) + kind + data + struct.pack('>I', zlib.crc32(kind + data) & 0xffffffff)
-
 
 def write_png(path: Path, width: int, height: int, pixels):
     raw = bytearray()
@@ -44,10 +42,8 @@ def write_png(path: Path, width: int, height: int, pixels):
     png = b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', header) + chunk(b'IDAT', zlib.compress(bytes(raw), 9)) + chunk(b'IEND', b'')
     path.write_bytes(png)
 
-
 def blend(samples):
     return tuple(round(sum(channel) / len(samples)) for channel in zip(*samples))
-
 
 def token(base, edge, highlight, shadow, empty=False, size=192, scale=4):
     cx = cy = size / 2
@@ -85,12 +81,10 @@ def token(base, edge, highlight, shadow, empty=False, size=192, scale=4):
         pixels.append(row)
     return pixels
 
-
 def rounded_rect(width, height, radius, fill, border=None, border_width=0, scale=2):
     pixels = []
     outer_radius = min(radius, width / 2, height / 2)
     inner_radius = max(0, outer_radius - border_width)
-
     def inside(px, py, inset, corner_radius):
         left, top = inset, inset
         right, bottom = width - inset, height - inset
@@ -101,7 +95,6 @@ def rounded_rect(width, height, radius, fill, border=None, border_width=0, scale
         cx = left + corner_radius if px < left + corner_radius else right - corner_radius if px > right - corner_radius else px
         cy = top + corner_radius if py < top + corner_radius else bottom - corner_radius if py > bottom - corner_radius else py
         return (px - cx) ** 2 + (py - cy) ** 2 <= corner_radius ** 2
-
     for y in range(height):
         row = []
         for x in range(width):
@@ -119,7 +112,6 @@ def rounded_rect(width, height, radius, fill, border=None, border_width=0, scale
             row.append(blend(samples))
         pixels.append(row)
     return pixels
-
 
 write_png(OUT / 'token-empty.png', 192, 192, token((8, 34, 27), (29, 79, 63), (0, 0, 0), (0, 0, 0), True))
 palettes = {
@@ -141,6 +133,8 @@ surfaces = [
     ('footer-card.png', 1060, 92, 28, (8, 23, 18), (33, 72, 60), 3),
     ('lobby-card.png', 500, 500, 38, (10, 31, 24), (33, 72, 60), 4),
     ('lobby-card-selected.png', 500, 500, 38, (16, 44, 34), (249, 115, 22), 8),
+    ('mode-card.png', 900, 132, 28, (10, 31, 24), (33, 72, 60), 4),
+    ('mode-card-selected.png', 900, 132, 28, (16, 44, 34), (249, 115, 22), 7),
 ]
 for name, width, height, radius, fill, border, border_width in surfaces:
     write_png(OUT / name, width, height, rounded_rect(width, height, radius, fill, border, border_width))
