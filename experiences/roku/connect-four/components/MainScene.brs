@@ -54,16 +54,37 @@ sub buildBoard()
       slot.width = 92
       slot.height = 92
       slot.translation = [c * 102, r * 102]
-      slot.color = "0x173B8FFF"
+      slot.color = "0x1D4FAFFF"
 
-      piece = m.boardGroup.createChild("Rectangle")
-      piece.width = 72
-      piece.height = 72
-      piece.translation = [c * 102 + 10, r * 102 + 10]
-      piece.color = "0xE8F1EDFF"
-      row.push(piece)
+      ' Three stacked rectangles form a safe, rounded-looking token
+      ' without requiring image assets or changing the stable network code.
+      topPiece = m.boardGroup.createChild("Rectangle")
+      topPiece.width = 52
+      topPiece.height = 12
+      topPiece.translation = [c * 102 + 20, r * 102 + 10]
+      topPiece.color = "0xD7E5DFFF"
+
+      middlePiece = m.boardGroup.createChild("Rectangle")
+      middlePiece.width = 72
+      middlePiece.height = 50
+      middlePiece.translation = [c * 102 + 10, r * 102 + 21]
+      middlePiece.color = "0xD7E5DFFF"
+
+      bottomPiece = m.boardGroup.createChild("Rectangle")
+      bottomPiece.width = 52
+      bottomPiece.height = 12
+      bottomPiece.translation = [c * 102 + 20, r * 102 + 70]
+      bottomPiece.color = "0xD7E5DFFF"
+
+      row.push([topPiece, middlePiece, bottomPiece])
     end for
     m.cells.push(row)
+  end for
+end sub
+
+sub setPieceColor(parts as object, color as string)
+  for each part in parts
+    part.color = color
   end for
 end sub
 
@@ -71,7 +92,7 @@ sub clearBoard()
   if m.cells = invalid then return
   for r = 0 to 5
     for c = 0 to 6
-      m.cells[r][c].color = "0xE8F1EDFF"
+      setPieceColor(m.cells[r][c], "0xD7E5DFFF")
     end for
   end for
 end sub
@@ -200,11 +221,11 @@ sub renderBoard(board as dynamic)
     for c = 0 to 6
       value = board[r][c]
       if value = 1
-        m.cells[r][c].color = "0xF97316FF"
+        setPieceColor(m.cells[r][c], "0xF97316FF")
       else if value = 2
-        m.cells[r][c].color = "0xFFD54FFF"
+        setPieceColor(m.cells[r][c], "0xFFD54FFF")
       else
-        m.cells[r][c].color = "0xE8F1EDFF"
+        setPieceColor(m.cells[r][c], "0xD7E5DFFF")
       end if
     end for
   end for
