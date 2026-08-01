@@ -5,32 +5,43 @@
     <Rectangle width="1920" height="1080" color="0x06110EFF" />
     <Rectangle translation="[0,0]" width="1920" height="8" color="0xF97316FF" />
 
-    <Rectangle translation="[78,54]" width="292" height="72" color="0xF97316FF" />
-    <Label text="TN GAME" translation="[94,66]" width="260" height="50" horizAlign="center" color="0xFFFFFFFF" />
-    <Label text="CONNECT FOUR" translation="[405,60]" width="560" height="60" color="0xFFFFFFFF" />
-    <Label id="versionLabel" text="v0.2.3 STABLE" translation="[1570,68]" width="270" height="40" horizAlign="right" color="0x7FA99CFF" />
+    <Rectangle translation="[72,48]" width="300" height="76" color="0xF97316FF" />
+    <Label text="TN GAME" translation="[92,61]" width="260" height="50" horizAlign="center" color="0xFFFFFFFF" />
+    <Label text="CONNECT FOUR" translation="[408,58]" width="560" height="60" color="0xFFFFFFFF" />
+    <Label id="versionLabel" text="v0.2.4 VISUAL" translation="[1560,68]" width="280" height="40" horizAlign="right" color="0x7FA99CFF" />
 
-    <Label id="title" text="PRESS OK TO CREATE A ROOM" translation="[320,145]" width="1280" height="76" horizAlign="center" color="0xF6A55CFF" />
-    <Label id="subtitle" text="Server-powered Connect Four" translation="[360,220]" width="1200" height="48" horizAlign="center" color="0xA7BDB5FF" />
+    <Rectangle translation="[320,146]" width="1280" height="126" color="0x0A1C16DD" />
+    <Label id="title" text="PRESS OK TO CREATE A ROOM" translation="[340,158]" width="1240" height="64" horizAlign="center" color="0xF6A55CFF" />
+    <Label id="subtitle" text="Server-powered Connect Four" translation="[380,218]" width="1160" height="42" horizAlign="center" color="0xA7BDB5FF" />
 
-    <Rectangle id="boardPanel" translation="[515,300]" width="790" height="625" color="0x0B251DFF" visible="false" />
-    <Group id="columnLabels" translation="[560,314]" visible="false" />
-    <Group id="boardGroup" translation="[560,360]" visible="false" />
+    <Group id="boardGroup" translation="[608,338]" visible="false">
+      <Rectangle translation="[-42,-70]" width="790" height="680" color="0x02080688" />
+      <Rectangle translation="[-54,-82]" width="790" height="680" color="0x0B251DFF" />
+      <Rectangle translation="[-54,-82]" width="790" height="8" color="0xF97316FF" />
 
-    <Rectangle id="playerOneCard" translation="[100,370]" width="330" height="150" color="0x0B1E18FF" visible="false" />
-    <Rectangle id="playerOneSwatch" translation="[126,398]" width="24" height="94" color="0xF97316FF" visible="false" />
-    <Label id="playerOneName" text="PLAYER 1" translation="[175,396]" width="225" height="48" color="0xFFFFFFFF" visible="false" />
-    <Label id="playerOneRole" text="ORANGE" translation="[175,450]" width="225" height="38" color="0xA7BDB5FF" visible="false" />
+      <Label text="1" translation="[0,-55]" width="92" height="40" horizAlign="center" color="0xA7BDB5FF" />
+      <Label text="2" translation="[102,-55]" width="92" height="40" horizAlign="center" color="0xA7BDB5FF" />
+      <Label text="3" translation="[204,-55]" width="92" height="40" horizAlign="center" color="0xA7BDB5FF" />
+      <Label text="4" translation="[306,-55]" width="92" height="40" horizAlign="center" color="0xA7BDB5FF" />
+      <Label text="5" translation="[408,-55]" width="92" height="40" horizAlign="center" color="0xA7BDB5FF" />
+      <Label text="6" translation="[510,-55]" width="92" height="40" horizAlign="center" color="0xA7BDB5FF" />
+      <Label text="7" translation="[612,-55]" width="92" height="40" horizAlign="center" color="0xA7BDB5FF" />
 
-    <Rectangle id="playerTwoCard" translation="[1390,370]" width="330" height="150" color="0x0B1E18FF" visible="false" />
-    <Rectangle id="playerTwoSwatch" translation="[1416,398]" width="24" height="94" color="0xFFD54FFF" visible="false" />
-    <Label id="playerTwoName" text="PLAYER 2" translation="[1465,396]" width="225" height="48" color="0xFFFFFFFF" visible="false" />
-    <Label id="playerTwoRole" text="GOLD" translation="[1465,450]" width="225" height="38" color="0xA7BDB5FF" visible="false" />
+      <Rectangle translation="[-430,100]" width="300" height="128" color="0x0B1E18FF" />
+      <Rectangle translation="[-430,100]" width="12" height="128" color="0xF97316FF" />
+      <Label text="PLAYER 1" translation="[-392,120]" width="230" height="44" color="0xFFFFFFFF" />
+      <Label text="ORANGE" translation="[-392,170]" width="230" height="34" color="0xF6A55CFF" />
 
-    <Label id="roomLabel" text="" translation="[410,952]" width="1100" height="45" horizAlign="center" color="0xFFFFFFFF" />
-    <Label id="playersLabel" text="" translation="[410,997]" width="1100" height="40" horizAlign="center" color="0x7FA99CFF" />
+      <Rectangle translation="[830,100]" width="300" height="128" color="0x0B1E18FF" />
+      <Rectangle translation="[1118,100]" width="12" height="128" color="0xFFD54FFF" />
+      <Label text="PLAYER 2" translation="[858,120]" width="230" height="44" horizAlign="right" color="0xFFFFFFFF" />
+      <Label text="GOLD" translation="[858,170]" width="230" height="34" horizAlign="right" color="0xFFD54FFF" />
+    </Group>
 
-    <TNNetworkTask id="netA" />
+    <Rectangle translation="[430,950]" width="1060" height="92" color="0x081712DD" />
+    <Label id="roomLabel" text="" translation="[450,960]" width="1020" height="42" horizAlign="center" color="0xFFFFFFFF" />
+    <Label id="playersLabel" text="" translation="[450,1001]" width="1020" height="34" horizAlign="center" color="0x7FA99CFF" />
+
     <Timer id="pollTimer" duration="0.75" repeat="true" />
   </children>
 </component>
