@@ -1,14 +1,29 @@
 sub init()
   m.baseUrl = "http://192.168.1.127:8070"
   m.roomCode = ""
-  m.state = "home"
+  m.state = "lobby"
   m.busy = false
   m.requestId = 0
   m.playerColors = ["orange", "gold"]
+  m.lobbySelection = 0
 
+  m.productTitle = m.top.findNode("productTitle")
+  m.versionLabel = m.top.findNode("versionLabel")
+  m.lobbyGroup = m.top.findNode("lobbyGroup")
+  m.lobbyMessage = m.top.findNode("lobbyMessage")
+  m.connectCard = m.top.findNode("connectCard")
+  m.colorClashCard = m.top.findNode("colorClashCard")
+  m.triviaCard = m.top.findNode("triviaCard")
+  m.connectPrompt = m.top.findNode("connectPrompt")
+  m.colorClashPrompt = m.top.findNode("colorClashPrompt")
+  m.triviaPrompt = m.top.findNode("triviaPrompt")
+
+  m.statusCard = m.top.findNode("statusCard")
+  m.statusAccent = m.top.findNode("statusAccent")
   m.title = m.top.findNode("title")
   m.subtitle = m.top.findNode("subtitle")
   m.boardGroup = m.top.findNode("boardGroup")
+  m.footerCard = m.top.findNode("footerCard")
   m.roomLabel = m.top.findNode("roomLabel")
   m.playersLabel = m.top.findNode("playersLabel")
   m.playerOneName = m.top.findNode("playerOneName")
@@ -23,37 +38,95 @@ sub init()
 
   m.pollTimer.observeField("fire", "onPoll")
   buildBoard()
-  showHome()
+  showLobby()
   m.top.setFocus(true)
 end sub
 
 function onKeyEvent(key as string, press as boolean) as boolean
   if not press then return false
-  if key = "OK"
-    if m.state = "home" or m.state = "error"
-      createRoom()
-    else if m.state = "finished" and m.roomCode <> ""
-      restartGame()
+
+  if m.state = "lobby"
+    if key = "left"
+      m.lobbySelection -= 1
+      if m.lobbySelection < 0 then m.lobbySelection = 2
+      updateLobbySelection()
+      return true
+    else if key = "right"
+      m.lobbySelection += 1
+      if m.lobbySelection > 2 then m.lobbySelection = 0
+      updateLobbySelection()
+      return true
+    else if key = "OK"
+      if m.lobbySelection = 0
+        createRoom()
+      else
+        m.lobbyMessage.text = "COMING SOON  •  Choose Connect Four to play now"
+      end if
+      return true
     end if
-  else if key = "back"
-    showHome()
+  else
+    if key = "OK"
+      if m.state = "error"
+        createRoom()
+      else if m.state = "finished" and m.roomCode <> ""
+        restartGame()
+      end if
+      return true
+    else if key = "back"
+      showLobby()
+      return true
+    end if
   end if
-  return true
+
+  return false
 end function
 
-sub showHome()
+sub showLobby()
   m.pollTimer.control = "stop"
   m.roomCode = ""
-  m.state = "home"
+  m.state = "lobby"
   m.busy = false
   m.playerColors = ["orange", "gold"]
-  m.title.text = "PRESS OK TO CREATE A ROOM"
-  m.subtitle.text = "Choose your colors on the phone"
-  m.roomLabel.text = ""
-  m.playersLabel.text = ""
-  m.boardGroup.visible = false
+  m.productTitle.text = "TN GAME CONNECT"
+  m.lobbyGroup.visible = true
+  showGameChrome(false)
   resetPlayerCards()
   clearBoard()
+  updateLobbySelection()
+end sub
+
+sub updateLobbySelection()
+  m.connectCard.uri = "pkg:/images/lobby-card.png"
+  m.colorClashCard.uri = "pkg:/images/lobby-card.png"
+  m.triviaCard.uri = "pkg:/images/lobby-card.png"
+  m.connectPrompt.text = "AVAILABLE"
+  m.colorClashPrompt.text = "COMING SOON"
+  m.triviaPrompt.text = "COMING SOON"
+
+  if m.lobbySelection = 0
+    m.connectCard.uri = "pkg:/images/lobby-card-selected.png"
+    m.connectPrompt.text = "PRESS OK TO PLAY"
+    m.lobbyMessage.text = "Use LEFT and RIGHT to choose a game"
+  else if m.lobbySelection = 1
+    m.colorClashCard.uri = "pkg:/images/lobby-card-selected.png"
+    m.colorClashPrompt.text = "COMING SOON"
+    m.lobbyMessage.text = "Color Clash is the next card game planned"
+  else
+    m.triviaCard.uri = "pkg:/images/lobby-card-selected.png"
+    m.triviaPrompt.text = "COMING SOON"
+    m.lobbyMessage.text = "TN Trivia will support teams and local questions"
+  end if
+end sub
+
+sub showGameChrome(visible as boolean)
+  m.statusCard.visible = visible
+  m.statusAccent.visible = visible
+  m.title.visible = visible
+  m.subtitle.visible = visible
+  m.footerCard.visible = visible
+  m.roomLabel.visible = visible
+  m.playersLabel.visible = visible
+  if not visible then m.boardGroup.visible = false
 end sub
 
 sub resetPlayerCards()
@@ -118,8 +191,11 @@ sub createRoom()
   m.pollTimer.control = "stop"
   m.roomCode = ""
   m.state = "creating"
+  m.productTitle.text = "CONNECT FOUR"
+  m.lobbyGroup.visible = false
+  showGameChrome(true)
   m.title.text = "CREATING ROOM..."
-  m.subtitle.text = "Connecting to the game server"
+  m.subtitle.text = "Connecting to the TN Game server"
   m.roomLabel.text = ""
   m.playersLabel.text = ""
   m.boardGroup.visible = false
