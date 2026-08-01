@@ -51,48 +51,60 @@ sub buildBoard()
     row = []
     for c = 0 to 6
       slot = m.boardGroup.createChild("Rectangle")
-      slot.width = 92
-      slot.height = 92
-      slot.translation = [c * 102, r * 102]
-      slot.color = "0x1D4FAFFF"
+      slot.width = 94
+      slot.height = 94
+      slot.translation = [c * 104, r * 96]
+      slot.color = "0x4D3BB8FF"
 
-      ' Three stacked rectangles form a safe, rounded-looking token
-      ' without requiring image assets or changing the stable network code.
       topPiece = m.boardGroup.createChild("Rectangle")
-      topPiece.width = 52
-      topPiece.height = 12
-      topPiece.translation = [c * 102 + 20, r * 102 + 10]
-      topPiece.color = "0xD7E5DFFF"
+      topPiece.width = 56
+      topPiece.height = 14
+      topPiece.translation = [c * 104 + 19, r * 96 + 9]
+      topPiece.color = "0x1B0C59FF"
 
       middlePiece = m.boardGroup.createChild("Rectangle")
-      middlePiece.width = 72
-      middlePiece.height = 50
-      middlePiece.translation = [c * 102 + 10, r * 102 + 21]
-      middlePiece.color = "0xD7E5DFFF"
+      middlePiece.width = 76
+      middlePiece.height = 48
+      middlePiece.translation = [c * 104 + 9, r * 96 + 22]
+      middlePiece.color = "0x1B0C59FF"
 
       bottomPiece = m.boardGroup.createChild("Rectangle")
-      bottomPiece.width = 52
-      bottomPiece.height = 12
-      bottomPiece.translation = [c * 102 + 20, r * 102 + 70]
-      bottomPiece.color = "0xD7E5DFFF"
+      bottomPiece.width = 56
+      bottomPiece.height = 14
+      bottomPiece.translation = [c * 104 + 19, r * 96 + 69]
+      bottomPiece.color = "0x1B0C59FF"
 
-      row.push([topPiece, middlePiece, bottomPiece])
+      highlight = m.boardGroup.createChild("Rectangle")
+      highlight.width = 42
+      highlight.height = 7
+      highlight.translation = [c * 104 + 20, r * 96 + 18]
+      highlight.color = "0x2B176EFF"
+
+      row.push([topPiece, middlePiece, bottomPiece, highlight])
     end for
     m.cells.push(row)
   end for
 end sub
 
 sub setPieceColor(parts as object, color as string)
-  for each part in parts
-    part.color = color
-  end for
+  parts[0].color = color
+  parts[1].color = color
+  parts[2].color = color
+
+  if color = "0xF04452FF"
+    parts[3].color = "0xFF7A83FF"
+  else if color = "0xFFD12FFF"
+    parts[3].color = "0xFFF18AFF"
+  else
+    parts[3].color = "0x2B176EFF"
+  end if
 end sub
 
 sub clearBoard()
   if m.cells = invalid then return
   for r = 0 to 5
     for c = 0 to 6
-      setPieceColor(m.cells[r][c], "0xD7E5DFFF")
+      setPieceColor(m.cells[r][c], "0x1B0C59FF")
     end for
   end for
 end sub
@@ -221,11 +233,11 @@ sub renderBoard(board as dynamic)
     for c = 0 to 6
       value = board[r][c]
       if value = 1
-        setPieceColor(m.cells[r][c], "0xF97316FF")
+        setPieceColor(m.cells[r][c], "0xF04452FF")
       else if value = 2
-        setPieceColor(m.cells[r][c], "0xFFD54FFF")
+        setPieceColor(m.cells[r][c], "0xFFD12FFF")
       else
-        setPieceColor(m.cells[r][c], "0xD7E5DFFF")
+        setPieceColor(m.cells[r][c], "0x1B0C59FF")
       end if
     end for
   end for
