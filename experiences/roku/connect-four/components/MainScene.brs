@@ -4,6 +4,8 @@ sub init()
   m.state = "home"
   m.busy = false
   m.requestKind = ""
+  m.nextNet = 0
+  m.activeNet = invalid
 
   m.title = m.top.findNode("title")
   m.subtitle = m.top.findNode("subtitle")
@@ -21,10 +23,12 @@ sub init()
   m.playerTwoSwatch = m.top.findNode("playerTwoSwatch")
   m.playerTwoName = m.top.findNode("playerTwoName")
   m.playerTwoRole = m.top.findNode("playerTwoRole")
-  m.net = m.top.findNode("netA")
+  m.netA = m.top.findNode("netA")
+  m.netB = m.top.findNode("netB")
   m.pollTimer = m.top.findNode("pollTimer")
 
-  m.net.observeField("responseId", "onNetworkResponse")
+  m.netA.observeField("responseId", "onNetAResponse")
+  m.netB.observeField("responseId", "onNetBResponse")
   m.pollTimer.observeField("fire", "onPoll")
 
   buildBoard()
@@ -54,6 +58,7 @@ sub showHome()
   m.state = "home"
   m.busy = false
   m.requestKind = ""
+  m.activeNet = invalid
   m.title.text = "PRESS OK TO CREATE A ROOM"
   m.subtitle.text = "Two phones. One shared TV board."
   m.roomLabel.text = ""
@@ -151,33 +156,55 @@ end sub
 
 sub sendRequest(kind as string, method as string, url as string, payload as string)
   if m.busy then return
+
   m.busy = true
   m.requestKind = kind
-  m.net.control = "STOP"
-  m.net.requestId = m.net.requestId + 1
-  m.net.method = method
-  m.net.url = url
-  m.net.payload = payload
-  m.net.control = "RUN"
+
+  if m.nextNet = 0
+    task = m.netA
+    m.nextNet = 1
+  else
+    task = m.netB
+    m.nextNet = 0
+  end if
+
+  m.activeNet = task
+  task.control = "STOP"
+  task.requestId = task.requestId + 1
+  task.method = method
+  task.url = url
+  task.payload = payload
+  task.control = "RUN"
 end sub
 
-sub onNetworkResponse()
+sub onNetAResponse()
+  handleNetworkResponse(m.netA)
+end sub
+
+sub onNetBResponse()
+  handleNetworkResponse(m.netB)
+end sub
+
+sub handleNetworkResponse(task as object)
+  if m.activeNet = invalid or task <> m.activeNet then return
+
   kind = m.requestKind
   m.requestKind = ""
   m.busy = false
+  m.activeNet = invalid
 
-  if m.net.statusCode < 200 or m.net.statusCode >= 300
+  if task.statusCode < 200 or task.statusCode >= 300
     if kind = "tv"
       m.subtitle.text = "Reconnecting to game server..."
       return
     end if
     m.state = "error"
     m.title.text = "NETWORK ERROR"
-    m.subtitle.text = m.net.statusCode.toStr() + " " + m.net.failureReason
+    m.subtitle.text = task.statusCode.toStr() + " " + task.failureReason
     return
   end if
 
-  data = ParseJson(m.net.body)
+  data = ParseJson(task.body)
   if data = invalid
     if kind = "tv"
       m.subtitle.text = "Waiting for display state..."
@@ -197,8 +224,8 @@ sub onNetworkResponse()
       return
     end if
     m.roomCode = data.code
-    m.pollTimer.control = "start"
     requestTvState()
+    m.pollTimer.control = "start"
     return
   end if
 
