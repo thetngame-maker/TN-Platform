@@ -3,9 +3,9 @@ sub init()
   m.roomCode = ""
   m.state = "home"
   m.busy = false
-  m.requestKind = ""
   m.nextNet = 0
-  m.activeNet = invalid
+  m.netAKind = ""
+  m.netBKind = ""
 
   m.title = m.top.findNode("title")
   m.subtitle = m.top.findNode("subtitle")
@@ -57,8 +57,8 @@ sub showHome()
   m.roomCode = ""
   m.state = "home"
   m.busy = false
-  m.requestKind = ""
-  m.activeNet = invalid
+  m.netAKind = ""
+  m.netBKind = ""
   m.title.text = "PRESS OK TO CREATE A ROOM"
   m.subtitle.text = "Two phones. One shared TV board."
   m.roomLabel.text = ""
@@ -156,19 +156,18 @@ end sub
 
 sub sendRequest(kind as string, method as string, url as string, payload as string)
   if m.busy then return
-
   m.busy = true
-  m.requestKind = kind
 
   if m.nextNet = 0
     task = m.netA
+    m.netAKind = kind
     m.nextNet = 1
   else
     task = m.netB
+    m.netBKind = kind
     m.nextNet = 0
   end if
 
-  m.activeNet = task
   task.control = "STOP"
   task.requestId = task.requestId + 1
   task.method = method
@@ -178,20 +177,20 @@ sub sendRequest(kind as string, method as string, url as string, payload as stri
 end sub
 
 sub onNetAResponse()
-  handleNetworkResponse(m.netA)
+  kind = m.netAKind
+  m.netAKind = ""
+  handleNetworkResponse(m.netA, kind)
 end sub
 
 sub onNetBResponse()
-  handleNetworkResponse(m.netB)
+  kind = m.netBKind
+  m.netBKind = ""
+  handleNetworkResponse(m.netB, kind)
 end sub
 
-sub handleNetworkResponse(task as object)
-  if m.activeNet = invalid or task <> m.activeNet then return
-
-  kind = m.requestKind
-  m.requestKind = ""
+sub handleNetworkResponse(task as object, kind as string)
+  if kind = "" then return
   m.busy = false
-  m.activeNet = invalid
 
   if task.statusCode < 200 or task.statusCode >= 300
     if kind = "tv"
