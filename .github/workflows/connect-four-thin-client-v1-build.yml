@@ -1,0 +1,30 @@
+name: Connect Four Thin Client v1 Build
+
+on:
+  push:
+    branches:
+      - feature/connect-four-thin-client-v1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build Roku thin client
+        run: |
+          chmod +x experiences/roku/connect-four/build.sh
+          chmod +x experiences/roku/connect-four/build-thin-client-v1.sh
+          experiences/roku/connect-four/build-thin-client-v1.sh
+
+      - name: Upload Roku ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: tn-game-connect-four-v1.0.0-thin-client
+          path: experiences/roku/connect-four/dist/tn-game-connect-four-v1.0.0-thin-client.zip
+          if-no-files-found: error
