@@ -3,35 +3,16 @@
   <script type="text/brightscript" uri="pkg:/components/MainScene.brs" />
   <children>
     <Rectangle width="1920" height="1080" color="0x06110EFF" />
-    <Rectangle translation="[0,0]" width="1920" height="8" color="0xF97316FF" />
-
-    <Rectangle translation="[78,56]" width="292" height="72" color="0xF97316FF" />
-    <Label text="TN GAME" translation="[94,68]" width="260" height="50" horizAlign="center" color="0xFFFFFFFF" />
-    <Label text="CONNECT FOUR" translation="[405,62]" width="560" height="60" color="0xFFFFFFFF" />
-    <Label id="versionLabel" text="v0.3.4" translation="[1650,68]" width="190" height="40" horizAlign="right" color="0x56786DFF" />
-
-    <Label id="title" text="PRESS OK TO CREATE A ROOM" translation="[320,160]" width="1280" height="76" horizAlign="center" color="0xF6A55CFF" />
-    <Label id="subtitle" text="Server-powered Connect Four" translation="[360,238]" width="1200" height="48" horizAlign="center" color="0xA7BDB5FF" />
-
-    <Rectangle id="boardShadow" translation="[533,323]" width="854" height="650" color="0x020806AA" visible="false" />
-    <Rectangle id="boardPanel" translation="[520,310]" width="854" height="650" color="0x0B251DFF" visible="false" />
-    <Group id="columnLabels" translation="[580,324]" visible="false" />
-    <Group id="boardGroup" translation="[580,374]" visible="false" />
-
-    <Rectangle id="playerOneCard" translation="[115,360]" width="320" height="150" color="0x0B1E18FF" visible="false" />
-    <Rectangle id="playerOneSwatch" translation="[140,390]" width="28" height="90" color="0xF97316FF" visible="false" />
-    <Label id="playerOneName" text="PLAYER 1" translation="[190,388]" width="220" height="48" color="0xFFFFFFFF" visible="false" />
-    <Label id="playerOneRole" text="ORANGE" translation="[190,440]" width="220" height="38" color="0xA7BDB5FF" visible="false" />
-
-    <Rectangle id="playerTwoCard" translation="[1485,360]" width="320" height="150" color="0x0B1E18FF" visible="false" />
-    <Rectangle id="playerTwoSwatch" translation="[1510,390]" width="28" height="90" color="0xFFD54FFF" visible="false" />
-    <Label id="playerTwoName" text="PLAYER 2" translation="[1560,388]" width="220" height="48" color="0xFFFFFFFF" visible="false" />
-    <Label id="playerTwoRole" text="GOLD" translation="[1560,440]" width="220" height="38" color="0xA7BDB5FF" visible="false" />
-
-    <Label id="roomLabel" text="" translation="[410,982]" width="1100" height="42" horizAlign="center" color="0xFFFFFFFF" />
-    <Label id="playersLabel" text="" translation="[410,1024]" width="1100" height="38" horizAlign="center" color="0x6F9488FF" />
-
+    <Rectangle translation="[90,70]" width="300" height="70" color="0xF97316FF" />
+    <Label text="TN GAME" translation="[110,82]" width="260" height="50" horizAlign="center" color="0xFFFFFFFF" />
+    <Label text="CONNECT FOUR" translation="[430,76]" width="600" height="60" color="0xFFFFFFFF" />
+    <Label id="title" text="PRESS OK TO CREATE A ROOM" translation="[360,190]" width="1200" height="80" horizAlign="center" color="0xF6A55CFF" />
+    <Label id="subtitle" text="Phone-controlled multiplayer test" translation="[400,275]" width="1120" height="55" horizAlign="center" color="0xA7BDB5FF" />
+    <Group id="boardGroup" translation="[560,330]" visible="false" />
+    <Label id="roomLabel" text="" translation="[410,900]" width="1100" height="55" horizAlign="center" color="0xFFFFFFFF" />
+    <Label id="playersLabel" text="" translation="[410,965]" width="1100" height="45" horizAlign="center" color="0xA7BDB5FF" />
     <TNNetworkTask id="netA" />
-    <Timer id="pollTimer" duration="0.75" repeat="false" />
+    <TNNetworkTask id="netB" />
+    <Timer id="pollTimer" duration="0.75" repeat="true" />
   </children>
 </component>
