@@ -23,6 +23,7 @@ jobs:
           chmod +x experiences/roku/connect-four/build-two-player-v1.2.sh
           chmod +x experiences/roku/connect-four/build-gameplay-polish-v1.3.sh
           chmod +x experiences/roku/connect-four/build-session-controls-v1.4.sh
+          chmod +x experiences/roku/connect-four/build-tv-polish-v1.5.sh
           chmod +x experiences/roku/connect-four/build-development.sh
           experiences/roku/connect-four/build-development.sh
 
@@ -32,6 +33,8 @@ jobs:
           test -f "$ZIP"
           unzip -Z1 "$ZIP" | grep -qx manifest
           unzip -Z1 "$ZIP" | grep -qx components/DisplayLoopTask.brs
+          unzip -p "$ZIP" components/MainScene.brs | grep -q 'v1.5 TV POLISH'
+          unzip -p "$ZIP" components/MainScene.brs | grep -q 'applyTvPolish'
           unzip -p "$ZIP" components/MainScene.brs | grep -q 'tn-game-connect-four-server.onrender.com'
           ! unzip -p "$ZIP" components/MainScene.brs | grep -q '192\.168\.1\.127'
 
