@@ -4,6 +4,7 @@ sub init()
   m.state = "home"
   m.busy = false
   m.requestKind = ""
+  m.startQueued = false
 
   m.title = m.top.findNode("title")
   m.subtitle = m.top.findNode("subtitle")
@@ -28,8 +29,7 @@ function onKeyEvent(key as string, press as boolean) as boolean
     if m.state = "home" or m.state = "error"
       createRoom()
     else if m.state = "lobby"
-      count = playerCount()
-      if count < 2
+      if playerCount() < 2
         m.subtitle.text = "Two players are required to start"
       else
         startGame()
@@ -48,6 +48,7 @@ sub showHome()
   m.state = "home"
   m.busy = false
   m.requestKind = ""
+  m.startQueued = false
   m.title.text = "PRESS OK TO CREATE A ROOM"
   m.subtitle.text = "Phone-controlled multiplayer test"
   m.roomLabel.text = ""
@@ -58,7 +59,6 @@ end sub
 
 sub buildBoard()
   m.cells = []
-
   for r = 0 to 5
     row = []
     for c = 0 to 6
@@ -81,7 +81,6 @@ end sub
 
 sub clearBoard()
   if m.cells = invalid then return
-
   for r = 0 to 5
     for c = 0 to 6
       m.cells[r][c].color = "0xE8F1EDFF"
@@ -93,6 +92,7 @@ sub createRoom()
   m.pollTimer.control = "stop"
   m.room = invalid
   m.state = "creating"
+  m.startQueued = false
   m.title.text = "CREATING ROOM..."
   m.subtitle.text = "Connecting to the Connect Four server"
   m.roomLabel.text = ""
@@ -104,13 +104,26 @@ end sub
 sub startGame()
   if m.room = invalid or m.room.code = invalid then return
 
+  m.pollTimer.control = "stop"
   m.state = "starting"
+  m.startQueued = true
   m.title.text = "STARTING GAME..."
-  m.subtitle.text = "Preparing the board"
+  m.subtitle.text = "Sending start request"
 
-  ' Use POST and continue polling independently of the start response.
+  tryQueuedStart()
+end sub
+
+sub tryQueuedStart()
+  if not m.startQueued then return
+  if m.busy then
+    m.subtitle.text = "Finishing room update..."
+    return
+  end if
+  if m.room = invalid or m.room.code = invalid then return
+
+  m.startQueued = false
+  m.subtitle.text = "Preparing the board"
   sendRequest("start", "POST", m.baseUrl + "/api/rooms/" + m.room.code + "/start", "{}")
-  m.pollTimer.control = "start"
 end sub
 
 sub sendRequest(kind as string, method as string, url as string, payload as string)
@@ -118,9 +131,6 @@ sub sendRequest(kind as string, method as string, url as string, payload as stri
 
   m.busy = true
   m.requestKind = kind
-
-  ' responseId only acts as a change notification. We do not compare it to a
-  ' global sequence because some Roku models publish Task fields asynchronously.
   m.net.control = "STOP"
   m.net.requestId = m.net.requestId + 1
   m.net.method = method
@@ -135,8 +145,18 @@ sub onNetworkResponse()
   m.busy = false
 
   if m.net.statusCode < 200 or m.net.statusCode >= 300
-    if kind = "poll" or kind = "start"
-      m.subtitle.text = "Reconnecting to game server..."
+    if kind = "poll"
+      if m.startQueued
+        tryQueuedStart()
+      else
+        m.subtitle.text = "Reconnecting to game server..."
+      end if
+      return
+    else if kind = "start"
+      m.state = "lobby"
+      m.title.text = "START FAILED"
+      m.subtitle.text = m.net.statusCode.toStr() + " " + m.net.failureReason
+      m.pollTimer.control = "start"
       return
     end if
 
@@ -148,7 +168,11 @@ sub onNetworkResponse()
 
   data = ParseJson(m.net.body)
   if data = invalid
-    if kind = "poll" or kind = "start"
+    if kind = "start"
+      requestRoom()
+      return
+    else if kind = "poll"
+      tryQueuedStart()
       return
     end if
 
@@ -170,14 +194,11 @@ sub onNetworkResponse()
       m.subtitle.text = "Server did not return a room"
       return
     end if
-
     m.pollTimer.control = "start"
-  end if
-
-  ' Always fetch the canonical room after starting. This also supports older
-  ' servers that return a small acknowledgement instead of the full room.
-  if kind = "start"
+  else if kind = "start"
     requestRoom()
+  else if kind = "poll" and m.startQueued
+    tryQueuedStart()
   end if
 end sub
 
@@ -188,7 +209,6 @@ end sub
 sub requestRoom()
   if m.busy then return
   if m.room = invalid or m.room.code = invalid then return
-
   sendRequest("poll", "GET", m.baseUrl + "/api/rooms/" + m.room.code, "")
 end sub
 
@@ -196,10 +216,14 @@ sub applyRoom()
   if m.room = invalid or m.room.status = invalid then return
 
   if m.room.status = "lobby"
-    showLobby()
+    if m.state <> "starting"
+      showLobby()
+    end if
   else if m.room.status = "playing" or m.room.status = "finished"
+    m.startQueued = false
     m.state = m.room.status
     m.boardGroup.visible = true
+    m.pollTimer.control = "start"
     renderBoard()
   end if
 end sub
@@ -207,8 +231,8 @@ end sub
 sub showLobby()
   m.state = "lobby"
   m.boardGroup.visible = false
-
   count = playerCount()
+
   if count >= 2
     m.title.text = "PRESS OK TO START"
     m.subtitle.text = "Room " + m.room.code + " is ready"
@@ -251,7 +275,6 @@ sub renderBoard()
   end if
 
   game = m.room.game
-
   for r = 0 to 5
     for c = 0 to 6
       value = game.board[r][c]
