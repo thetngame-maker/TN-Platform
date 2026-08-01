@@ -50,61 +50,29 @@ sub buildBoard()
   for r = 0 to 5
     row = []
     for c = 0 to 6
-      slot = m.boardGroup.createChild("Rectangle")
-      slot.width = 94
-      slot.height = 94
-      slot.translation = [c * 104, r * 96]
-      slot.color = "0x4D3BB8FF"
-
-      topPiece = m.boardGroup.createChild("Rectangle")
-      topPiece.width = 56
-      topPiece.height = 14
-      topPiece.translation = [c * 104 + 19, r * 96 + 9]
-      topPiece.color = "0x1B0C59FF"
-
-      middlePiece = m.boardGroup.createChild("Rectangle")
-      middlePiece.width = 76
-      middlePiece.height = 48
-      middlePiece.translation = [c * 104 + 9, r * 96 + 22]
-      middlePiece.color = "0x1B0C59FF"
-
-      bottomPiece = m.boardGroup.createChild("Rectangle")
-      bottomPiece.width = 56
-      bottomPiece.height = 14
-      bottomPiece.translation = [c * 104 + 19, r * 96 + 69]
-      bottomPiece.color = "0x1B0C59FF"
-
-      highlight = m.boardGroup.createChild("Rectangle")
-      highlight.width = 42
-      highlight.height = 7
-      highlight.translation = [c * 104 + 20, r * 96 + 18]
-      highlight.color = "0x2B176EFF"
-
-      row.push([topPiece, middlePiece, bottomPiece, highlight])
+      slot = m.boardGroup.createChild("Poster")
+      slot.width = 88
+      slot.height = 88
+      slot.loadWidth = 88
+      slot.loadHeight = 88
+      slot.loadDisplayMode = "scaleToFit"
+      slot.translation = [c * 100, r * 94]
+      slot.uri = "pkg:/images/token-empty.png"
+      row.push(slot)
     end for
     m.cells.push(row)
   end for
 end sub
 
-sub setPieceColor(parts as object, color as string)
-  parts[0].color = color
-  parts[1].color = color
-  parts[2].color = color
-
-  if color = "0xF04452FF"
-    parts[3].color = "0xFF7A83FF"
-  else if color = "0xFFD12FFF"
-    parts[3].color = "0xFFF18AFF"
-  else
-    parts[3].color = "0x2B176EFF"
-  end if
+sub setPieceUri(piece as object, uri as string)
+  if piece.uri <> uri then piece.uri = uri
 end sub
 
 sub clearBoard()
   if m.cells = invalid then return
   for r = 0 to 5
     for c = 0 to 6
-      setPieceColor(m.cells[r][c], "0x1B0C59FF")
+      setPieceUri(m.cells[r][c], "pkg:/images/token-empty.png")
     end for
   end for
 end sub
@@ -233,11 +201,11 @@ sub renderBoard(board as dynamic)
     for c = 0 to 6
       value = board[r][c]
       if value = 1
-        setPieceColor(m.cells[r][c], "0xF04452FF")
+        setPieceUri(m.cells[r][c], "pkg:/images/token-orange.png")
       else if value = 2
-        setPieceColor(m.cells[r][c], "0xFFD12FFF")
+        setPieceUri(m.cells[r][c], "pkg:/images/token-gold.png")
       else
-        setPieceColor(m.cells[r][c], "0x1B0C59FF")
+        setPieceUri(m.cells[r][c], "pkg:/images/token-empty.png")
       end if
     end for
   end for
