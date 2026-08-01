@@ -8,7 +8,7 @@
     <Rectangle translation="[78,54]" width="292" height="72" color="0xF97316FF" />
     <Label text="TN GAME" translation="[94,66]" width="260" height="50" horizAlign="center" color="0xFFFFFFFF" />
     <Label text="CONNECT FOUR" translation="[405,60]" width="560" height="60" color="0xFFFFFFFF" />
-    <Label id="versionLabel" text="v0.2.2 STABLE" translation="[1570,68]" width="270" height="40" horizAlign="right" color="0x7FA99CFF" />
+    <Label id="versionLabel" text="v0.2.3 STABLE" translation="[1570,68]" width="270" height="40" horizAlign="right" color="0x7FA99CFF" />
 
     <Label id="title" text="PRESS OK TO CREATE A ROOM" translation="[320,145]" width="1280" height="76" horizAlign="center" color="0xF6A55CFF" />
     <Label id="subtitle" text="Server-powered Connect Four" translation="[360,220]" width="1200" height="48" horizAlign="center" color="0xA7BDB5FF" />
