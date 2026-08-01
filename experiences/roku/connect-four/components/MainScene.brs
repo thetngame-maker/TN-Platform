@@ -3,20 +3,19 @@ sub init()
   m.room = invalid
   m.state = "home"
   m.busy = false
-  m.seq = 0
-  m.nextTask = 0
-  m.pending = ""
+  m.requestKind = ""
+
   m.title = m.top.findNode("title")
   m.subtitle = m.top.findNode("subtitle")
   m.boardGroup = m.top.findNode("boardGroup")
   m.roomLabel = m.top.findNode("roomLabel")
   m.playersLabel = m.top.findNode("playersLabel")
-  m.netA = m.top.findNode("netA")
-  m.netB = m.top.findNode("netB")
+  m.net = m.top.findNode("netA")
   m.pollTimer = m.top.findNode("pollTimer")
-  m.netA.observeField("responseId", "onNetA")
-  m.netB.observeField("responseId", "onNetB")
+
+  m.net.observeField("responseId", "onNetworkResponse")
   m.pollTimer.observeField("fire", "onPoll")
+
   buildBoard()
   showHome()
   m.top.setFocus(true)
@@ -28,23 +27,13 @@ function onKeyEvent(key as string, press as boolean) as boolean
   if key = "OK"
     if m.state = "home" or m.state = "error"
       createRoom()
-    else if m.state = "lobby" and m.room <> invalid
-      playerCount = 0
-      if m.room.players <> invalid then playerCount = m.room.players.Count()
-
-      if playerCount < 2
+    else if m.state = "lobby"
+      count = playerCount()
+      if count < 2
         m.subtitle.text = "Two players are required to start"
       else
-        m.state = "starting"
-        m.title.text = "STARTING GAME..."
-        m.subtitle.text = "Preparing the board"
-        send("start", "GET", m.baseUrl + "/api/rooms/" + m.room.code + "/start?v=" + m.seq.toStr(), "")
+        startGame()
       end if
-    else if m.state = "finished" and m.room <> invalid
-      m.state = "starting"
-      m.title.text = "STARTING NEW GAME..."
-      m.subtitle.text = "Resetting the board"
-      send("start", "GET", m.baseUrl + "/api/rooms/" + m.room.code + "/start?v=" + m.seq.toStr(), "")
     end if
   else if key = "back"
     showHome()
@@ -58,7 +47,7 @@ sub showHome()
   m.room = invalid
   m.state = "home"
   m.busy = false
-  m.pending = ""
+  m.requestKind = ""
   m.title.text = "PRESS OK TO CREATE A ROOM"
   m.subtitle.text = "Phone-controlled multiplayer test"
   m.roomLabel.text = ""
@@ -69,6 +58,7 @@ end sub
 
 sub buildBoard()
   m.cells = []
+
   for r = 0 to 5
     row = []
     for c = 0 to 6
@@ -91,6 +81,7 @@ end sub
 
 sub clearBoard()
   if m.cells = invalid then return
+
   for r = 0 to 5
     for c = 0 to 6
       m.cells[r][c].color = "0xE8F1EDFF"
@@ -107,63 +98,57 @@ sub createRoom()
   m.roomLabel.text = ""
   m.playersLabel.text = ""
   m.boardGroup.visible = false
-  send("create", "GET", m.baseUrl + "/api/rooms/create?v=" + m.seq.toStr(), "")
+  sendRequest("create", "GET", m.baseUrl + "/api/rooms/create", "")
 end sub
 
-sub send(kind as string, method as string, url as string, payload as string)
+sub startGame()
+  if m.room = invalid or m.room.code = invalid then return
+
+  m.state = "starting"
+  m.title.text = "STARTING GAME..."
+  m.subtitle.text = "Preparing the board"
+
+  ' Use POST and continue polling independently of the start response.
+  sendRequest("start", "POST", m.baseUrl + "/api/rooms/" + m.room.code + "/start", "{}")
+  m.pollTimer.control = "start"
+end sub
+
+sub sendRequest(kind as string, method as string, url as string, payload as string)
   if m.busy then return
 
   m.busy = true
-  m.pending = kind
-  m.seq += 1
+  m.requestKind = kind
 
-  if m.nextTask = 0
-    task = m.netA
-    m.nextTask = 1
-  else
-    task = m.netB
-    m.nextTask = 0
-  end if
-
-  task.control = "STOP"
-  task.requestId = m.seq
-  task.method = method
-  task.url = url
-  task.payload = payload
-  task.control = "RUN"
+  ' responseId only acts as a change notification. We do not compare it to a
+  ' global sequence because some Roku models publish Task fields asynchronously.
+  m.net.control = "STOP"
+  m.net.requestId = m.net.requestId + 1
+  m.net.method = method
+  m.net.url = url
+  m.net.payload = payload
+  m.net.control = "RUN"
 end sub
 
-sub onNetA()
-  handleResponse(m.netA)
-end sub
-
-sub onNetB()
-  handleResponse(m.netB)
-end sub
-
-sub handleResponse(task as object)
-  if task.responseId <> m.seq then return
-
-  kind = m.pending
-  m.pending = ""
+sub onNetworkResponse()
+  kind = m.requestKind
+  m.requestKind = ""
   m.busy = false
 
-  if task.statusCode < 200 or task.statusCode >= 300
-    if kind = "poll" and m.room <> invalid
+  if m.net.statusCode < 200 or m.net.statusCode >= 300
+    if kind = "poll" or kind = "start"
       m.subtitle.text = "Reconnecting to game server..."
       return
     end if
 
     m.state = "error"
     m.title.text = "NETWORK ERROR"
-    m.subtitle.text = task.statusCode.toStr() + " " + task.failureReason
+    m.subtitle.text = m.net.statusCode.toStr() + " " + m.net.failureReason
     return
   end if
 
-  data = ParseJson(task.body)
+  data = ParseJson(m.net.body)
   if data = invalid
-    if kind = "start" and m.room <> invalid
-      requestRoom()
+    if kind = "poll" or kind = "start"
       return
     end if
 
@@ -173,22 +158,25 @@ sub handleResponse(task as object)
     return
   end if
 
-  ' The start endpoint may return only an acknowledgement. Never replace the
-  ' current room unless the response actually contains a room code.
   if data.code <> invalid
     m.room = data
     applyRoom()
-  else if kind = "create"
-    m.state = "error"
-    m.title.text = "ROOM CREATION FAILED"
-    m.subtitle.text = "Server did not return a room code"
-    return
   end if
 
   if kind = "create"
+    if m.room = invalid
+      m.state = "error"
+      m.title.text = "ROOM CREATION FAILED"
+      m.subtitle.text = "Server did not return a room"
+      return
+    end if
+
     m.pollTimer.control = "start"
-    requestRoom()
-  else if kind = "start"
+  end if
+
+  ' Always fetch the canonical room after starting. This also supports older
+  ' servers that return a small acknowledgement instead of the full room.
+  if kind = "start"
     requestRoom()
   end if
 end sub
@@ -198,70 +186,71 @@ sub onPoll()
 end sub
 
 sub requestRoom()
-  if m.room = invalid or m.busy then return
-  if m.room.code = invalid then return
-  send("poll", "GET", m.baseUrl + "/api/rooms/" + m.room.code + "?v=" + m.seq.toStr(), "")
+  if m.busy then return
+  if m.room = invalid or m.room.code = invalid then return
+
+  sendRequest("poll", "GET", m.baseUrl + "/api/rooms/" + m.room.code, "")
 end sub
 
 sub applyRoom()
   if m.room = invalid or m.room.status = invalid then return
 
   if m.room.status = "lobby"
-    m.state = "lobby"
-    m.boardGroup.visible = false
-    m.title.text = "ENTER ROOM " + m.room.code
-    m.subtitle.text = m.baseUrl + "/?room=" + m.room.code
-
-    playerCount = 0
-    if m.room.players <> invalid then playerCount = m.room.players.Count()
-    m.roomLabel.text = playerCount.toStr() + " player(s) connected"
-    m.playersLabel.text = playerNames()
-
-    if playerCount >= 2
-      m.title.text = "PRESS OK TO START"
-      m.subtitle.text = "Room " + m.room.code + " is ready"
-    end if
+    showLobby()
   else if m.room.status = "playing" or m.room.status = "finished"
     m.state = m.room.status
     m.boardGroup.visible = true
     renderBoard()
-  else
-    m.state = m.room.status
-    m.title.text = "WAITING FOR GAME..."
-    m.subtitle.text = "Room " + m.room.code
   end if
 end sub
 
+sub showLobby()
+  m.state = "lobby"
+  m.boardGroup.visible = false
+
+  count = playerCount()
+  if count >= 2
+    m.title.text = "PRESS OK TO START"
+    m.subtitle.text = "Room " + m.room.code + " is ready"
+  else
+    m.title.text = "ENTER ROOM " + m.room.code
+    m.subtitle.text = m.baseUrl + "/?room=" + m.room.code
+  end if
+
+  m.roomLabel.text = count.toStr() + " player(s) connected"
+  m.playersLabel.text = playerNames()
+end sub
+
+function playerCount() as integer
+  if m.room = invalid or m.room.players = invalid then return 0
+  return m.room.players.Count()
+end function
+
 function playerNames() as string
-  out = ""
   if m.room = invalid or m.room.players = invalid then return "Waiting for players"
 
-  for each p in m.room.players
+  out = ""
+  for each player in m.room.players
     if out <> "" then out += "  •  "
-    if p.name <> invalid
-      out += p.name
+    if player.name <> invalid
+      out += player.name
     else
       out += "Player"
     end if
   end for
 
-  if out = "" then out = "Waiting for players"
+  if out = "" then return "Waiting for players"
   return out
 end function
 
 sub renderBoard()
-  if m.room = invalid or m.room.game = invalid then
+  if m.room.game = invalid or m.room.game.board = invalid
     m.title.text = "STARTING GAME..."
     m.subtitle.text = "Waiting for board state"
     return
   end if
 
   game = m.room.game
-  if game.board = invalid then
-    m.title.text = "STARTING GAME..."
-    m.subtitle.text = "Waiting for board state"
-    return
-  end if
 
   for r = 0 to 5
     for c = 0 to 6
@@ -279,18 +268,20 @@ sub renderBoard()
   if m.room.status = "finished"
     if game.winnerName <> invalid and game.winnerName <> ""
       m.title.text = game.winnerName.toUpper() + " WINS!"
+      m.subtitle.text = game.message
     else
       m.title.text = "DRAW GAME"
+      m.subtitle.text = "The board is full"
     end if
-    m.subtitle.text = "Press OK to play again"
   else
-    name = "WAITING"
-    if m.room.players <> invalid and game.turnPlayerId <> invalid
-      for each p in m.room.players
-        if p.id = game.turnPlayerId then name = p.name
+    turnName = "WAITING"
+    if game.turnPlayerId <> invalid
+      for each player in m.room.players
+        if player.id = game.turnPlayerId then turnName = player.name
       end for
     end if
-    m.title.text = name.toUpper() + "'S TURN"
+
+    m.title.text = turnName.toUpper() + "'S TURN"
     if game.message <> invalid and game.message <> ""
       m.subtitle.text = game.message
     else
