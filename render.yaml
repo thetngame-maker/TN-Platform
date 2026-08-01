@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: tn-platform-core-api
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./services/platform-core-api/Dockerfile
+    dockerContext: ./services/platform-core-api
+    healthCheckPath: /health
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: API_KEY
+        generateValue: true
+      - key: LOG_LEVEL
+        value: info
