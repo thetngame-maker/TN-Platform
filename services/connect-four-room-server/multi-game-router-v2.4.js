@@ -1,6 +1,7 @@
 const http = require('http');
 const { URL } = require('url');
 const { getGameById, getGameByPath } = require('./games/registry');
+const colorClashEngine = require('./games/color-clash/engine');
 
 const originalCreateServer = http.createServer.bind(http);
 
@@ -19,6 +20,9 @@ http.createServer = function modularCreateServer(listener) {
   return originalCreateServer(async (req, res) => {
     try {
       const url = new URL(req.url || '/', 'http://localhost');
+
+      if (await colorClashEngine.handleRequest(req, res, url)) return;
+
       let game = getGameByPath(url.pathname);
 
       // Backward compatibility for older Roku packages.
