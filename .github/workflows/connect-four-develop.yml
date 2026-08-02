@@ -22,8 +22,10 @@ jobs:
           node --check server.js
           node --check phone-polish-v1.6.js
           node --check match-series-v1.8-launcher.js
-          grep -q 'PHONE CONTROLLER v1.8.1 SERIES SYNC' match-series-v1.8-launcher.js
-          grep -q 'node match-series-v1.8-launcher.js' package.json
+          node --check guest-profile-v2.0-launcher.js
+          grep -q 'PHONE CONTROLLER v2.0 GUEST PROFILE' guest-profile-v2.0-launcher.js
+          grep -q 'tnGameGuestProfileV2' guest-profile-v2.0-launcher.js
+          grep -q 'node guest-profile-v2.0-launcher.js' package.json
 
       - name: Smoke test hosted service
         working-directory: services/connect-four-room-server
@@ -32,7 +34,7 @@ jobs:
           SERVER_PID=$!
           trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
           for attempt in {1..20}; do
-            if curl --fail --silent http://127.0.0.1:8070/ | grep -q 'PHONE CONTROLLER v1.8.1 SERIES SYNC'; then
+            if curl --fail --silent http://127.0.0.1:8070/ | grep -q 'PHONE CONTROLLER v2.0 GUEST PROFILE'; then
               exit 0
             fi
             sleep 0.5
