@@ -23,6 +23,15 @@ xml_path = root / "components" / "MainScene.xml"
 brs_path = root / "components" / "MainScene.brs"
 
 xml = xml_path.read_text()
+required_xml = [
+    'text="CHOOSE A GAME"',
+    'text="One TV. Everyone uses their phone as the controller."',
+    '    <Group id="lobbyGroup">\n',
+]
+for marker in required_xml:
+    if marker not in xml:
+        raise SystemExit(f'Platform XML marker not found: {marker}')
+
 xml = xml.replace('text="CHOOSE A GAME"', 'text="TN GAME HOME"', 1)
 xml = xml.replace(
     'text="One TV. Everyone uses their phone as the controller."',
@@ -35,8 +44,6 @@ profile_block = '''
       <Label text="ACCOUNT FOUNDATION READY" translation="[1460,207]" width="290" height="30" horizAlign="center" font="font:SmallSystemFont" color="0x7FD5B3FF" />
 '''
 needle = '    <Group id="lobbyGroup">\n'
-if needle not in xml:
-    raise SystemExit('lobbyGroup marker not found')
 xml = xml.replace(needle, needle + profile_block, 1)
 xml = xml.replace(
     'text="Use LEFT and RIGHT to choose a game"',
@@ -46,7 +53,9 @@ xml = xml.replace(
 xml_path.write_text(xml)
 
 brs = brs_path.read_text()
-brs = brs.replace('m.versionLabel.text = "v1.9.1 HOME SYNC"', 'm.versionLabel.text = "v2.0 PLATFORM SHELL"')
+if 'm.versionLabel.text = "v1.9.1 HOME SYNC"' not in brs:
+    raise SystemExit('Platform BrightScript version marker not found')
+brs = brs.replace('m.versionLabel.text = "v1.9.1 HOME SYNC"', 'm.versionLabel.text = "v2.0 PLATFORM SHELL"', 1)
 brs = brs.replace('m.productTitle.text = "TN GAME CONNECT"', 'm.productTitle.text = "TN GAME"')
 brs = brs.replace('m.lobbyMessage.text = "Use LEFT and RIGHT to choose a game"', 'm.lobbyMessage.text = "TN GAME PLATFORM  •  Choose a title with LEFT and RIGHT"')
 brs = brs.replace('m.lobbyMessage.text = "Color Clash is the next card game planned"', 'm.lobbyMessage.text = "COLOR CLASH  •  Planned as the next TN Game title"')
@@ -60,12 +69,15 @@ rm -f "$OUTPUT_ZIP"
   zip -qr "$OUTPUT_ZIP" .
 )
 
-unzip -Z1 "$OUTPUT_ZIP" | grep -qx 'manifest'
-unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -q 'v2.0 PLATFORM SHELL'
-unzip -p "$OUTPUT_ZIP" components/MainScene.xml | grep -q 'TN GAME HOME'
-unzip -p "$OUTPUT_ZIP" components/MainScene.xml | grep -q 'GUEST PLAYER'
-unzip -p "$OUTPUT_ZIP" components/MainScene.xml | grep -q 'ACCOUNT FOUNDATION READY'
-unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -q 'tn-game-connect-four-server.onrender.com'
-! unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -q '192\.168\.1\.127'
+unzip -Z1 "$OUTPUT_ZIP" | grep -Fx 'manifest' >/dev/null
+unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F 'v2.0 PLATFORM SHELL' >/dev/null
+unzip -p "$OUTPUT_ZIP" components/MainScene.xml | grep -F 'TN GAME HOME' >/dev/null
+unzip -p "$OUTPUT_ZIP" components/MainScene.xml | grep -F 'GUEST PLAYER' >/dev/null
+unzip -p "$OUTPUT_ZIP" components/MainScene.xml | grep -F 'ACCOUNT FOUNDATION READY' >/dev/null
+unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F 'tn-game-connect-four-server.onrender.com' >/dev/null
+if unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F '192.168.1.127' >/dev/null; then
+  echo "Local server address found in platform package" >&2
+  exit 1
+fi
 
 echo "Created TN Game platform shell: $OUTPUT_ZIP"
