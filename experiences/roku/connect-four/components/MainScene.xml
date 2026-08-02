@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <component name="MainScene" extends="Scene">
+  <script type="text/brightscript" uri="pkg:/components/GameRouter.brs" />
   <script type="text/brightscript" uri="pkg:/components/MainScene.brs" />
   <children>
     <Rectangle width="1920" height="1080" color="0x06110EFF" />
@@ -18,78 +19,67 @@
       <Label text="CONNECT FOUR" translation="[185,620]" width="430" height="62" horizAlign="center" font="font:LargeBoldSystemFont" color="0xFFFFFFFF" />
       <Label text="2 PLAYERS OR BOT" translation="[185,684]" width="430" height="42" horizAlign="center" font="font:MediumBoldSystemFont" color="0xA7BDB5FF" />
       <Label id="connectPrompt" text="PRESS OK TO PLAY" translation="[185,738]" width="430" height="42" horizAlign="center" font="font:MediumBoldSystemFont" color="0xF97316FF" />
+
       <Poster id="colorClashCard" translation="[710,300]" width="500" height="500" loadWidth="500" loadHeight="500" loadDisplayMode="scaleToFit" uri="pkg:/images/lobby-card.png" />
       <Poster translation="[838,344]" width="244" height="244" loadWidth="244" loadHeight="244" loadDisplayMode="scaleToFit" uri="pkg:/images/token-purple.png" />
       <Poster translation="[898,404]" width="244" height="244" loadWidth="244" loadHeight="244" loadDisplayMode="scaleToFit" uri="pkg:/images/token-green.png" />
       <Label text="COLOR CLASH" translation="[745,620]" width="430" height="62" horizAlign="center" font="font:LargeBoldSystemFont" color="0xFFFFFFFF" />
       <Label text="2–4 PLAYERS" translation="[745,684]" width="430" height="42" horizAlign="center" font="font:MediumBoldSystemFont" color="0xA7BDB5FF" />
-      <Label id="colorClashPrompt" text="COMING SOON" translation="[745,738]" width="430" height="42" horizAlign="center" font="font:MediumBoldSystemFont" color="0x7FA99CFF" />
+      <Label id="colorClashPrompt" text="COMING SOON" translation="[745,738]" width="430" height="42" horizAlign="center" font="font:MediumBoldSystemFont" color="0x7FD5B3FF" />
+
       <Poster id="triviaCard" translation="[1270,300]" width="500" height="500" loadWidth="500" loadHeight="500" loadDisplayMode="scaleToFit" uri="pkg:/images/lobby-card.png" />
       <Poster translation="[1398,344]" width="244" height="244" loadWidth="244" loadHeight="244" loadDisplayMode="scaleToFit" uri="pkg:/images/token-blue.png" />
-      <Label text="?" translation="[1398,378]" width="244" height="150" horizAlign="center" vertAlign="center" font="font:LargeBoldSystemFont" color="0xFFFFFFFF" />
       <Label text="TN TRIVIA" translation="[1305,620]" width="430" height="62" horizAlign="center" font="font:LargeBoldSystemFont" color="0xFFFFFFFF" />
       <Label text="TEAMS OR SOLO" translation="[1305,684]" width="430" height="42" horizAlign="center" font="font:MediumBoldSystemFont" color="0xA7BDB5FF" />
-      <Label id="triviaPrompt" text="COMING SOON" translation="[1305,738]" width="430" height="42" horizAlign="center" font="font:MediumBoldSystemFont" color="0x7FA99CFF" />
+      <Label id="triviaPrompt" text="COMING SOON" translation="[1305,738]" width="430" height="42" horizAlign="center" font="font:MediumBoldSystemFont" color="0x7FD5B3FF" />
+
       <Poster translation="[430,890]" width="1060" height="92" loadWidth="1060" loadHeight="92" loadDisplayMode="scaleToFit" uri="pkg:/images/footer-card.png" />
       <Label id="lobbyMessage" text="Use LEFT and RIGHT to choose a game" translation="[455,910]" width="1010" height="48" horizAlign="center" vertAlign="center" font="font:MediumBoldSystemFont" color="0xFFFFFFFF" />
     </Group>
 
     <Group id="modeGroup" visible="false">
-      <Label text="HOW DO YOU WANT TO PLAY?" translation="[360,150]" width="1200" height="72" horizAlign="center" font="font:LargeBoldSystemFont" color="0xFFFFFFFF" />
-      <Label text="Choose a local opponent or challenge the TN Game bot." translation="[360,218]" width="1200" height="46" horizAlign="center" font="font:MediumBoldSystemFont" color="0xA7BDB5FF" />
-      <Poster id="modeHuman" translation="[510,300]" width="900" height="132" loadWidth="900" loadHeight="132" loadDisplayMode="scaleToFit" uri="pkg:/images/mode-card-selected.png" />
-      <Label text="TWO PLAYERS" translation="[555,320]" width="500" height="52" font="font:LargeBoldSystemFont" color="0xFFFFFFFF" />
-      <Label text="Two phones • Head-to-head" translation="[555,374]" width="650" height="36" font="font:MediumBoldSystemFont" color="0xA7BDB5FF" />
-      <Label text="2P" translation="[1250,324]" width="110" height="62" horizAlign="center" font="font:LargeBoldSystemFont" color="0xF97316FF" />
-      <Poster id="modeEasy" translation="[510,450]" width="900" height="132" loadWidth="900" loadHeight="132" loadDisplayMode="scaleToFit" uri="pkg:/images/mode-card.png" />
-      <Label text="EASY BOT" translation="[555,470]" width="500" height="52" font="font:LargeBoldSystemFont" color="0xFFFFFFFF" />
-      <Label text="Relaxed play • Great for learning" translation="[555,524]" width="650" height="36" font="font:MediumBoldSystemFont" color="0xA7BDB5FF" />
-      <Label text="★" translation="[1250,474]" width="110" height="62" horizAlign="center" font="font:LargeBoldSystemFont" color="0xFFD54FFF" />
-      <Poster id="modeMedium" translation="[510,600]" width="900" height="132" loadWidth="900" loadHeight="132" loadDisplayMode="scaleToFit" uri="pkg:/images/mode-card.png" />
-      <Label text="MEDIUM BOT" translation="[555,620]" width="500" height="52" font="font:LargeBoldSystemFont" color="0xFFFFFFFF" />
-      <Label text="Blocks threats • Favors strong moves" translation="[555,674]" width="650" height="36" font="font:MediumBoldSystemFont" color="0xA7BDB5FF" />
-      <Label text="★★" translation="[1220,624]" width="170" height="62" horizAlign="center" font="font:LargeBoldSystemFont" color="0xFFD54FFF" />
-      <Poster id="modeHard" translation="[510,750]" width="900" height="132" loadWidth="900" loadHeight="132" loadDisplayMode="scaleToFit" uri="pkg:/images/mode-card.png" />
-      <Label text="HARD BOT" translation="[555,770]" width="500" height="52" font="font:LargeBoldSystemFont" color="0xFFFFFFFF" />
-      <Label text="Strategic play • Plans ahead" translation="[555,824]" width="650" height="36" font="font:MediumBoldSystemFont" color="0xA7BDB5FF" />
-      <Label text="★★★" translation="[1190,774]" width="220" height="62" horizAlign="center" font="font:LargeBoldSystemFont" color="0xFFD54FFF" />
-      <Poster translation="[430,920]" width="1060" height="92" loadWidth="1060" loadHeight="92" loadDisplayMode="scaleToFit" uri="pkg:/images/footer-card.png" />
-      <Label id="modeMessage" text="Two phones compete head-to-head" translation="[455,940]" width="1010" height="48" horizAlign="center" vertAlign="center" font="font:MediumBoldSystemFont" color="0xFFFFFFFF" />
+      <Label text="HOW DO YOU WANT TO PLAY?" translation="[360,154]" width="1200" height="72" horizAlign="center" font="font:LargeBoldSystemFont" color="0xFFFFFFFF" />
+      <Label text="Choose a local opponent or challenge the TN Game bot." translation="[360,222]" width="1200" height="46" horizAlign="center" font="font:MediumBoldSystemFont" color="0xA7BDB5FF" />
+      <Poster id="modeHuman" translation="[510,330]" width="900" height="120" loadWidth="900" loadHeight="120" loadDisplayMode="scaleToFit" uri="pkg:/images/mode-card-selected.png" />
+      <Label text="TWO PLAYER MATCH" translation="[550,350]" width="820" height="54" horizAlign="center" font="font:LargeBoldSystemFont" color="0xFFFFFFFF" />
+      <Poster id="modeEasy" translation="[510,470]" width="900" height="120" loadWidth="900" loadHeight="120" loadDisplayMode="scaleToFit" uri="pkg:/images/mode-card.png" />
+      <Label text="EASY BOT" translation="[550,490]" width="820" height="54" horizAlign="center" font="font:LargeBoldSystemFont" color="0xFFFFFFFF" />
+      <Poster id="modeMedium" translation="[510,610]" width="900" height="120" loadWidth="900" loadHeight="120" loadDisplayMode="scaleToFit" uri="pkg:/images/mode-card.png" />
+      <Label text="MEDIUM BOT" translation="[550,630]" width="820" height="54" horizAlign="center" font="font:LargeBoldSystemFont" color="0xFFFFFFFF" />
+      <Poster id="modeHard" translation="[510,750]" width="900" height="120" loadWidth="900" loadHeight="120" loadDisplayMode="scaleToFit" uri="pkg:/images/mode-card.png" />
+      <Label text="HARD BOT" translation="[550,770]" width="820" height="54" horizAlign="center" font="font:LargeBoldSystemFont" color="0xFFFFFFFF" />
+      <Label id="modeMessage" text="Two phones compete head-to-head" translation="[510,910]" width="900" height="50" horizAlign="center" font="font:MediumBoldSystemFont" color="0xFFFFFFFF" />
     </Group>
 
-    <Poster id="statusCard" translation="[320,146]" width="1280" height="132" loadWidth="1280" loadHeight="132" loadDisplayMode="scaleToFit" uri="pkg:/images/status-card.png" visible="false" />
-    <Rectangle id="statusAccent" translation="[350,146]" width="1220" height="6" color="0xF97316FF" visible="false" />
-    <Label id="title" text="CREATING ROOM..." translation="[340,158]" width="1240" height="68" horizAlign="center" vertAlign="center" font="font:LargeBoldSystemFont" color="0xFFFFFFFF" visible="false" />
-    <Label id="subtitle" text="Connecting to the TN Game server" translation="[380,220]" width="1160" height="42" horizAlign="center" font="font:MediumBoldSystemFont" color="0xA7BDB5FF" visible="false" />
+    <Poster id="statusCard" translation="[280,152]" width="1360" height="140" loadWidth="1360" loadHeight="140" loadDisplayMode="scaleToFit" uri="pkg:/images/status-card.png" visible="false" />
+    <Rectangle id="statusAccent" translation="[304,152]" width="1290" height="8" color="0xF97316FF" visible="false" />
+    <Label id="title" translation="[320,178]" width="1280" height="58" horizAlign="center" font="font:LargeBoldSystemFont" color="0xFFFFFFFF" visible="false" />
+    <Label id="subtitle" translation="[320,230]" width="1280" height="42" horizAlign="center" font="font:MediumSystemFont" color="0xA7BDB5FF" visible="false" />
 
-    <Group id="boardGroup" translation="[608,318]" visible="false">
-      <Rectangle translation="[-40,-66]" width="790" height="680" color="0x02080666" />
-      <Poster translation="[-54,-82]" width="790" height="680" loadWidth="790" loadHeight="680" loadDisplayMode="scaleToFit" uri="pkg:/images/board-card.png" />
-      <Rectangle translation="[-18,-76]" width="718" height="7" color="0xF97316FF" />
-      <Label text="1" translation="[0,-55]" width="92" height="40" horizAlign="center" font="font:MediumBoldSystemFont" color="0xA7BDB5FF" />
-      <Label text="2" translation="[100,-55]" width="92" height="40" horizAlign="center" font="font:MediumBoldSystemFont" color="0xA7BDB5FF" />
-      <Label text="3" translation="[200,-55]" width="92" height="40" horizAlign="center" font="font:MediumBoldSystemFont" color="0xA7BDB5FF" />
-      <Label text="4" translation="[300,-55]" width="92" height="40" horizAlign="center" font="font:MediumBoldSystemFont" color="0xA7BDB5FF" />
-      <Label text="5" translation="[400,-55]" width="92" height="40" horizAlign="center" font="font:MediumBoldSystemFont" color="0xA7BDB5FF" />
-      <Label text="6" translation="[500,-55]" width="92" height="40" horizAlign="center" font="font:MediumBoldSystemFont" color="0xA7BDB5FF" />
-      <Label text="7" translation="[600,-55]" width="92" height="40" horizAlign="center" font="font:MediumBoldSystemFont" color="0xA7BDB5FF" />
-      <Poster translation="[-430,72]" width="300" height="380" loadWidth="300" loadHeight="380" loadDisplayMode="scaleToFit" uri="pkg:/images/player-card.png" />
-      <Rectangle translation="[-424,106]" width="10" height="312" color="0xF97316FF" />
-      <Poster id="playerOneToken" translation="[-390,96]" width="220" height="220" loadWidth="220" loadHeight="220" loadDisplayMode="scaleToFit" uri="pkg:/images/token-orange.png" />
-      <Label id="playerOneName" text="PLAYER 1" translation="[-405,316]" width="250" height="48" horizAlign="center" font="font:LargeBoldSystemFont" color="0xFFFFFFFF" />
-      <Label id="playerOneColor" text="ORANGE" translation="[-405,362]" width="250" height="36" horizAlign="center" font="font:MediumBoldSystemFont" color="0xF6A55CFF" />
-      <Label id="playerOneTurn" text="" translation="[-405,406]" width="250" height="40" horizAlign="center" font="font:MediumBoldSystemFont" color="0xFFFFFFFF" />
-      <Poster translation="[830,72]" width="300" height="380" loadWidth="300" loadHeight="380" loadDisplayMode="scaleToFit" uri="pkg:/images/player-card.png" />
-      <Rectangle translation="[1114,106]" width="10" height="312" color="0xFFD54FFF" />
-      <Poster id="playerTwoToken" translation="[870,96]" width="220" height="220" loadWidth="220" loadHeight="220" loadDisplayMode="scaleToFit" uri="pkg:/images/token-gold.png" />
-      <Label id="playerTwoName" text="PLAYER 2" translation="[855,316]" width="250" height="48" horizAlign="center" font="font:LargeBoldSystemFont" color="0xFFFFFFFF" />
-      <Label id="playerTwoColor" text="GOLD" translation="[855,362]" width="250" height="36" horizAlign="center" font="font:MediumBoldSystemFont" color="0xFFD54FFF" />
-      <Label id="playerTwoTurn" text="" translation="[855,406]" width="250" height="40" horizAlign="center" font="font:MediumBoldSystemFont" color="0xFFFFFFFF" />
+    <Group id="boardGroup" translation="[610,310]" visible="false">
+      <Poster width="700" height="650" loadWidth="700" loadHeight="650" loadDisplayMode="scaleToFit" uri="pkg:/images/board-card.png" />
+      <Rectangle translation="[0,0]" width="700" height="8" color="0xF97316FF" />
+      <Group id="gridGroup" translation="[6,52]" />
     </Group>
 
-    <Poster id="footerCard" translation="[430,964]" width="1060" height="82" loadWidth="1060" loadHeight="82" loadDisplayMode="scaleToFit" uri="pkg:/images/footer-card.png" visible="false" />
-    <Label id="roomLabel" text="" translation="[450,970]" width="1020" height="40" horizAlign="center" font="font:LargeBoldSystemFont" color="0xFFFFFFFF" visible="false" />
-    <Label id="playersLabel" text="" translation="[450,1008]" width="1020" height="32" horizAlign="center" font="font:MediumBoldSystemFont" color="0x7FA99CFF" visible="false" />
+    <Poster id="footerCard" translation="[560,946]" width="800" height="90" loadWidth="800" loadHeight="90" loadDisplayMode="scaleToFit" uri="pkg:/images/footer-card.png" visible="false" />
+    <Label id="roomLabel" translation="[585,958]" width="750" height="38" horizAlign="center" font="font:LargeBoldSystemFont" color="0xFFFFFFFF" visible="false" />
+    <Label id="playersLabel" translation="[585,995]" width="750" height="30" horizAlign="center" font="font:MediumBoldSystemFont" color="0xA7BDB5FF" visible="false" />
+
+    <Poster translation="[200,430]" width="300" height="310" loadWidth="300" loadHeight="310" loadDisplayMode="scaleToFit" uri="pkg:/images/player-card.png" />
+    <Rectangle id="playerOneAccent" translation="[208,455]" width="8" height="260" color="0xF97316FF" />
+    <Poster id="playerOneToken" translation="[268,468]" width="164" height="164" loadWidth="164" loadHeight="164" loadDisplayMode="scaleToFit" uri="pkg:/images/token-orange.png" />
+    <Label id="playerOneName" text="PLAYER 1" translation="[224,640]" width="252" height="48" horizAlign="center" font="font:LargeBoldSystemFont" color="0xFFFFFFFF" />
+    <Label id="playerOneColor" text="ORANGE" translation="[224,686]" width="252" height="38" horizAlign="center" font="font:MediumBoldSystemFont" color="0xFFD54FFF" />
+    <Label id="playerOneTurn" translation="[224,720]" width="252" height="36" horizAlign="center" font="font:MediumBoldSystemFont" color="0xFFFFFFFF" />
+
+    <Poster translation="[1420,430]" width="300" height="310" loadWidth="300" loadHeight="310" loadDisplayMode="scaleToFit" uri="pkg:/images/player-card.png" />
+    <Rectangle id="playerTwoAccent" translation="[1704,455]" width="8" height="260" color="0xFFD54FFF" />
+    <Poster id="playerTwoToken" translation="[1488,468]" width="164" height="164" loadWidth="164" loadHeight="164" loadDisplayMode="scaleToFit" uri="pkg:/images/token-gold.png" />
+    <Label id="playerTwoName" text="PLAYER 2" translation="[1444,640]" width="252" height="48" horizAlign="center" font="font:LargeBoldSystemFont" color="0xFFFFFFFF" />
+    <Label id="playerTwoColor" text="GOLD" translation="[1444,686]" width="252" height="38" horizAlign="center" font="font:MediumBoldSystemFont" color="0xFFD54FFF" />
+    <Label id="playerTwoTurn" translation="[1444,720]" width="252" height="36" horizAlign="center" font="font:MediumBoldSystemFont" color="0xFFFFFFFF" />
+
     <Timer id="pollTimer" duration="0.75" repeat="true" />
   </children>
 </component>
