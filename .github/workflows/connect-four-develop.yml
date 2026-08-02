@@ -16,21 +16,17 @@ jobs:
       - name: Check out development branch
         uses: actions/checkout@v4
 
-      - name: Verify hosted phone controller
+      - name: Verify hosted phone controllers
         working-directory: services/connect-four-room-server
         run: |
           node --check server.js
-          node --check phone-polish-v1.6.js
-          node --check match-series-v1.8-launcher.js
-          node --check guest-profile-v2.0-launcher.js
           node --check account-signin-v2.1-launcher.js
-          node --check color-clash-phone-v2.3.1-launcher.js
+          node --check multi-game-router-v2.4.js
           grep -q 'PHONE CONTROLLER v2.1 ACCOUNT FOUNDATION' account-signin-v2.1-launcher.js
-          grep -q 'PHONE CONTROLLER v2.3 COLOR CLASH PAIRING' color-clash-phone-v2.3.1-launcher.js
-          grep -q 'JOIN COLOR CLASH' color-clash-phone-v2.3.1-launcher.js
-          grep -q 'CONTINUE AS GUEST' account-signin-v2.1-launcher.js
-          grep -q 'SIGN IN' account-signin-v2.1-launcher.js
-          grep -q 'node color-clash-phone-v2.3.1-launcher.js' package.json
+          grep -q 'PHONE CONTROLLER v2.4 NATIVE ROUTER' multi-game-router-v2.4.js
+          grep -q 'JOIN COLOR CLASH' multi-game-router-v2.4.js
+          grep -q 'game.*color-clash' multi-game-router-v2.4.js
+          grep -q 'node multi-game-router-v2.4.js' package.json
 
       - name: Smoke test hosted service
         working-directory: services/connect-four-room-server
@@ -42,8 +38,9 @@ jobs:
             BASE_PAGE=$(curl --fail --silent 'http://127.0.0.1:8070/' || true)
             COLOR_PAGE=$(curl --fail --silent 'http://127.0.0.1:8070/?room=TEST&game=color-clash' || true)
             if echo "$BASE_PAGE" | grep -q 'PHONE CONTROLLER v2.1 ACCOUNT FOUNDATION' \
-              && echo "$COLOR_PAGE" | grep -q 'PHONE CONTROLLER v2.3 COLOR CLASH PAIRING' \
-              && echo "$COLOR_PAGE" | grep -q 'JOIN COLOR CLASH'; then
+              && echo "$COLOR_PAGE" | grep -q 'PHONE CONTROLLER v2.4 NATIVE ROUTER' \
+              && echo "$COLOR_PAGE" | grep -q 'JOIN COLOR CLASH' \
+              && ! echo "$COLOR_PAGE" | grep -q 'CONNECT FOUR'; then
               exit 0
             fi
             sleep 0.5
