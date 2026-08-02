@@ -33,18 +33,19 @@ if heading_marker is None:
     raise SystemExit('Platform XML heading marker not found')
 xml = xml.replace(heading_marker, 'text="TN GAME HOME"', 1)
 
+# The subtitle wording changed across earlier builds. Update it when a known
+# version is present, but do not fail an otherwise valid platform build.
 subtitle_markers = [
     'text="One TV. Everyone uses their phone as the controller."',
     'text="Choose a game. Your phone becomes the controller."',
 ]
 subtitle_marker = next((marker for marker in subtitle_markers if marker in xml), None)
-if subtitle_marker is None:
-    raise SystemExit('Platform XML subtitle marker not found')
-xml = xml.replace(
-    subtitle_marker,
-    'text="Choose a game. Your phone becomes the controller."',
-    1,
-)
+if subtitle_marker is not None:
+    xml = xml.replace(
+        subtitle_marker,
+        'text="Choose a game. Your phone becomes the controller."',
+        1,
+    )
 
 profile_block = '''
       <Poster translation="[1430,150]" width="350" height="104" loadWidth="350" loadHeight="104" loadDisplayMode="scaleToFit" uri="pkg:/images/footer-card.png" />
