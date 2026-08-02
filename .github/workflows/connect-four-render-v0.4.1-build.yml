@@ -1,0 +1,30 @@
+name: Connect Four Render v0.4.1 Build
+
+on:
+  push:
+    branches:
+      - feature/connect-four-render-v0.4.1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build Render Roku package
+        run: |
+          chmod +x experiences/roku/connect-four/build.sh
+          chmod +x experiences/roku/connect-four/build-render-v0.4.1.sh
+          experiences/roku/connect-four/build-render-v0.4.1.sh
+
+      - name: Upload Roku ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: tn-game-connect-four-v0.4.1-render
+          path: experiences/roku/connect-four/dist/tn-game-connect-four-v0.4.1-render.zip
+          if-no-files-found: error
