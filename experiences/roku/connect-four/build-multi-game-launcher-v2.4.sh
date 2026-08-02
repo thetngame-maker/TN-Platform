@@ -23,25 +23,34 @@ root = Path(sys.argv[1])
 brs_path = root / "components" / "MainScene.brs"
 brs = brs_path.read_text()
 
-brs = brs.replace('m.versionLabel.text = "v2.3 COLOR CLASH PAIRING"', 'm.versionLabel.text = "v2.4 MULTI-GAME LAUNCHER"')
-
-# Replace the lobby OK action regardless of whitespace or an older one-line implementation.
-lobby_ok = re.compile(
-    r'    else if key = "OK"\n(?:.|\n)*?    else\n      return false\n    end if\n    return true\n  end if',
-    re.MULTILINE,
+# Always stamp the actual launcher version, regardless of the source package version.
+brs, version_count = re.subn(
+    r'm\.versionLabel\.text = "v[^"\n]+"',
+    'm.versionLabel.text = "v2.4 MULTI-GAME LAUNCHER"',
+    brs,
+    count=1,
 )
-replacement = '''    else if key = "OK"
-      launchSelectedGame()
-    else
-      return false
-    end if
-    return true
-  end if'''
-brs, count = lobby_ok.subn(replacement, brs, count=1)
-if count != 1:
-    raise SystemExit('Could not replace lobby OK routing block')
+if version_count != 1:
+    raise SystemExit('Could not stamp v2.4 launcher version')
 
-# Insert one reusable launcher before the lobby selection renderer.
+# Replace only the OK branch inside the lobby state. Stop before the mode-state block.
+lobby_start = brs.find('  if m.state = "lobby"')
+mode_start = brs.find('  if m.state = "mode"', lobby_start)
+if lobby_start < 0 or mode_start < 0:
+    raise SystemExit('Lobby routing block not found')
+lobby_block = brs[lobby_start:mode_start]
+lobby_block, route_count = re.subn(
+    r'    else if key = "OK"\n.*?(?=    else\n      return false\n    end if\n    return true\n  end if)',
+    '    else if key = "OK"\n      launchSelectedGame()\n',
+    lobby_block,
+    count=1,
+    flags=re.DOTALL,
+)
+if route_count != 1:
+    raise SystemExit('Could not replace lobby OK routing')
+brs = brs[:lobby_start] + lobby_block + brs[mode_start:]
+
+# Insert the reusable game launcher once.
 marker = 'sub updateLobbySelection()\n'
 launcher = '''sub launchSelectedGame()
   if m.lobbySelection = 0
@@ -62,14 +71,27 @@ if 'sub launchSelectedGame()' not in brs:
         raise SystemExit('Launcher insertion marker not found')
     brs = brs.replace(marker, launcher + marker, 1)
 
-# Make the home selection text accurately describe what OK will do.
+# Normalize all Color Clash lobby copy, including older bullet/spacing variants.
+brs = re.sub(
+    r'm\.lobbyMessage\.text = "COLOR CLASH[^"\n]*"',
+    'm.lobbyMessage.text = "COLOR CLASH  •  Press OK to create a Color Clash room"',
+    brs,
+)
+brs = brs.replace(
+    'm.lobbyMessage.text = "Color Clash is the next card game planned"',
+    'm.lobbyMessage.text = "COLOR CLASH  •  Press OK to create a Color Clash room"',
+)
 brs = brs.replace('m.colorClashPrompt.text = "COMING SOON"', 'm.colorClashPrompt.text = "ROOM PAIRING READY"')
-brs = brs.replace('m.lobbyMessage.text = "Color Clash is the next card game planned"', 'm.lobbyMessage.text = "COLOR CLASH  •  Press OK to create a Color Clash room"')
-brs = brs.replace('m.lobbyMessage.text = "COLOR CLASH  •  Coming in a future update"', 'm.lobbyMessage.text = "COLOR CLASH  •  Press OK to create a Color Clash room"')
-brs = brs.replace('m.lobbyMessage.text = "TN Trivia will support teams and local questions"', 'm.lobbyMessage.text = "WORD TILES  •  Build words and compete for points"')
+brs = brs.replace(
+    'm.lobbyMessage.text = "TN Trivia will support teams and local questions"',
+    'm.lobbyMessage.text = "WORD TILES  •  Build words and compete for points"',
+)
 
-# The shared room screen must keep the selected game identity.
-brs = brs.replace('m.productTitle.text = "CONNECT FOUR"\n  m.lobbyGroup.visible = false', 'if m.activeGame = "color-clash" then m.productTitle.text = "COLOR CLASH" else m.productTitle.text = "CONNECT FOUR"\n  m.lobbyGroup.visible = false')
+# Preserve the selected game's identity on the shared room screen.
+brs = brs.replace(
+    'm.productTitle.text = "CONNECT FOUR"\n  m.lobbyGroup.visible = false',
+    'if m.activeGame = "color-clash" then m.productTitle.text = "COLOR CLASH" else m.productTitle.text = "CONNECT FOUR"\n  m.lobbyGroup.visible = false',
+)
 
 required = [
     'v2.4 MULTI-GAME LAUNCHER',
@@ -83,9 +105,14 @@ for item in required:
     if item not in brs:
         raise SystemExit(f'Multi-game launcher marker missing: {item}')
 
-# Explicitly reject the obsolete Color Clash behavior.
-if 'Color Clash is the next card game planned' in brs or 'COLOR CLASH  •  Coming in a future update' in brs:
-    raise SystemExit('Obsolete Color Clash lobby behavior remains')
+obsolete = [
+    'Color Clash is the next card game planned',
+    'COLOR CLASH  •  Coming in a future update',
+    'COLOR CLASH • Coming in a future update',
+]
+for item in obsolete:
+    if item in brs:
+        raise SystemExit(f'Obsolete Color Clash behavior remains: {item}')
 
 brs_path.write_text(brs)
 PY
@@ -102,7 +129,7 @@ unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F 'sub launchSelectedGam
 unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F 'startColorClashPairing()' >/dev/null
 unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F '&game=color-clash' >/dev/null
 unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F 'Press OK to create a Color Clash room' >/dev/null
-if unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F 'Coming in a future update' >/dev/null; then
+if unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -E 'Color Clash is the next card game planned|COLOR CLASH.*Coming in a future update' >/dev/null; then
   echo "Obsolete Color Clash coming-soon message remains" >&2
   exit 1
 fi
