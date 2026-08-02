@@ -2,5 +2,5 @@
   "name": "tn-game-connect-four-room-server",
   "version": "0.1.0",
   "private": true,
-  "scripts": { "start": "node phone-session-v1.7-launcher.js" }
+  "scripts": { "start": "node match-series-v1.8-launcher.js" }
 }
