@@ -33,7 +33,7 @@ source = replaceOnce(source,
   'score round win');
 source = replaceOnce(source,
   "    code: room.code, mode: room.mode, difficulty: room.difficulty, version: room.version,\n    screen: finished ? 'finished' : 'playing',",
-  "    code: room.code, mode: room.mode, difficulty: room.difficulty, version: room.version, series: room.series,\n    screen: finished ? 'finished' : 'playing',",
+  "    code: room.code, mode: room.mode, difficulty: room.difficulty, version: Date.now(), series: room.series,\n    screen: finished ? 'finished' : 'playing',",
   'tv series state');
 source = source.replace("title: finished ? (game.winnerName ? `${game.winnerName.toUpperCase()} WINS!` : 'DRAW GAME')", "title: finished ? (room.series?.complete ? `${room.series.winnerName.toUpperCase()} WINS THE SERIES!` : (game.winnerName ? `${game.winnerName.toUpperCase()} WINS ROUND ${room.series?.round || 1}!` : 'DRAW GAME'))");
 source = source.replace("subtitle: finished ? `${game.message || 'Game finished'}  •  Press OK to play again`", "subtitle: finished ? `${game.message || 'Game finished'}  •  ${room.series?.complete ? 'Press OK for a new series' : 'Press OK for the next round'}`");
@@ -45,11 +45,12 @@ source = replaceOnce(source,
   "    if (req.method === 'POST' && action === 'restart') {\n      if (room.players.length < 2) return json(res, 409, { error: 'Two players are required' });\n      startRoom(room); return json(res, 200, tvState(room));\n    }",
   "    if (req.method === 'POST' && action === 'restart') {\n      if (room.players.length < 2) return json(res, 409, { error: 'Two players are required' });\n      if (room.series?.complete) { room.series.round = 1; room.series.scores = {}; room.series.complete = false; room.series.winnerId = ''; room.series.winnerName = ''; } else room.series.round = Math.max(1, Number(room.series?.round || 1)) + 1;\n      startRoom(room); return json(res, 200, tvState(room));\n    }",
   'series restart');
+source = source.replace("'Cache-Control': 'no-store',", "'Cache-Control': 'no-store, no-cache, must-revalidate',\n    'Pragma': 'no-cache',\n    'Expires': '0',");
 fs.writeFileSync(seriesBasePath, source);
 
 let phoneSource = fs.readFileSync(path.join(__dirname, 'phone-polish-v1.6.js'), 'utf8');
 phoneSource = replaceOnce(phoneSource, "const sourcePath = path.join(__dirname, 'server.js');", "const sourcePath = path.join(__dirname, '.server-v1.8-series-base.js');", 'phone series base');
-phoneSource = phoneSource.replace('PHONE CONTROLLER v1.6', 'PHONE CONTROLLER v1.8 SERIES');
+phoneSource = phoneSource.replace('PHONE CONTROLLER v1.6', 'PHONE CONTROLLER v1.8.1 SERIES SYNC');
 phoneSource = phoneSource.replace('.colors{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}', '.series-picker{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0 4px}.series-choice{padding:12px 6px;background:#102a21;color:#a7bdb5;font-weight:900}.series-choice.selected{background:#f97316;color:#fff}.series-score{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;background:#071510;border:1px solid #21483c;border-radius:16px;padding:12px;margin:4px 0 16px;text-align:center}.series-score strong{font-size:24px}.series-meta{color:#739b8e;font-size:13px;font-weight:800}.colors{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}');
 phoneSource = phoneSource.replace('<label>Choose your color</label><div class="colors">${swatches}</div>', '<label>Match length</label><div class="series-picker"><button class="series-choice" type="button" data-bestof="1" onclick="selectSeries(1)">SINGLE</button><button class="series-choice selected" type="button" data-bestof="3" onclick="selectSeries(3)">BEST OF 3</button><button class="series-choice" type="button" data-bestof="5" onclick="selectSeries(5)">BEST OF 5</button></div><label>Choose your color</label><div class="colors">${swatches}</div>');
 phoneSource = phoneSource.replace('<div class="status" id="statusLabel"></div><div class="columns">', '<div id="seriesScore" class="series-score"><div><span id="leftName">PLAYER 1</span><br><strong id="leftScore">0</strong></div><div class="series-meta"><span id="seriesLabel">BEST OF 3</span><br><span id="roundLabel">ROUND 1</span></div><div><span id="rightName">PLAYER 2</span><br><strong id="rightScore">0</strong></div></div><div class="status" id="statusLabel"></div><div class="columns">');
