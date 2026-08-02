@@ -44,19 +44,21 @@ jobs:
           cat /tmp/connect-four-server.log
           exit 1
 
-      - name: Build permanent Roku development ZIP
+      - name: Build TN Game platform ZIP
         run: |
           chmod +x experiences/roku/connect-four/*.sh
           experiences/roku/connect-four/build-development.sh
 
-      - name: Verify Roku package
+      - name: Verify TN Game platform package
         run: |
           ZIP='experiences/roku/connect-four/dist/tn-game-connect-four-dev.zip'
           test -f "$ZIP"
           unzip -Z1 "$ZIP" | grep -qx manifest
           unzip -Z1 "$ZIP" | grep -qx components/DisplayLoopTask.brs
-          unzip -p "$ZIP" components/MainScene.brs | grep -q 'v1.9.1 HOME SYNC'
-          unzip -p "$ZIP" components/MainScene.xml | grep -q 'TN GAME LIBRARY'
+          unzip -p "$ZIP" components/MainScene.brs | grep -q 'v2.0 PLATFORM SHELL'
+          unzip -p "$ZIP" components/MainScene.xml | grep -q 'TN GAME HOME'
+          unzip -p "$ZIP" components/MainScene.xml | grep -q 'GUEST PLAYER'
+          unzip -p "$ZIP" components/MainScene.xml | grep -q 'ACCOUNT FOUNDATION READY'
           unzip -p "$ZIP" components/MainScene.xml | grep -q 'COLOR CLASH'
           unzip -p "$ZIP" components/MainScene.xml | grep -q 'TN TRIVIA'
           unzip -p "$ZIP" components/DisplayLoopTask.brs | grep -q 'requestCounter'
