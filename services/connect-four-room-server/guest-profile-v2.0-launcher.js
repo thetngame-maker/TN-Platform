@@ -5,9 +5,12 @@ const sourcePath = path.join(__dirname, 'match-series-v1.8-launcher.js');
 const launcherPath = path.join(__dirname, '.guest-profile-v2.0-runtime-launcher.js');
 let launcher = fs.readFileSync(sourcePath, 'utf8');
 
-launcher = launcher
-  .replace("const seriesBasePath = path.join(__dirname, '.server-v1.8-series-base.js');", "const seriesBasePath = path.join(__dirname, '.server-v2.0-profile-base.js');")
-  .replace("const runtimePath = path.join(__dirname, '.server-v1.8-series-runtime.js');", "const runtimePath = path.join(__dirname, '.server-v2.0-profile-runtime.js');");
+// Keep the proven v1.8 series base filename because the generated phone-polish
+// launcher explicitly reads that file. Only give the final runtime a v2.0 name.
+launcher = launcher.replace(
+  "const runtimePath = path.join(__dirname, '.server-v1.8-series-runtime.js');",
+  "const runtimePath = path.join(__dirname, '.server-v2.0-profile-runtime.js');"
+);
 
 const marker = 'fs.writeFileSync(runtimePath, phoneSource);';
 if (!launcher.includes(marker)) throw new Error('v2.0 profile patch failed: runtime write marker');
