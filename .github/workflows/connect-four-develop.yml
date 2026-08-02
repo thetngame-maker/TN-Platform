@@ -24,10 +24,13 @@ jobs:
           node --check match-series-v1.8-launcher.js
           node --check guest-profile-v2.0-launcher.js
           node --check account-signin-v2.1-launcher.js
+          node --check color-clash-phone-v2.3.1-launcher.js
           grep -q 'PHONE CONTROLLER v2.1 ACCOUNT FOUNDATION' account-signin-v2.1-launcher.js
+          grep -q 'PHONE CONTROLLER v2.3 COLOR CLASH PAIRING' color-clash-phone-v2.3.1-launcher.js
+          grep -q 'JOIN COLOR CLASH' color-clash-phone-v2.3.1-launcher.js
           grep -q 'CONTINUE AS GUEST' account-signin-v2.1-launcher.js
           grep -q 'SIGN IN' account-signin-v2.1-launcher.js
-          grep -q 'node account-signin-v2.1-launcher.js' package.json
+          grep -q 'node color-clash-phone-v2.3.1-launcher.js' package.json
 
       - name: Smoke test hosted service
         working-directory: services/connect-four-room-server
@@ -36,7 +39,11 @@ jobs:
           SERVER_PID=$!
           trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
           for attempt in {1..20}; do
-            if curl --fail --silent http://127.0.0.1:8070/ | grep -q 'PHONE CONTROLLER v2.1 ACCOUNT FOUNDATION'; then
+            BASE_PAGE=$(curl --fail --silent 'http://127.0.0.1:8070/' || true)
+            COLOR_PAGE=$(curl --fail --silent 'http://127.0.0.1:8070/?room=TEST&game=color-clash' || true)
+            if echo "$BASE_PAGE" | grep -q 'PHONE CONTROLLER v2.1 ACCOUNT FOUNDATION' \
+              && echo "$COLOR_PAGE" | grep -q 'PHONE CONTROLLER v2.3 COLOR CLASH PAIRING' \
+              && echo "$COLOR_PAGE" | grep -q 'JOIN COLOR CLASH'; then
               exit 0
             fi
             sleep 0.5
