@@ -16,17 +16,20 @@ fi
 
 cp "$SOURCE_ZIP" "$OUTPUT_ZIP"
 
-unzip -Z1 "$OUTPUT_ZIP" | grep -qx 'manifest'
-unzip -Z1 "$OUTPUT_ZIP" | grep -qx 'components/DisplayLoopTask.brs'
-unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -q 'v2.0 PLATFORM SHELL'
-unzip -p "$OUTPUT_ZIP" components/MainScene.xml | grep -q 'TN GAME HOME'
-unzip -p "$OUTPUT_ZIP" components/MainScene.xml | grep -q 'GUEST PLAYER'
-unzip -p "$OUTPUT_ZIP" components/MainScene.xml | grep -q 'ACCOUNT FOUNDATION READY'
-unzip -p "$OUTPUT_ZIP" components/MainScene.xml | grep -q 'COLOR CLASH'
-unzip -p "$OUTPUT_ZIP" components/MainScene.xml | grep -q 'TN TRIVIA'
-unzip -p "$OUTPUT_ZIP" components/DisplayLoopTask.brs | grep -q 'requestCounter'
-unzip -p "$OUTPUT_ZIP" components/DisplayLoopTask.brs | grep -q '/tv?poll='
-unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -q 'tn-game-connect-four-server.onrender.com'
-! unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -q '192\.168\.1\.127'
+unzip -Z1 "$OUTPUT_ZIP" | grep -Fx 'manifest' >/dev/null
+unzip -Z1 "$OUTPUT_ZIP" | grep -Fx 'components/DisplayLoopTask.brs' >/dev/null
+unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F 'v2.0 PLATFORM SHELL' >/dev/null
+unzip -p "$OUTPUT_ZIP" components/MainScene.xml | grep -F 'TN GAME HOME' >/dev/null
+unzip -p "$OUTPUT_ZIP" components/MainScene.xml | grep -F 'GUEST PLAYER' >/dev/null
+unzip -p "$OUTPUT_ZIP" components/MainScene.xml | grep -F 'ACCOUNT FOUNDATION READY' >/dev/null
+unzip -p "$OUTPUT_ZIP" components/MainScene.xml | grep -F 'COLOR CLASH' >/dev/null
+unzip -p "$OUTPUT_ZIP" components/MainScene.xml | grep -F 'TN TRIVIA' >/dev/null
+unzip -p "$OUTPUT_ZIP" components/DisplayLoopTask.brs | grep -F 'requestCounter' >/dev/null
+unzip -p "$OUTPUT_ZIP" components/DisplayLoopTask.brs | grep -F '/tv?poll=' >/dev/null
+unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F 'tn-game-connect-four-server.onrender.com' >/dev/null
+if unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F '192.168.1.127' >/dev/null; then
+  echo "Local server address found in development package" >&2
+  exit 1
+fi
 
 echo "Created TN Game v2.0 platform development package: $OUTPUT_ZIP"
