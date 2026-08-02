@@ -53,10 +53,12 @@ jobs:
           test -f "$ZIP"
           unzip -Z1 "$ZIP" | grep -qx manifest
           unzip -Z1 "$ZIP" | grep -qx components/DisplayLoopTask.brs
-          unzip -p "$ZIP" components/MainScene.brs | grep -q 'v1.9 HOME'
+          unzip -p "$ZIP" components/MainScene.brs | grep -q 'v1.9.1 HOME SYNC'
           unzip -p "$ZIP" components/MainScene.xml | grep -q 'TN GAME LIBRARY'
           unzip -p "$ZIP" components/MainScene.xml | grep -q 'COLOR CLASH'
           unzip -p "$ZIP" components/MainScene.xml | grep -q 'TN TRIVIA'
+          unzip -p "$ZIP" components/DisplayLoopTask.brs | grep -q 'requestCounter'
+          unzip -p "$ZIP" components/DisplayLoopTask.brs | grep -q '/tv?poll='
           unzip -p "$ZIP" components/MainScene.brs | grep -q 'tn-game-connect-four-server.onrender.com'
           ! unzip -p "$ZIP" components/MainScene.brs | grep -q '192\.168\.1\.127'
 
