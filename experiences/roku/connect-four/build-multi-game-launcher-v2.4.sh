@@ -13,6 +13,8 @@ trap 'rm -rf "$WORK_DIR"' EXIT
 
 test -f "$SOURCE_ZIP"
 unzip -q "$SOURCE_ZIP" -d "$WORK_DIR"
+mkdir -p "$WORK_DIR/components"
+cp "$ROOT_DIR/components/GameRouter.brs" "$WORK_DIR/components/GameRouter.brs"
 
 python3 - "$WORK_DIR" <<'PY'
 from pathlib import Path
@@ -21,16 +23,26 @@ import sys
 
 root = Path(sys.argv[1])
 brs_path = root / "components" / "MainScene.brs"
+xml_path = root / "components" / "MainScene.xml"
 brs = brs_path.read_text()
+xml = xml_path.read_text()
+
+if 'pkg:/components/GameRouter.brs' not in xml:
+    xml = xml.replace(
+        '<script type="text/brightscript" uri="pkg:/components/MainScene.brs" />',
+        '<script type="text/brightscript" uri="pkg:/components/GameRouter.brs" />\n  <script type="text/brightscript" uri="pkg:/components/MainScene.brs" />',
+        1,
+    )
+xml_path.write_text(xml)
 
 brs, version_count = re.subn(
     r'm\.versionLabel\.text = "v[^"\n]+"',
-    'm.versionLabel.text = "v2.5 SCENE ROUTER FOUNDATION"',
+    'm.versionLabel.text = "v3.0 MODULE ARCHITECTURE"',
     brs,
     count=1,
 )
 if version_count != 1:
-    raise SystemExit('Could not stamp v2.5 scene router version')
+    raise SystemExit('Could not stamp v3.0 module architecture version')
 
 lobby_start = brs.find('  if m.state = "lobby"')
 mode_start = brs.find('  if m.state = "mode"', lobby_start)
@@ -50,15 +62,16 @@ brs = brs[:lobby_start] + lobby_block + brs[mode_start:]
 
 marker = 'sub updateLobbySelection()\n'
 launcher = '''sub launchSelectedGame()
-  if m.lobbySelection = 0
-    m.activeGame = "connect-four"
+  route = routeForSelection(m.lobbySelection)
+  m.activeGame = route.id
+  m.activeRoute = route
+
+  if route.id = "connect-four"
     showModeSelect()
-  else if m.lobbySelection = 1
-    m.activeGame = "color-clash"
+  else if route.id = "color-clash"
     startColorClashPairing()
   else
-    m.activeGame = "word-tiles"
-    m.lobbyMessage.text = "WORD TILES  •  Coming after Color Clash gameplay"
+    m.lobbyMessage.text = "WORD TILES  •  Module registered and coming after Color Clash gameplay"
   end if
 end sub
 
@@ -67,15 +80,19 @@ if 'sub launchSelectedGame()' not in brs:
     if marker not in brs:
         raise SystemExit('Launcher insertion marker not found')
     brs = brs.replace(marker, launcher + marker, 1)
+else:
+    brs = re.sub(
+        r'sub launchSelectedGame\(\)\n.*?end sub\n\n',
+        launcher,
+        brs,
+        count=1,
+        flags=re.DOTALL,
+    )
 
 brs = re.sub(
     r'm\.lobbyMessage\.text = "COLOR CLASH[^"\n]*"',
     'm.lobbyMessage.text = "COLOR CLASH  •  Press OK to create a Color Clash room"',
     brs,
-)
-brs = brs.replace(
-    'm.lobbyMessage.text = "Color Clash is the next card game planned"',
-    'm.lobbyMessage.text = "COLOR CLASH  •  Press OK to create a Color Clash room"',
 )
 brs = brs.replace('m.colorClashPrompt.text = "COMING SOON"', 'm.colorClashPrompt.text = "ROOM PAIRING READY"')
 brs = brs.replace(
@@ -85,37 +102,30 @@ brs = brs.replace(
 
 brs = brs.replace(
     'm.productTitle.text = "CONNECT FOUR"\n  m.lobbyGroup.visible = false',
-    'if m.activeGame = "color-clash" then m.productTitle.text = "COLOR CLASH" else m.productTitle.text = "CONNECT FOUR"\n  m.lobbyGroup.visible = false',
+    'if m.activeRoute <> invalid then m.productTitle.text = m.activeRoute.title else m.productTitle.text = "CONNECT FOUR"\n  m.lobbyGroup.visible = false',
 )
 
-# Permanent game-specific controller routes avoid losing a second query parameter inside the QR provider URL.
-old_join = 'joinUrl = m.baseUrl + "/?room=" + m.roomCode\n  if m.activeGame = "color-clash" then joinUrl += "&game=color-clash"'
-new_join = 'if m.activeGame = "color-clash"\n    joinUrl = m.baseUrl + "/color-clash?room=" + m.roomCode\n  else\n    joinUrl = m.baseUrl + "/?room=" + m.roomCode\n  end if'
-if old_join in brs:
-    brs = brs.replace(old_join, new_join, 1)
-else:
-    brs = brs.replace('joinUrl = m.baseUrl + "/?room=" + m.roomCode', new_join, 1)
+old_join_patterns = [
+    'if m.activeGame = "color-clash"\n    joinUrl = m.baseUrl + "/color-clash?room=" + m.roomCode\n  else\n    joinUrl = m.baseUrl + "/?room=" + m.roomCode\n  end if',
+    'joinUrl = m.baseUrl + "/?room=" + m.roomCode\n  if m.activeGame = "color-clash" then joinUrl += "&game=color-clash"',
+    'joinUrl = m.baseUrl + "/?room=" + m.roomCode',
+]
+replacement = 'joinUrl = controllerUrlForGame(m.baseUrl, m.activeRoute, m.roomCode)'
+for pattern in old_join_patterns:
+    if pattern in brs:
+        brs = brs.replace(pattern, replacement, 1)
+        break
 
 required = [
-    'v2.5 SCENE ROUTER FOUNDATION',
+    'v3.0 MODULE ARCHITECTURE',
     'sub launchSelectedGame()',
-    'm.activeGame = "color-clash"',
+    'routeForSelection(m.lobbySelection)',
+    'controllerUrlForGame(m.baseUrl, m.activeRoute, m.roomCode)',
     'startColorClashPairing()',
-    '/color-clash?room=',
-    'COLOR CLASH  •  Press OK to create a Color Clash room',
 ]
 for item in required:
     if item not in brs:
-        raise SystemExit(f'Scene router marker missing: {item}')
-
-obsolete = [
-    'Color Clash is the next card game planned',
-    'COLOR CLASH  •  Coming in a future update',
-    'COLOR CLASH • Coming in a future update',
-]
-for item in obsolete:
-    if item in brs:
-        raise SystemExit(f'Obsolete Color Clash behavior remains: {item}')
+        raise SystemExit(f'Module architecture marker missing: {item}')
 
 brs_path.write_text(brs)
 PY
@@ -127,14 +137,12 @@ rm -f "$OUTPUT_ZIP"
 )
 
 unzip -Z1 "$OUTPUT_ZIP" | grep -Fx 'manifest' >/dev/null
-unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F 'v2.5 SCENE ROUTER FOUNDATION' >/dev/null
-unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F 'sub launchSelectedGame()' >/dev/null
-unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F 'startColorClashPairing()' >/dev/null
-unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F '/color-clash?room=' >/dev/null
-unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F 'Press OK to create a Color Clash room' >/dev/null
-if unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -E 'Color Clash is the next card game planned|COLOR CLASH.*Coming in a future update' >/dev/null; then
-  echo "Obsolete Color Clash coming-soon message remains" >&2
-  exit 1
-fi
+unzip -Z1 "$OUTPUT_ZIP" | grep -Fx 'components/GameRouter.brs' >/dev/null
+unzip -p "$OUTPUT_ZIP" components/MainScene.xml | grep -F 'pkg:/components/GameRouter.brs' >/dev/null
+unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F 'v3.0 MODULE ARCHITECTURE' >/dev/null
+unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F 'routeForSelection(m.lobbySelection)' >/dev/null
+unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F 'controllerUrlForGame(m.baseUrl, m.activeRoute, m.roomCode)' >/dev/null
+unzip -p "$OUTPUT_ZIP" components/GameRouter.brs | grep -F '"color-clash"' >/dev/null
+unzip -p "$OUTPUT_ZIP" components/GameRouter.brs | grep -F '"/color-clash"' >/dev/null
 
-echo "Created TN Game v2.5 scene router foundation: $OUTPUT_ZIP"
+echo "Created TN Game v3.0 module architecture: $OUTPUT_ZIP"
