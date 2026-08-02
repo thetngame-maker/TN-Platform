@@ -44,23 +44,25 @@ jobs:
           cat /tmp/connect-four-server.log
           exit 1
 
-      - name: Build TN Game multi-game ZIP
+      - name: Build TN Game Color Clash foundation ZIP
         run: |
           chmod +x experiences/roku/connect-four/*.sh
           experiences/roku/connect-four/build-development.sh
 
-      - name: Verify TN Game multi-game package
+      - name: Verify TN Game Color Clash foundation package
         run: |
           ZIP='experiences/roku/connect-four/dist/tn-game-connect-four-dev.zip'
           test -f "$ZIP"
           unzip -Z1 "$ZIP" | grep -qx manifest
           unzip -Z1 "$ZIP" | grep -qx components/DisplayLoopTask.brs
-          unzip -p "$ZIP" components/MainScene.brs | grep -q 'v2.1 MULTI-GAME LIBRARY'
+          unzip -p "$ZIP" components/MainScene.brs | grep -q 'v2.2 COLOR CLASH FOUNDATION'
           unzip -p "$ZIP" components/MainScene.xml | grep -q 'TN GAME HOME'
           unzip -p "$ZIP" components/MainScene.xml | grep -q 'GUEST PLAYER'
           unzip -p "$ZIP" components/MainScene.xml | grep -q 'ACCOUNT FOUNDATION READY'
           unzip -p "$ZIP" components/MainScene.xml | grep -q 'COLOR CLASH'
           unzip -p "$ZIP" components/MainScene.xml | grep -q 'WORD TILES'
+          unzip -p "$ZIP" components/MainScene.xml | grep -q 'ROOM + PHONE CONTROLLER FOUNDATION'
+          unzip -p "$ZIP" components/MainScene.brs | grep -q 'showColorClashFoundation'
           unzip -p "$ZIP" components/DisplayLoopTask.brs | grep -q 'requestCounter'
           unzip -p "$ZIP" components/DisplayLoopTask.brs | grep -q '/tv?poll='
           unzip -p "$ZIP" components/MainScene.brs | grep -q 'tn-game-connect-four-server.onrender.com'
