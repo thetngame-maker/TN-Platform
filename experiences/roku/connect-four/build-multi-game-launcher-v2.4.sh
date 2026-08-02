@@ -105,16 +105,24 @@ brs = brs.replace(
     'if m.activeRoute <> invalid then m.productTitle.text = m.activeRoute.title else m.productTitle.text = "CONNECT FOUR"\n  m.lobbyGroup.visible = false',
 )
 
-old_join_patterns = [
-    'if m.activeGame = "color-clash"\n    joinUrl = m.baseUrl + "/color-clash?room=" + m.roomCode\n  else\n    joinUrl = m.baseUrl + "/?room=" + m.roomCode\n  end if',
-    'joinUrl = m.baseUrl + "/?room=" + m.roomCode\n  if m.activeGame = "color-clash" then joinUrl += "&game=color-clash"',
-    'joinUrl = m.baseUrl + "/?room=" + m.roomCode',
-]
-replacement = 'joinUrl = controllerUrlForGame(m.baseUrl, m.activeRoute, m.roomCode)'
-for pattern in old_join_patterns:
-    if pattern in brs:
-        brs = brs.replace(pattern, replacement, 1)
-        break
+# Remove every legacy QR destination, not only the first one. Older builds can
+# contain more than one showJoinPanel implementation; every generated QR must
+# use the active game's registered controller path.
+brs = re.sub(
+    r'if m\.activeGame = "color-clash"\n\s*joinUrl = m\.baseUrl \+ "/color-clash\?room=" \+ m\.roomCode\n\s*else\n\s*joinUrl = m\.baseUrl \+ "/\?room=" \+ m\.roomCode\n\s*end if',
+    'joinUrl = controllerUrlForGame(m.baseUrl, m.activeRoute, m.roomCode)',
+    brs,
+)
+brs = re.sub(
+    r'joinUrl = m\.baseUrl \+ "/\?room=" \+ m\.roomCode\n\s*if m\.activeGame = "color-clash" then joinUrl \+= "&game=color-clash"',
+    'joinUrl = controllerUrlForGame(m.baseUrl, m.activeRoute, m.roomCode)',
+    brs,
+)
+brs = re.sub(
+    r'joinUrl = m\.baseUrl \+ "/\?room=" \+ m\.roomCode',
+    'joinUrl = controllerUrlForGame(m.baseUrl, m.activeRoute, m.roomCode)',
+    brs,
+)
 
 required = [
     'v3.0 MODULE ARCHITECTURE',
@@ -126,6 +134,13 @@ required = [
 for item in required:
     if item not in brs:
         raise SystemExit(f'Module architecture marker missing: {item}')
+
+if 'joinUrl = m.baseUrl + "/?room=" + m.roomCode' in brs:
+    raise SystemExit('Legacy Connect Four-only QR destination remains')
+
+router_calls = brs.count('joinUrl = controllerUrlForGame(m.baseUrl, m.activeRoute, m.roomCode)')
+if router_calls < 1:
+    raise SystemExit('No modular QR routing calls found')
 
 brs_path.write_text(brs)
 PY
@@ -144,5 +159,9 @@ unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F 'routeForSelection(m.l
 unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F 'controllerUrlForGame(m.baseUrl, m.activeRoute, m.roomCode)' >/dev/null
 unzip -p "$OUTPUT_ZIP" components/GameRouter.brs | grep -F '"color-clash"' >/dev/null
 unzip -p "$OUTPUT_ZIP" components/GameRouter.brs | grep -F '"/color-clash"' >/dev/null
+if unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F 'joinUrl = m.baseUrl + "/?room=" + m.roomCode' >/dev/null; then
+  echo "Legacy Connect Four-only QR destination remains" >&2
+  exit 1
+fi
 
 echo "Created TN Game v3.0 module architecture: $OUTPUT_ZIP"
