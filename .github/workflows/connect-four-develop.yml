@@ -21,8 +21,9 @@ jobs:
         run: |
           node --check server.js
           node --check phone-polish-v1.6.js
-          grep -q 'PHONE CONTROLLER v1.6' phone-polish-v1.6.js
-          grep -q 'node phone-polish-v1.6.js' package.json
+          node --check match-series-v1.8-launcher.js
+          grep -q 'PHONE CONTROLLER v1.8.1 SERIES SYNC' match-series-v1.8-launcher.js
+          grep -q 'node match-series-v1.8-launcher.js' package.json
 
       - name: Smoke test hosted service
         working-directory: services/connect-four-room-server
@@ -31,7 +32,7 @@ jobs:
           SERVER_PID=$!
           trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
           for attempt in {1..20}; do
-            if curl --fail --silent http://127.0.0.1:8070/ | grep -q 'PHONE CONTROLLER v1.6'; then
+            if curl --fail --silent http://127.0.0.1:8070/ | grep -q 'PHONE CONTROLLER v1.8.1 SERIES SYNC'; then
               exit 0
             fi
             sleep 0.5
@@ -50,6 +51,10 @@ jobs:
           test -f "$ZIP"
           unzip -Z1 "$ZIP" | grep -qx manifest
           unzip -Z1 "$ZIP" | grep -qx components/DisplayLoopTask.brs
+          unzip -p "$ZIP" components/MainScene.brs | grep -q 'v1.9 HOME'
+          unzip -p "$ZIP" components/MainScene.xml | grep -q 'TN GAME LIBRARY'
+          unzip -p "$ZIP" components/MainScene.xml | grep -q 'COLOR CLASH'
+          unzip -p "$ZIP" components/MainScene.xml | grep -q 'TN TRIVIA'
           unzip -p "$ZIP" components/MainScene.brs | grep -q 'tn-game-connect-four-server.onrender.com'
           ! unzip -p "$ZIP" components/MainScene.brs | grep -q '192\.168\.1\.127'
 
