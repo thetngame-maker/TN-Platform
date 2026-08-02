@@ -23,28 +23,37 @@ xml_path = root / "components" / "MainScene.xml"
 brs_path = root / "components" / "MainScene.brs"
 
 xml = xml_path.read_text()
-required_xml = [
-    'text="CHOOSE A GAME"',
-    'text="One TV. Everyone uses their phone as the controller."',
-    '    <Group id="lobbyGroup">\n',
-]
-for marker in required_xml:
-    if marker not in xml:
-        raise SystemExit(f'Platform XML marker not found: {marker}')
+needle = '    <Group id="lobbyGroup">\n'
+if needle not in xml:
+    raise SystemExit('Platform XML lobbyGroup marker not found')
 
-xml = xml.replace('text="CHOOSE A GAME"', 'text="TN GAME HOME"', 1)
-xml = xml.replace(
+heading_markers = ['text="TN GAME LIBRARY"', 'text="CHOOSE A GAME"']
+heading_marker = next((marker for marker in heading_markers if marker in xml), None)
+if heading_marker is None:
+    raise SystemExit('Platform XML heading marker not found')
+xml = xml.replace(heading_marker, 'text="TN GAME HOME"', 1)
+
+subtitle_markers = [
     'text="One TV. Everyone uses their phone as the controller."',
+    'text="Choose a game. Your phone becomes the controller."',
+]
+subtitle_marker = next((marker for marker in subtitle_markers if marker in xml), None)
+if subtitle_marker is None:
+    raise SystemExit('Platform XML subtitle marker not found')
+xml = xml.replace(
+    subtitle_marker,
     'text="Choose a game. Your phone becomes the controller."',
     1,
 )
+
 profile_block = '''
       <Poster translation="[1430,150]" width="350" height="104" loadWidth="350" loadHeight="104" loadDisplayMode="scaleToFit" uri="pkg:/images/footer-card.png" />
       <Label text="GUEST PLAYER" translation="[1460,166]" width="290" height="40" horizAlign="center" font="font:MediumBoldSystemFont" color="0xFFFFFFFF" />
       <Label text="ACCOUNT FOUNDATION READY" translation="[1460,207]" width="290" height="30" horizAlign="center" font="font:SmallSystemFont" color="0x7FD5B3FF" />
 '''
-needle = '    <Group id="lobbyGroup">\n'
-xml = xml.replace(needle, needle + profile_block, 1)
+if 'text="GUEST PLAYER"' not in xml:
+    xml = xml.replace(needle, needle + profile_block, 1)
+
 xml = xml.replace(
     'text="Use LEFT and RIGHT to choose a game"',
     'text="TN GAME PLATFORM  •  Choose a title with LEFT and RIGHT"',
@@ -55,11 +64,24 @@ xml_path.write_text(xml)
 brs = brs_path.read_text()
 if 'm.versionLabel.text = "v1.9.1 HOME SYNC"' not in brs:
     raise SystemExit('Platform BrightScript version marker not found')
-brs = brs.replace('m.versionLabel.text = "v1.9.1 HOME SYNC"', 'm.versionLabel.text = "v2.0 PLATFORM SHELL"', 1)
+brs = brs.replace(
+    'm.versionLabel.text = "v1.9.1 HOME SYNC"',
+    'm.versionLabel.text = "v2.0 PLATFORM SHELL"',
+    1,
+)
 brs = brs.replace('m.productTitle.text = "TN GAME CONNECT"', 'm.productTitle.text = "TN GAME"')
-brs = brs.replace('m.lobbyMessage.text = "Use LEFT and RIGHT to choose a game"', 'm.lobbyMessage.text = "TN GAME PLATFORM  •  Choose a title with LEFT and RIGHT"')
-brs = brs.replace('m.lobbyMessage.text = "Color Clash is the next card game planned"', 'm.lobbyMessage.text = "COLOR CLASH  •  Planned as the next TN Game title"')
-brs = brs.replace('m.lobbyMessage.text = "TN Trivia will support teams and local questions"', 'm.lobbyMessage.text = "TN TRIVIA  •  Teams, solo play, and local questions"')
+brs = brs.replace(
+    'm.lobbyMessage.text = "Use LEFT and RIGHT to choose a game"',
+    'm.lobbyMessage.text = "TN GAME PLATFORM  •  Choose a title with LEFT and RIGHT"',
+)
+brs = brs.replace(
+    'm.lobbyMessage.text = "Color Clash is the next card game planned"',
+    'm.lobbyMessage.text = "COLOR CLASH  •  Planned as the next TN Game title"',
+)
+brs = brs.replace(
+    'm.lobbyMessage.text = "TN Trivia will support teams and local questions"',
+    'm.lobbyMessage.text = "TN TRIVIA  •  Teams, solo play, and local questions"',
+)
 brs_path.write_text(brs)
 PY
 
