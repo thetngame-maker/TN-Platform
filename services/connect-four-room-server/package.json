@@ -2,5 +2,5 @@
   "name": "tn-game-connect-four-room-server",
   "version": "0.1.0",
   "private": true,
-  "scripts": { "start": "node color-clash-phone-v2.3.1-launcher.js" }
+  "scripts": { "start": "node multi-game-router-v2.4.js" }
 }
