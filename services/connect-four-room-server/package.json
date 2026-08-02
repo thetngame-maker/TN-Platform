@@ -2,5 +2,5 @@
   "name": "tn-game-connect-four-room-server",
   "version": "0.1.0",
   "private": true,
-  "scripts": { "start": "node website-account-v2.2.1-launcher.js" }
+  "scripts": { "start": "node website-account-v2.2.2-launcher.js" }
 }
