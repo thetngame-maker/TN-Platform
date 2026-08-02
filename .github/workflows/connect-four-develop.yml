@@ -24,8 +24,11 @@ jobs:
           node --check multi-game-router-v2.4.js
           node --check games/registry.js
           node --check games/color-clash/controller.js
+          node --check games/color-clash/engine.js
           grep -q 'PHONE CONTROLLER v2.1 ACCOUNT FOUNDATION' account-signin-v2.1-launcher.js
-          grep -q 'PHONE CONTROLLER v3.0 MODULE ARCHITECTURE' games/color-clash/controller.js
+          grep -q 'PHONE CONTROLLER v3.1 FIRST PLAYABLE ROUND' games/color-clash/controller.js
+          grep -q 'COLOR CLASH LIVE' games/color-clash/controller.js
+          grep -q 'DRAW CARD' games/color-clash/controller.js
           grep -q 'controllerPath.*color-clash' games/color-clash/controller.js
           grep -q 'getGameByPath' games/registry.js
           grep -q 'node multi-game-router-v2.4.js' package.json
@@ -41,9 +44,10 @@ jobs:
             COLOR_PAGE=$(curl --fail --silent 'http://127.0.0.1:8070/color-clash?room=TEST' || true)
             LEGACY_COLOR_PAGE=$(curl --fail --silent 'http://127.0.0.1:8070/?room=TEST&game=color-clash' || true)
             if echo "$BASE_PAGE" | grep -q 'PHONE CONTROLLER v2.1 ACCOUNT FOUNDATION' \
-              && echo "$COLOR_PAGE" | grep -q 'PHONE CONTROLLER v3.0 MODULE ARCHITECTURE' \
+              && echo "$COLOR_PAGE" | grep -q 'PHONE CONTROLLER v3.1 FIRST PLAYABLE ROUND' \
               && echo "$COLOR_PAGE" | grep -q 'JOIN COLOR CLASH' \
-              && echo "$LEGACY_COLOR_PAGE" | grep -q 'PHONE CONTROLLER v3.0 MODULE ARCHITECTURE' \
+              && echo "$COLOR_PAGE" | grep -q 'DRAW CARD' \
+              && echo "$LEGACY_COLOR_PAGE" | grep -q 'PHONE CONTROLLER v3.1 FIRST PLAYABLE ROUND' \
               && ! echo "$COLOR_PAGE" | grep -q 'CONNECT FOUR'; then
               exit 0
             fi
@@ -65,9 +69,11 @@ jobs:
           unzip -Z1 "$ZIP" | grep -qx components/DisplayLoopTask.brs
           unzip -Z1 "$ZIP" | grep -qx components/GameRouter.brs
           unzip -p "$ZIP" components/MainScene.xml | grep -q 'pkg:/components/GameRouter.brs'
-          unzip -p "$ZIP" components/MainScene.brs | grep -q 'v3.0 MODULE ARCHITECTURE'
+          unzip -p "$ZIP" components/MainScene.brs | grep -q 'v3.1 COLOR CLASH PLAYABLE'
           unzip -p "$ZIP" components/MainScene.brs | grep -q 'routeForSelection(m.lobbySelection)'
           unzip -p "$ZIP" components/MainScene.brs | grep -q 'controllerUrlForGame(m.baseUrl, m.activeRoute, m.roomCode)'
+          unzip -p "$ZIP" components/MainScene.brs | grep -q 'applyColorClashTvState'
+          unzip -p "$ZIP" components/MainScene.brs | grep -q 'game=color-clash'
           unzip -p "$ZIP" components/GameRouter.brs | grep -q '"connect-four"'
           unzip -p "$ZIP" components/GameRouter.brs | grep -q '"color-clash"'
           unzip -p "$ZIP" components/GameRouter.brs | grep -q '"word-tiles"'
