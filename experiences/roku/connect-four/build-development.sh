@@ -18,14 +18,16 @@ cp "$SOURCE_ZIP" "$OUTPUT_ZIP"
 
 unzip -Z1 "$OUTPUT_ZIP" | grep -Fx 'manifest' >/dev/null
 unzip -Z1 "$OUTPUT_ZIP" | grep -Fx 'components/DisplayLoopTask.brs' >/dev/null
-unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F 'v2.2 COLOR CLASH FOUNDATION' >/dev/null
+unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F 'v2.3 COLOR CLASH PAIRING' >/dev/null
 unzip -p "$OUTPUT_ZIP" components/MainScene.xml | grep -F 'TN GAME HOME' >/dev/null
 unzip -p "$OUTPUT_ZIP" components/MainScene.xml | grep -F 'GUEST PLAYER' >/dev/null
 unzip -p "$OUTPUT_ZIP" components/MainScene.xml | grep -F 'ACCOUNT FOUNDATION READY' >/dev/null
 unzip -p "$OUTPUT_ZIP" components/MainScene.xml | grep -F 'COLOR CLASH' >/dev/null
 unzip -p "$OUTPUT_ZIP" components/MainScene.xml | grep -F 'WORD TILES' >/dev/null
-unzip -p "$OUTPUT_ZIP" components/MainScene.xml | grep -F 'ROOM + PHONE CONTROLLER FOUNDATION' >/dev/null
-unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F 'showColorClashFoundation' >/dev/null
+unzip -p "$OUTPUT_ZIP" components/MainScene.xml | grep -F 'ROOM PAIRING READY' >/dev/null
+unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F 'startColorClashPairing' >/dev/null
+unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F 'applyColorClashPairingState' >/dev/null
+unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F '&game=color-clash' >/dev/null
 unzip -p "$OUTPUT_ZIP" components/DisplayLoopTask.brs | grep -F 'requestCounter' >/dev/null
 unzip -p "$OUTPUT_ZIP" components/DisplayLoopTask.brs | grep -F '/tv?poll=' >/dev/null
 unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F 'tn-game-connect-four-server.onrender.com' >/dev/null
@@ -34,4 +36,4 @@ if unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F '192.168.1.127' >/d
   exit 1
 fi
 
-echo "Created TN Game v2.2 Color Clash foundation package: $OUTPUT_ZIP"
+echo "Created TN Game v2.3 Color Clash pairing package: $OUTPUT_ZIP"
