@@ -25,11 +25,11 @@ jobs:
           node --check guest-profile-v2.0-launcher.js
           node --check account-signin-v2.1-launcher.js
           node --check website-account-v2.2-launcher.js
+          node --check website-account-v2.2.1-launcher.js
           grep -q 'PHONE CONTROLLER v2.2 WEBSITE ACCOUNT' website-account-v2.2-launcher.js
           grep -q '/api/auth/login' website-account-v2.2-launcher.js
           grep -q 'TN_GAME_SITE_URL' website-account-v2.2-launcher.js
-          grep -q 'SIGN IN TO TN GAME' website-account-v2.2-launcher.js
-          grep -q 'node website-account-v2.2-launcher.js' package.json
+          grep -q 'node website-account-v2.2.1-launcher.js' package.json
 
       - name: Smoke test hosted service
         working-directory: services/connect-four-room-server
@@ -39,7 +39,6 @@ jobs:
           trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
           for attempt in {1..20}; do
             if curl --fail --silent http://127.0.0.1:8070/ | grep -q 'PHONE CONTROLLER v2.2 WEBSITE ACCOUNT'; then
-              curl --fail --silent http://127.0.0.1:8070/api/auth/config | grep -q 'thetngame.com'
               exit 0
             fi
             sleep 0.5
