@@ -105,10 +105,11 @@ brs = brs.replace(
     'if m.activeRoute <> invalid then m.productTitle.text = m.activeRoute.title else m.productTitle.text = "CONNECT FOUR"\n  m.lobbyGroup.visible = false',
 )
 
-# Make room creation game-aware at the shared launcher layer. This is more
-# reliable than asking later milestone builders to rediscover an exact source
-# line after earlier builders have transformed MainScene.brs.
-if '&game=color-clash' not in brs:
+# Make room creation game-aware. Do not use a broad '&game=color-clash'
+# presence check because an older QR builder may contain that text before the
+# QR cleanup below removes it.
+room_game_marker = 'url += "&game=color-clash"'
+if room_game_marker not in brs:
     create_line = re.compile(r'(?m)^(\s*url\s*=\s*.*?/api/rooms/create[^\n]*)$')
     match = create_line.search(brs)
     if not match:
@@ -147,7 +148,7 @@ required = [
     'routeForSelection(m.lobbySelection)',
     'controllerUrlForGame(m.baseUrl, m.activeRoute, m.roomCode)',
     'startColorClashPairing()',
-    '&game=color-clash',
+    'url += "&game=color-clash"',
 ]
 for item in required:
     if item not in brs:
@@ -175,7 +176,7 @@ unzip -p "$OUTPUT_ZIP" components/MainScene.xml | grep -F 'pkg:/components/GameR
 unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F 'v3.0 MODULE ARCHITECTURE' >/dev/null
 unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F 'routeForSelection(m.lobbySelection)' >/dev/null
 unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F 'controllerUrlForGame(m.baseUrl, m.activeRoute, m.roomCode)' >/dev/null
-unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F '&game=color-clash' >/dev/null
+unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F 'url += "&game=color-clash"' >/dev/null
 unzip -p "$OUTPUT_ZIP" components/GameRouter.brs | grep -F '"color-clash"' >/dev/null
 unzip -p "$OUTPUT_ZIP" components/GameRouter.brs | grep -F '"/color-clash"' >/dev/null
 if unzip -p "$OUTPUT_ZIP" components/MainScene.brs | grep -F 'joinUrl = m.baseUrl + "/?room=" + m.roomCode' >/dev/null; then
