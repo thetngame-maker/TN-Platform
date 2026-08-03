@@ -20,6 +20,7 @@ final class Gameplay_Notifications implements Module_Interface {
         if (is_admin() || !isset($_GET['tng_quest_runtime_id'])) return;
         wp_enqueue_style('tng-gameplay-notifications', TNG_OS_URL . 'assets/frontend/gameplay-notifications.css', [], TNG_OS_VERSION);
         wp_enqueue_script('tng-gameplay-notifications', TNG_OS_URL . 'assets/frontend/gameplay-notifications.js', [], TNG_OS_VERSION, true);
+        wp_enqueue_script('tng-gameplay-notification-bridge', TNG_OS_URL . 'assets/frontend/gameplay-notification-bridge.js', ['tng-gameplay-notifications'], TNG_OS_VERSION, true);
         wp_localize_script('tng-gameplay-notifications', 'TNGGameplayNotifications', [
             'reducedMotion' => false,
             'defaultDuration' => 4200,
