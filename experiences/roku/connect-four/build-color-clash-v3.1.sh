@@ -13,6 +13,7 @@ unzip -q "$ZIP" -d "$WORK_DIR"
 
 python3 - "$WORK_DIR/components/MainScene.brs" <<'PY'
 from pathlib import Path
+import re
 import sys
 
 path = Path(sys.argv[1])
@@ -24,12 +25,25 @@ brs = brs.replace(
     1,
 )
 
-create_line = 'url = m.baseUrl + "/api/rooms/create?mode=" + m.gameMode'
-create_patch = '''url = m.baseUrl + "/api/rooms/create?mode=" + m.gameMode
-  if m.activeRoute <> invalid and m.activeRoute.id = "color-clash" then url += "&game=color-clash"'''
-if create_line not in brs:
-    raise SystemExit('Room creation URL marker not found')
-brs = brs.replace(create_line, create_patch, 1)
+# Patch the current modular createRoom implementation. Earlier versions used
+# one exact assignment string, but the v3 builder may add spacing or other
+# query parameters. Match the assignment by endpoint instead of brittle text.
+if '&game=color-clash' not in brs:
+    create_pattern = re.compile(
+        r'(?m)^(\s*)url\s*=\s*m\.baseUrl\s*\+\s*"/api/rooms/create\?mode="\s*\+\s*m\.gameMode\s*$'
+    )
+    match = create_pattern.search(brs)
+    if not match:
+        raise SystemExit('Modular room creation assignment not found')
+    indent = match.group(1)
+    assignment = match.group(0)
+    patch = (
+        assignment
+        + '\n'
+        + indent
+        + 'if m.activeRoute <> invalid and m.activeRoute.id = "color-clash" then url += "&game=color-clash"'
+    )
+    brs = create_pattern.sub(lambda _: patch, brs, count=1)
 
 apply_marker = '''sub applyTvState(data as object)
   if data.screen = invalid then return'''
@@ -39,9 +53,10 @@ apply_patch = '''sub applyTvState(data as object)
     applyColorClashTvState(data)
     return
   end if'''
-if apply_marker not in brs:
-    raise SystemExit('TV state marker not found')
-brs = brs.replace(apply_marker, apply_patch, 1)
+if 'sub applyColorClashTvState(data as object)' not in brs:
+    if apply_marker not in brs:
+        raise SystemExit('TV state marker not found')
+    brs = brs.replace(apply_marker, apply_patch, 1)
 
 player_marker = 'sub applyPlayers(players as dynamic, currentPlayerId as dynamic)\n'
 color_renderer = '''sub applyColorClashTvState(data as object)
@@ -68,9 +83,10 @@ color_renderer = '''sub applyColorClashTvState(data as object)
 end sub
 
 '''
-if player_marker not in brs:
-    raise SystemExit('Player renderer insertion marker not found')
-brs = brs.replace(player_marker, color_renderer + player_marker, 1)
+if 'sub applyColorClashTvState(data as object)' not in brs:
+    if player_marker not in brs:
+        raise SystemExit('Player renderer insertion marker not found')
+    brs = brs.replace(player_marker, color_renderer + player_marker, 1)
 
 required = [
     'v3.1 COLOR CLASH PLAYABLE',
