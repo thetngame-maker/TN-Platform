@@ -13,7 +13,6 @@ unzip -q "$ZIP" -d "$WORK_DIR"
 
 python3 - "$WORK_DIR/components/MainScene.brs" <<'PY'
 from pathlib import Path
-import re
 import sys
 
 path = Path(sys.argv[1])
@@ -25,25 +24,24 @@ brs = brs.replace(
     1,
 )
 
-# Patch the current modular createRoom implementation. Earlier versions used
-# one exact assignment string, but the v3 builder may add spacing or other
-# query parameters. Match the assignment by endpoint instead of brittle text.
+# Add the selected game to whichever line builds the room-creation URL.
+# This deliberately uses endpoint detection instead of matching one exact
+# BrightScript assignment, because earlier platform builders may rewrite it.
 if '&game=color-clash' not in brs:
-    create_pattern = re.compile(
-        r'(?m)^(\s*)url\s*=\s*m\.baseUrl\s*\+\s*"/api/rooms/create\?mode="\s*\+\s*m\.gameMode\s*$'
-    )
-    match = create_pattern.search(brs)
-    if not match:
-        raise SystemExit('Modular room creation assignment not found')
-    indent = match.group(1)
-    assignment = match.group(0)
-    patch = (
-        assignment
-        + '\n'
-        + indent
-        + 'if m.activeRoute <> invalid and m.activeRoute.id = "color-clash" then url += "&game=color-clash"'
-    )
-    brs = create_pattern.sub(lambda _: patch, brs, count=1)
+    lines = brs.splitlines()
+    patched = False
+    for index, line in enumerate(lines):
+        if '/api/rooms/create?mode=' in line:
+            indent = line[: len(line) - len(line.lstrip())]
+            lines.insert(
+                index + 1,
+                indent + 'if m.activeRoute <> invalid and m.activeRoute.id = "color-clash" then url += "&game=color-clash"',
+            )
+            patched = True
+            break
+    if not patched:
+        raise SystemExit('Room creation endpoint not found in generated MainScene.brs')
+    brs = '\n'.join(lines) + ('\n' if brs.endswith('\n') else '')
 
 apply_marker = '''sub applyTvState(data as object)
   if data.screen = invalid then return'''
