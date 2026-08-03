@@ -22,6 +22,8 @@ final class Knowledge_Graph_Core implements Module_Interface {
         add_action('admin_post_tng_rebuild_knowledge_graph', [$this, 'rebuild_action']);
         add_action('save_post', [$this, 'refresh_post'], 120, 2);
         add_action('before_delete_post', [$this, 'remove_post']);
+        add_action('tng_knowledge_graph_refresh_id', [$this, 'refresh_id']);
+        add_action('tng_knowledge_graph_remove_id', [$this, 'remove_post']);
     }
 
     public function boot(Container $container): void {}
@@ -44,10 +46,7 @@ final class Knowledge_Graph_Core implements Module_Interface {
             generated_at datetime NOT NULL,
             PRIMARY KEY (id),
             UNIQUE KEY source_target_rel (source_id,target_id,relationship),
-            KEY source_id (source_id),
-            KEY target_id (target_id),
-            KEY relationship (relationship),
-            KEY distance_miles (distance_miles)
+            KEY source_id (source_id), KEY target_id (target_id), KEY relationship (relationship), KEY distance_miles (distance_miles)
         ) {$charset};");
         update_option(self::DB_OPTION, self::DB_VERSION, false);
     }
@@ -70,11 +69,9 @@ final class Knowledge_Graph_Core implements Module_Interface {
         ?>
         <div class="wrap tng-knowledge-graph">
             <h1>Destination Knowledge Graph</h1>
-            <p>The first Destination Intelligence layer. It connects published places and experiences by location and content type.</p>
+            <p>Connects published places and experiences by trusted coordinates, destination assignment, and distance.</p>
             <?php if ($notice): ?><div class="notice notice-success is-dismissible"><p><?php echo esc_html($notice); ?></p></div><?php endif; ?>
-            <style>
-                .tng-kg-stats{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:14px;max-width:1050px;margin:22px 0}.tng-kg-stat{background:#fff;border:1px solid #dcdcde;border-radius:16px;padding:18px}.tng-kg-stat strong{display:block;font-size:30px;color:#6438b3}.tng-kg-actions{display:flex;gap:10px;margin:18px 0 24px}.tng-kg-type{display:inline-block;padding:3px 8px;border-radius:999px;background:#f0ebff;color:#57309d;font-size:11px;font-weight:700}@media(max-width:800px){.tng-kg-stats{grid-template-columns:repeat(2,1fr)}}
-            </style>
+            <style>.tng-kg-stats{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:14px;max-width:1050px;margin:22px 0}.tng-kg-stat{background:#fff;border:1px solid #dcdcde;border-radius:16px;padding:18px}.tng-kg-stat strong{display:block;font-size:30px;color:#6438b3}.tng-kg-actions{display:flex;gap:10px;margin:18px 0 24px}.tng-kg-type{display:inline-block;padding:3px 8px;border-radius:999px;background:#f0ebff;color:#57309d;font-size:11px;font-weight:700}@media(max-width:800px){.tng-kg-stats{grid-template-columns:repeat(2,1fr)}}</style>
             <div class="tng-kg-stats">
                 <div class="tng-kg-stat"><strong><?php echo number_format_i18n(count($nodes)); ?></strong><span>Eligible nodes</span></div>
                 <div class="tng-kg-stat"><strong><?php echo number_format_i18n($edges); ?></strong><span>Relationships</span></div>
@@ -82,23 +79,18 @@ final class Knowledge_Graph_Core implements Module_Interface {
                 <div class="tng-kg-stat"><strong><?php echo number_format_i18n($nearby); ?></strong><span>Nearby links</span></div>
             </div>
             <form class="tng-kg-actions" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" onsubmit="return confirm('Rebuild all automatic destination relationships?');">
-                <?php wp_nonce_field('tng_rebuild_knowledge_graph'); ?>
-                <input type="hidden" name="action" value="tng_rebuild_knowledge_graph">
-                <button class="button button-primary button-large">Rebuild knowledge graph</button>
+                <?php wp_nonce_field('tng_rebuild_knowledge_graph'); ?><input type="hidden" name="action" value="tng_rebuild_knowledge_graph"><button class="button button-primary button-large">Rebuild knowledge graph</button>
             </form>
             <h2>Closest automatic relationships</h2>
             <table class="widefat striped"><thead><tr><th>Source</th><th>Relationship</th><th>Target</th><th>Distance</th><th>Score</th></tr></thead><tbody>
-                <?php if (!$rows): ?><tr><td colspan="5">No relationships yet. Add coordinates to destination content, then rebuild the graph.</td></tr><?php endif; ?>
-                <?php foreach ($rows as $row): ?><tr>
-                    <td><a href="<?php echo esc_url(get_edit_post_link((int)$row['source_id'])); ?>"><?php echo esc_html($row['source_title'] ?: ('#'.$row['source_id'])); ?></a><br><span class="tng-kg-type"><?php echo esc_html($row['source_type']); ?></span></td>
-                    <td><code><?php echo esc_html($row['relationship']); ?></code></td>
-                    <td><a href="<?php echo esc_url(get_edit_post_link((int)$row['target_id'])); ?>"><?php echo esc_html($row['target_title'] ?: ('#'.$row['target_id'])); ?></a><br><span class="tng-kg-type"><?php echo esc_html($row['target_type']); ?></span></td>
-                    <td><?php echo esc_html(number_format_i18n((float)$row['distance_miles'], 1)); ?> mi</td>
-                    <td><?php echo esc_html(number_format_i18n((float)$row['score'], 1)); ?></td>
-                </tr><?php endforeach; ?>
-            </tbody></table>
-        </div>
-        <?php
+            <?php if (!$rows): ?><tr><td colspan="5">No relationships yet. Add trusted coordinates, then rebuild the graph.</td></tr><?php endif; ?>
+            <?php foreach ($rows as $row): ?><tr>
+                <td><a href="<?php echo esc_url(get_edit_post_link((int)$row['source_id'])); ?>"><?php echo esc_html($row['source_title'] ?: ('#'.$row['source_id'])); ?></a><br><span class="tng-kg-type"><?php echo esc_html($row['source_type']); ?></span></td>
+                <td><code><?php echo esc_html($row['relationship']); ?></code></td>
+                <td><a href="<?php echo esc_url(get_edit_post_link((int)$row['target_id'])); ?>"><?php echo esc_html($row['target_title'] ?: ('#'.$row['target_id'])); ?></a><br><span class="tng-kg-type"><?php echo esc_html($row['target_type']); ?></span></td>
+                <td><?php echo esc_html(number_format_i18n((float)$row['distance_miles'], 1)); ?> mi</td><td><?php echo esc_html(number_format_i18n((float)$row['score'], 1)); ?></td>
+            </tr><?php endforeach; ?></tbody></table>
+        </div><?php
     }
 
     public function rebuild_action(): void {
@@ -113,15 +105,10 @@ final class Knowledge_Graph_Core implements Module_Interface {
         $this->ensure_table();
         global $wpdb;
         $wpdb->query("TRUNCATE TABLE {$this->table()}");
-        $nodes = $this->nodes();
-        $count = 0;
-        $total = count($nodes);
-        for ($i = 0; $i < $total; $i++) {
-            for ($j = $i + 1; $j < $total; $j++) {
-                $distance = $this->distance($nodes[$i]['lat'], $nodes[$i]['lng'], $nodes[$j]['lat'], $nodes[$j]['lng']);
-                if ($distance > self::RADIUS_MILES) continue;
-                $count += $this->write_pair($nodes[$i], $nodes[$j], $distance);
-            }
+        $nodes = $this->nodes(); $count = 0; $total = count($nodes);
+        for ($i = 0; $i < $total; $i++) for ($j = $i + 1; $j < $total; $j++) {
+            $distance = $this->distance($nodes[$i]['lat'], $nodes[$i]['lng'], $nodes[$j]['lat'], $nodes[$j]['lng']);
+            if ($distance <= self::RADIUS_MILES) $count += $this->write_pair($nodes[$i], $nodes[$j], $distance);
         }
         update_option('tng_knowledge_graph_last_rebuild', current_time('mysql', true), false);
         return $count;
@@ -131,13 +118,20 @@ final class Knowledge_Graph_Core implements Module_Interface {
         if (wp_is_post_revision($post_id) || wp_is_post_autosave($post_id)) return;
         if (!in_array($post->post_type, $this->post_types(), true)) return;
         if ($post->post_status !== 'publish') { $this->remove_post($post_id); return; }
+        $this->refresh_id($post_id);
+    }
+
+    public function refresh_id(int $post_id): void {
+        $post = get_post($post_id);
+        if (!$post || $post->post_status !== 'publish' || !in_array($post->post_type, $this->post_types(), true)) { $this->remove_post($post_id); return; }
         $node = $this->node($post_id);
-        if (!$node) { $this->remove_post($post_id); return; }
         $this->remove_post($post_id);
+        if (!$node) return;
         foreach ($this->nodes($post_id) as $other) {
             $distance = $this->distance($node['lat'], $node['lng'], $other['lat'], $other['lng']);
             if ($distance <= self::RADIUS_MILES) $this->write_pair($node, $other, $distance);
         }
+        update_post_meta($post_id, '_tng_graph_refreshed_at', current_time('mysql', true));
     }
 
     public function remove_post(int $post_id): void {
@@ -146,12 +140,7 @@ final class Knowledge_Graph_Core implements Module_Interface {
         $wpdb->delete($this->table(), ['target_id' => $post_id], ['%d']);
     }
 
-    private function write_pair(array $a, array $b, float $distance): int {
-        $count = 0;
-        $count += $this->insert($a, $b, $distance);
-        $count += $this->insert($b, $a, $distance);
-        return $count;
-    }
+    private function write_pair(array $a, array $b, float $distance): int { return $this->insert($a, $b, $distance) + $this->insert($b, $a, $distance); }
 
     private function insert(array $source, array $target, float $distance): int {
         global $wpdb;
@@ -159,89 +148,47 @@ final class Knowledge_Graph_Core implements Module_Interface {
         if ($source['destination'] && $source['destination'] === $target['destination']) $score += 15;
         if ($source['type'] !== $target['type']) $score += 5;
         return (int)$wpdb->replace($this->table(), [
-            'source_id' => $source['id'],
-            'target_id' => $target['id'],
-            'relationship' => 'nearby',
-            'distance_miles' => round($distance, 3),
-            'score' => round(min(100, $score), 3),
-            'source_type' => $source['type'],
-            'target_type' => $target['type'],
-            'generated_at' => current_time('mysql', true),
+            'source_id'=>$source['id'],'target_id'=>$target['id'],'relationship'=>'nearby','distance_miles'=>round($distance,3),'score'=>round(min(100,$score),3),'source_type'=>$source['type'],'target_type'=>$target['type'],'generated_at'=>current_time('mysql',true)
         ], ['%d','%d','%s','%f','%f','%s','%s','%s']);
     }
 
     private function nodes(int $exclude = 0): array {
         $nodes = [];
-        foreach ($this->node_ids($exclude) as $id) {
-            $node = $this->node($id);
-            if ($node) $nodes[] = $node;
-        }
+        foreach ($this->node_ids($exclude) as $id) { $node = $this->node($id); if ($node) $nodes[] = $node; }
         return $nodes;
     }
 
     private function node_ids(int $exclude = 0): array {
-        return get_posts([
-            'post_type' => $this->post_types(),
-            'post_status' => 'publish',
-            'posts_per_page' => -1,
-            'fields' => 'ids',
-            'post__not_in' => $exclude ? [$exclude] : [],
-            'orderby' => 'ID',
-            'order' => 'ASC',
-        ]);
+        $args = ['post_type'=>$this->post_types(),'post_status'=>'publish','posts_per_page'=>-1,'fields'=>'ids','post__not_in'=>$exclude?[$exclude]:[],'orderby'=>'ID','order'=>'ASC','meta_query'=>[['key'=>'_tng_graph_excluded','compare'=>'NOT EXISTS']]];
+        return get_posts($args);
     }
 
     private function node(int $post_id): ?array {
+        if (get_post_meta($post_id, '_tng_graph_excluded', true)) return null;
         $coords = $this->coordinates($post_id);
         if (!$coords) return null;
-        return [
-            'id' => $post_id,
-            'type' => $this->node_type($post_id),
-            'lat' => $coords[0],
-            'lng' => $coords[1],
-            'destination' => absint(get_post_meta($post_id, '_tng_destination_id', true)),
-        ];
+        return ['id'=>$post_id,'type'=>$this->node_type($post_id),'lat'=>$coords[0],'lng'=>$coords[1],'destination'=>absint(get_post_meta($post_id,'_tng_destination_id',true))];
     }
 
     private function coordinates(int $post_id): ?array {
-        $pairs = [
-            ['_tng_destination_lat','_tng_destination_lng'],
-            ['map_lat','map_lng'],
-            ['lat','lng'],
-            ['latitude','longitude'],
-            ['_lat','_lng'],
-            ['st_latitude','st_longitude'],
-        ];
-        foreach ($pairs as [$lat_key, $lng_key]) {
-            $lat = get_post_meta($post_id, $lat_key, true);
-            $lng = get_post_meta($post_id, $lng_key, true);
-            if (is_numeric($lat) && is_numeric($lng)) {
-                $lat = (float)$lat; $lng = (float)$lng;
-                if ($lat >= -90 && $lat <= 90 && $lng >= -180 && $lng <= 180 && ($lat != 0.0 || $lng != 0.0)) return [$lat, $lng];
-            }
+        if (class_exists(Coordinate_Intelligence::class)) {
+            $resolved = Coordinate_Intelligence::resolve($post_id);
+            if (isset($resolved['lat'], $resolved['lng']) && ($resolved['status'] ?? '') !== 'suspicious') return [(float)$resolved['lat'], (float)$resolved['lng']];
+            return null;
         }
-        $location = get_post_meta($post_id, 'location_id', true);
-        if ($location && is_numeric($location) && (int)$location !== $post_id) return $this->coordinates((int)$location);
         return null;
     }
 
     private function node_type(int $post_id): string {
-        $post_type = get_post_type($post_id) ?: 'content';
         $map = ['st_activity'=>'activity','st_hotel'=>'lodging','st_tours'=>'tour','st_rental'=>'rental','top_sight'=>'sight','tng_destination'=>'destination'];
-        return $map[$post_type] ?? sanitize_key($post_type);
+        return $map[get_post_type($post_id) ?: 'content'] ?? sanitize_key(get_post_type($post_id) ?: 'content');
     }
 
-    private function post_types(): array {
-        $types = ['tng_destination','st_activity','st_hotel','st_tours','st_rental','top_sight'];
-        return array_values(array_filter($types, 'post_type_exists'));
-    }
+    private function post_types(): array { return array_values(array_filter(['tng_destination','st_activity','st_hotel','st_tours','st_rental','top_sight'], 'post_type_exists')); }
 
     private function distance(float $lat1, float $lng1, float $lat2, float $lng2): float {
-        $earth = 3958.7613;
-        $lat1 = deg2rad($lat1); $lat2 = deg2rad($lat2);
-        $dlat = $lat2 - $lat1; $dlng = deg2rad($lng2 - $lng1);
-        $a = sin($dlat / 2) ** 2 + cos($lat1) * cos($lat2) * sin($dlng / 2) ** 2;
-        return $earth * 2 * atan2(sqrt($a), sqrt(max(0, 1 - $a)));
+        $earth=3958.7613; $lat1=deg2rad($lat1); $lat2=deg2rad($lat2); $dlat=$lat2-$lat1; $dlng=deg2rad($lng2-$lng1);
+        $a=sin($dlat/2)**2+cos($lat1)*cos($lat2)*sin($dlng/2)**2; return $earth*2*atan2(sqrt($a),sqrt(max(0,1-$a)));
     }
 
     private function table(): string { global $wpdb; return $wpdb->prefix . 'tng_knowledge_graph'; }
