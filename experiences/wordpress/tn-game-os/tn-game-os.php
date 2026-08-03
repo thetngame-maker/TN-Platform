@@ -3,13 +3,13 @@
  * Plugin Name: TN Game OS
  * Plugin URI: https://thetngame.com
  * Description: Modular tourism operating system for Traveler listings, trails, food, maps, Explorer progression, reusable assets, destinations, and developer tools.
- * Version: 5.6.0
+ * Version: 5.7.0
  * Author: The TN Game
  * Text Domain: tn-game-os
  */
 if (!defined('ABSPATH')) exit;
 
-define('TNG_OS_VERSION', '5.6.0');
+define('TNG_OS_VERSION', '5.7.0');
 define('TNG_OS_FILE', __FILE__);
 define('TNG_OS_PATH', plugin_dir_path(__FILE__));
 define('TNG_OS_URL', plugin_dir_url(__FILE__));
@@ -20,6 +20,7 @@ require_once TNG_OS_PATH . 'app/Core/class-plugin.php';
 require_once TNG_OS_PATH . 'app/Modules/Frontend/class-gameplay-notifications.php';
 require_once TNG_OS_PATH . 'app/Modules/Frontend/class-mobile-session-recovery.php';
 require_once TNG_OS_PATH . 'app/Modules/Destinations/class-coordinate-intelligence.php';
+require_once TNG_OS_PATH . 'app/Modules/Destinations/class-coordinate-quality-controls.php';
 require_once TNG_OS_PATH . 'app/Modules/Destinations/class-knowledge-graph-core.php';
 require_once TNG_OS_PATH . 'app/Modules/Destinations/class-knowledge-graph-inspector.php';
 
@@ -44,6 +45,10 @@ add_action('plugins_loaded', static function () {
     $coordinate_intelligence = new TNG_OS\Modules\Destinations\Coordinate_Intelligence();
     $coordinate_intelligence->register($container);
     $coordinate_intelligence->boot($container);
+
+    $coordinate_quality = new TNG_OS\Modules\Destinations\Coordinate_Quality_Controls();
+    $coordinate_quality->register($container);
+    $coordinate_quality->boot($container);
 
     $knowledge_graph = new TNG_OS\Modules\Destinations\Knowledge_Graph_Core();
     $knowledge_graph->register($container);
