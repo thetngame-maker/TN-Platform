@@ -107,6 +107,8 @@ final class Coordinate_Source_Resolver implements Module_Interface {
     }
 
     private function discover(int $post_id): array {
+        $saved = $this->saved_source_coordinates($post_id);
+        if ($saved) return $saved;
         $google = $this->google_coordinates($post_id);
         if ($google) return ['lat' => $google[0], 'lng' => $google[1], 'source' => 'google', 'label' => 'Google Places geometry'];
         $gpx = $this->gpx_coordinates($post_id);
@@ -114,11 +116,27 @@ final class Coordinate_Source_Resolver implements Module_Interface {
         return ['source' => 'none', 'label' => 'No Google Places geometry or readable GPX route found'];
     }
 
+    private function saved_source_coordinates(int $post_id): ?array {
+        $source = sanitize_key((string)get_post_meta($post_id, '_tng_coordinate_source_type', true));
+        if (!in_array($source, ['google', 'gpx'], true)) return null;
+        $coords = $this->validate(
+            get_post_meta($post_id, '_tng_destination_lat', true),
+            get_post_meta($post_id, '_tng_destination_lng', true)
+        );
+        if (!$coords) return null;
+        $label = (string)get_post_meta($post_id, '_tng_coordinate_source_label', true);
+        return ['lat' => $coords[0], 'lng' => $coords[1], 'source' => $source, 'label' => $label ?: ($source === 'google' ? 'Saved Google Places geometry' : 'Saved GPX trail start')];
+    }
+
     private function google_coordinates(int $post_id): ?array {
         $all = get_post_meta($post_id);
+
+        $scalar = $this->find_scalar_meta_pair($all);
+        if ($scalar) return $scalar;
+
         foreach ($all as $key => $values) {
             $key_lc = strtolower((string)$key);
-            if (!preg_match('/google|place|geometry|food|drink|restaurant|address|location|map/', $key_lc)) continue;
+            if (!preg_match('/google|place|geometry|food|drink|restaurant|address|location|map|provider|source|fact/', $key_lc)) continue;
             foreach ((array)$values as $value) {
                 $value = maybe_unserialize($value);
                 if (is_string($value)) {
@@ -132,12 +150,41 @@ final class Coordinate_Source_Resolver implements Module_Interface {
         return null;
     }
 
+    private function find_scalar_meta_pair(array $all): ?array {
+        $lat_candidates = [];
+        $lng_candidates = [];
+        foreach ($all as $key => $values) {
+            $key_lc = strtolower((string)$key);
+            $value = maybe_unserialize((array)$values ? reset($values) : '');
+            if (!is_scalar($value) || !is_numeric($value)) continue;
+            if (preg_match('/(?:^|_)(?:google|place|geometry|location|map|food|drink|restaurant|provider|fact).*?(?:lat|latitude)$|(?:^|_)(?:lat|latitude)(?:_|$)/', $key_lc)) $lat_candidates[$this->meta_prefix($key_lc)] = $value;
+            if (preg_match('/(?:^|_)(?:google|place|geometry|location|map|food|drink|restaurant|provider|fact).*?(?:lng|lon|longitude)$|(?:^|_)(?:lng|lon|longitude)(?:_|$)/', $key_lc)) $lng_candidates[$this->meta_prefix($key_lc)] = $value;
+        }
+        foreach ($lat_candidates as $prefix => $lat) {
+            if (array_key_exists($prefix, $lng_candidates)) {
+                $coords = $this->validate($lat, $lng_candidates[$prefix]);
+                if ($coords) return $coords;
+            }
+        }
+        if (count($lat_candidates) === 1 && count($lng_candidates) === 1) {
+            $coords = $this->validate(reset($lat_candidates), reset($lng_candidates));
+            if ($coords) return $coords;
+        }
+        return null;
+    }
+
+    private function meta_prefix(string $key): string {
+        return trim((string)preg_replace('/(?:lat(?:itude)?|lng|lon(?:gitude)?)$/', '', $key), '_-');
+    }
+
     private function find_lat_lng($value): ?array {
         if (!is_array($value)) return null;
+        $normalized = [];
+        foreach ($value as $key => $child) $normalized[strtolower((string)$key)] = $child;
         $lat_keys = ['lat','latitude']; $lng_keys = ['lng','lon','longitude'];
         foreach ($lat_keys as $lat_key) foreach ($lng_keys as $lng_key) {
-            if (array_key_exists($lat_key, $value) && array_key_exists($lng_key, $value)) {
-                $coords = $this->validate($value[$lat_key], $value[$lng_key]);
+            if (array_key_exists($lat_key, $normalized) && array_key_exists($lng_key, $normalized)) {
+                $coords = $this->validate($normalized[$lat_key], $normalized[$lng_key]);
                 if ($coords) return $coords;
             }
         }
