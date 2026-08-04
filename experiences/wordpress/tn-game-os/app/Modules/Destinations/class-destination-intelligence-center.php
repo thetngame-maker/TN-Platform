@@ -25,30 +25,35 @@ final class Destination_Intelligence_Center implements Module_Interface {
     public function page(): void {
         if (!current_user_can('manage_options')) wp_die('Unauthorized.');
         $ids = get_posts(['post_type' => $this->post_types(), 'post_status' => 'publish', 'posts_per_page' => -1, 'fields' => 'ids']);
-        $exact = $inherited = $missing = $excluded = $precise = 0;
+        $exact = $inherited = $missing = $suspicious = $excluded = $precise = 0;
         foreach ($ids as $post_id) {
             $resolved = Coordinate_Intelligence::resolve($post_id);
             $status = $resolved['status'] ?? 'missing';
             if ($status === 'exact') $exact++;
             elseif ($status === 'inherited') $inherited++;
+            elseif ($status === 'suspicious') $suspicious++;
             else $missing++;
             if (get_post_meta($post_id, '_tng_graph_excluded', true)) $excluded++;
             if (get_post_meta($post_id, '_tng_coordinate_source_type', true)) $precise++;
         }
         global $wpdb;
-        $table = $wpdb->prefix . 'tng_destination_relationships';
+        $table = $wpdb->prefix . 'tng_knowledge_graph';
         $table_exists = (string)$wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table));
         $relationships = $table_exists === $table ? (int)$wpdb->get_var("SELECT COUNT(*) FROM `{$table}`") : 0;
-        $score = count($ids) ? (int)round((($exact + $precise) / max(1, count($ids) * 2)) * 100) : 0;
+        $usable = $exact + $inherited;
+        $coordinate_score = count($ids) ? ($usable / count($ids)) * 65 : 0;
+        $graph_score = $relationships > 0 ? 25 : 0;
+        $quality_score = count($ids) ? max(0, 10 - (($suspicious + $missing) / count($ids) * 10)) : 0;
+        $score = (int)round(min(100, $coordinate_score + $graph_score + $quality_score));
         ?>
         <div class="wrap tng-di-center">
             <style>
-                .tng-di-hero{background:linear-gradient(135deg,#17213f,#674091);color:#fff;border-radius:22px;padding:28px 30px;margin:18px 0}.tng-di-hero h1{color:#fff;margin:0 0 8px;font-size:34px}.tng-di-grid{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:14px;margin:18px 0}.tng-di-card,.tng-di-tool{background:#fff;border:1px solid #dcdcde;border-radius:16px;padding:18px}.tng-di-card strong{display:block;color:#6538b5;font-size:30px}.tng-di-tools{display:grid;grid-template-columns:repeat(2,minmax(280px,1fr));gap:16px;margin-top:20px}.tng-di-tool h2{margin-top:0}.tng-di-tool p{min-height:42px;color:#667085}.tng-di-tool .button{margin-right:8px}.tng-di-score{font-size:48px;font-weight:800}.tng-di-bar{height:10px;background:rgba(255,255,255,.2);border-radius:999px;overflow:hidden;margin-top:14px}.tng-di-bar span{display:block;height:100%;background:linear-gradient(90deg,#8b5cf6,#34d399);width:<?php echo (int)$score; ?>%}@media(max-width:900px){.tng-di-grid,.tng-di-tools{grid-template-columns:1fr 1fr}}@media(max-width:620px){.tng-di-grid,.tng-di-tools{grid-template-columns:1fr}}
+                .tng-di-hero{background:linear-gradient(135deg,#17213f,#674091);color:#fff;border-radius:22px;padding:28px 30px;margin:18px 0}.tng-di-hero h1{color:#fff;margin:0 0 8px;font-size:34px}.tng-di-grid{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:14px;margin:18px 0}.tng-di-card,.tng-di-tool{background:#fff;border:1px solid #dcdcde;border-radius:16px;padding:18px}.tng-di-card strong{display:block;color:#6538b5;font-size:30px}.tng-di-tools{display:grid;grid-template-columns:repeat(2,minmax(280px,1fr));gap:16px;margin-top:20px}.tng-di-tool h2{margin-top:0}.tng-di-tool p{min-height:42px;color:#667085}.tng-di-score{font-size:48px;font-weight:800;line-height:1}.tng-di-score-label{margin-top:5px}.tng-di-bar{height:10px;background:rgba(255,255,255,.2);border-radius:999px;overflow:hidden;margin-top:14px}.tng-di-bar span{display:block;height:100%;background:linear-gradient(90deg,#8b5cf6,#34d399);width:<?php echo (int)$score; ?>%}@media(max-width:900px){.tng-di-grid,.tng-di-tools{grid-template-columns:1fr 1fr}}@media(max-width:620px){.tng-di-grid,.tng-di-tools{grid-template-columns:1fr}}
             </style>
             <section class="tng-di-hero">
                 <div style="display:flex;justify-content:space-between;gap:20px;align-items:center;flex-wrap:wrap">
                     <div><div style="letter-spacing:.18em;font-size:12px;font-weight:700;color:#ffd34e">TN GAME OS</div><h1>Destination Intelligence Center</h1><p>Resolve geography, improve graph quality, and prepare destination content for recommendations and trip planning.</p></div>
-                    <div><div class="tng-di-score"><?php echo (int)$score; ?>%</div><div>Foundation readiness</div></div>
+                    <div><div class="tng-di-score"><?php echo (int)$score; ?>%</div><div class="tng-di-score-label">Foundation readiness</div></div>
                 </div>
                 <div class="tng-di-bar"><span></span></div>
             </section>
@@ -60,10 +65,12 @@ final class Destination_Intelligence_Center implements Module_Interface {
                 <div class="tng-di-card"><strong><?php echo number_format_i18n($exact); ?></strong><span>Exact coordinates</span></div>
                 <div class="tng-di-card"><strong><?php echo number_format_i18n($inherited); ?></strong><span>Inherited coordinates</span></div>
                 <div class="tng-di-card"><strong><?php echo number_format_i18n($missing); ?></strong><span>Missing coordinates</span></div>
+                <div class="tng-di-card"><strong><?php echo number_format_i18n($suspicious); ?></strong><span>Suspicious coordinates</span></div>
             </div>
             <div class="tng-di-tools">
+                <?php $this->tool('Destination Health','Score every listing for coordinates, description, image, destination assignment, and graph connectivity.','admin.php?page=tng-destination-health','Open health dashboard'); ?>
                 <?php $this->tool('Coordinate Sources','Promote Google Places geometry and GPX trail starts to precise listing coordinates.','admin.php?page=tng-coordinate-sources','Open resolver'); ?>
-                <?php $this->tool('Coordinate Audit','Review exact, inherited, missing, and suspicious geographic records.','admin.php?page=tng-coordinate-intelligence','Open audit'); ?>
+                <?php $this->tool('Coordinate Audit','Review exact, inherited, missing, and suspicious geographic records.','admin.php?page=tng-coordinate-audit','Open audit'); ?>
                 <?php $this->tool('Graph Quality','Review duplicate coordinate clusters and exclude demo or placeholder content.','admin.php?page=tng-coordinate-quality','Review quality'); ?>
                 <?php $this->tool('Knowledge Graph','Rebuild and inspect automatic relationships between destination content.','admin.php?page=tng-knowledge-graph','Open graph'); ?>
             </div>
