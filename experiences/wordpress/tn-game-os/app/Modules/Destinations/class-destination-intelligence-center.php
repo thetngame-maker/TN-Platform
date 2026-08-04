@@ -71,6 +71,7 @@ final class Destination_Intelligence_Center implements Module_Interface {
                 <div class="tng-di-card"><strong><?php echo number_format_i18n($missing + $suspicious); ?></strong><span>Geography issues</span></div>
             </div>
             <div class="tng-di-tools">
+                <?php $this->tool('Smart Day Planner','Preview timed mini-itineraries that combine a selected experience with nearby dining, complementary stops, and lodging.','admin.php?page=tng-smart-day-planner','Open day planner'); ?>
                 <?php $this->tool('Smart Recommendations','Preview explainable nearby, family, rainy-day, dining, lodging, photography, and adventure recommendations.','admin.php?page=tng-smart-recommendations','Open recommendations'); ?>
                 <?php $this->tool('AI Profiles','Create structured visitor traits, suitability scores, visit time, cost, seasons, and AI-ready summaries.','admin.php?page=tng-destination-ai-profiles','Open AI profiles'); ?>
                 <?php $this->tool('Destination Health','Score every listing for coordinates, description, image, destination assignment, and graph connectivity.','admin.php?page=tng-destination-health','Open health dashboard'); ?>
