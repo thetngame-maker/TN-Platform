@@ -3,13 +3,13 @@
  * Plugin Name: TN Game OS
  * Plugin URI: https://thetngame.com
  * Description: Modular tourism operating system for Traveler listings, trails, food, maps, Explorer progression, reusable assets, destinations, and developer tools.
- * Version: 5.18.0
+ * Version: 5.19.0
  * Author: The TN Game
  * Text Domain: tn-game-os
  */
 if (!defined('ABSPATH')) exit;
 
-define('TNG_OS_VERSION', '5.18.0');
+define('TNG_OS_VERSION', '5.19.0');
 define('TNG_OS_FILE', __FILE__);
 define('TNG_OS_PATH', plugin_dir_path(__FILE__));
 define('TNG_OS_URL', plugin_dir_url(__FILE__));
@@ -30,6 +30,7 @@ require_once TNG_OS_PATH . 'app/Modules/Destinations/class-personalized-trip-bui
 require_once TNG_OS_PATH . 'app/Modules/Destinations/class-live-trip-optimizer.php';
 require_once TNG_OS_PATH . 'app/Modules/Destinations/class-live-trip-companion.php';
 require_once TNG_OS_PATH . 'app/Modules/Destinations/class-multi-stop-route-navigator.php';
+require_once TNG_OS_PATH . 'app/Modules/Destinations/class-active-trip-mode.php';
 require_once TNG_OS_PATH . 'app/Modules/Destinations/class-coordinate-intelligence.php';
 require_once TNG_OS_PATH . 'app/Modules/Destinations/class-coordinate-quality-controls.php';
 require_once TNG_OS_PATH . 'app/Modules/Destinations/class-coordinate-source-resolver.php';
@@ -97,6 +98,10 @@ add_action('plugins_loaded', static function () {
     $route_navigator = new TNG_OS\Modules\Destinations\Multi_Stop_Route_Navigator();
     $route_navigator->register($container);
     $route_navigator->boot($container);
+
+    $active_trip = new TNG_OS\Modules\Destinations\Active_Trip_Mode();
+    $active_trip->register($container);
+    $active_trip->boot($container);
 
     $coordinate_intelligence = new TNG_OS\Modules\Destinations\Coordinate_Intelligence();
     $coordinate_intelligence->register($container);
