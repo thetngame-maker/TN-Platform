@@ -3,13 +3,13 @@
  * Plugin Name: TN Game OS
  * Plugin URI: https://thetngame.com
  * Description: Modular tourism operating system for Traveler listings, trails, food, maps, Explorer progression, reusable assets, destinations, and developer tools.
- * Version: 5.14.0
+ * Version: 5.15.0
  * Author: The TN Game
  * Text Domain: tn-game-os
  */
 if (!defined('ABSPATH')) exit;
 
-define('TNG_OS_VERSION', '5.14.0');
+define('TNG_OS_VERSION', '5.15.0');
 define('TNG_OS_FILE', __FILE__);
 define('TNG_OS_PATH', plugin_dir_path(__FILE__));
 define('TNG_OS_URL', plugin_dir_url(__FILE__));
@@ -26,6 +26,7 @@ require_once TNG_OS_PATH . 'app/Modules/Destinations/class-smart-recommendation-
 require_once TNG_OS_PATH . 'app/Modules/Destinations/class-explore-nearby-widget.php';
 require_once TNG_OS_PATH . 'app/Modules/Destinations/class-smart-day-planner.php';
 require_once TNG_OS_PATH . 'app/Modules/Destinations/class-my-trip-workspace.php';
+require_once TNG_OS_PATH . 'app/Modules/Destinations/class-personalized-trip-builder.php';
 require_once TNG_OS_PATH . 'app/Modules/Destinations/class-coordinate-intelligence.php';
 require_once TNG_OS_PATH . 'app/Modules/Destinations/class-coordinate-quality-controls.php';
 require_once TNG_OS_PATH . 'app/Modules/Destinations/class-coordinate-source-resolver.php';
@@ -77,6 +78,10 @@ add_action('plugins_loaded', static function () {
     $my_trip = new TNG_OS\Modules\Destinations\My_Trip_Workspace();
     $my_trip->register($container);
     $my_trip->boot($container);
+
+    $trip_builder = new TNG_OS\Modules\Destinations\Personalized_Trip_Builder();
+    $trip_builder->register($container);
+    $trip_builder->boot($container);
 
     $coordinate_intelligence = new TNG_OS\Modules\Destinations\Coordinate_Intelligence();
     $coordinate_intelligence->register($container);
