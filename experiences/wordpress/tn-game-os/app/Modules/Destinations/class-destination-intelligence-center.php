@@ -37,7 +37,8 @@ final class Destination_Intelligence_Center implements Module_Interface {
         }
         global $wpdb;
         $table = $wpdb->prefix . 'tng_destination_relationships';
-        $relationships = (int)$wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) === 0 ? 0 : (int)$wpdb->get_var("SELECT COUNT(*) FROM {$table}");
+        $table_exists = (string)$wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table));
+        $relationships = $table_exists === $table ? (int)$wpdb->get_var("SELECT COUNT(*) FROM `{$table}`") : 0;
         $score = count($ids) ? (int)round((($exact + $precise) / max(1, count($ids) * 2)) * 100) : 0;
         ?>
         <div class="wrap tng-di-center">
