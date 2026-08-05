@@ -73,11 +73,7 @@ final class App_Router {
             case 'play': return class_exists('TNG_Play_UI') ? \TNG_Play_UI::render() : self::fallback('Play', 'Choose a game and start your next adventure.');
             case 'map': return class_exists('TNG_Map_UI') ? \TNG_Map_UI::render() : self::fallback('Map', 'Explore trails, games, sights, food, and local places around you.');
             case 'trips': return class_exists('TNG_Trips_UI') ? \TNG_Trips_UI::render() : self::fallback('Trips', 'Save places, organize stops, and continue active adventures.');
-            case 'profile':
-                $logged_in = is_user_logged_in();
-                return self::screen('Explorer', $logged_in ? wp_get_current_user()->display_name : 'Your adventure starts here', $logged_in ? 'See your XP, achievements, completed adventures, photos, and friends.' : 'Create an account to earn XP and save your progress.', [
-                    ['⭐',$logged_in ? 'My XP' : 'Create account',$logged_in ? '/achievements/' : wp_registration_url()],['🏆','Achievements','/achievements/'],['📸','My photos','/my-photos/'],['👥','Friends','/friends/'],
-                ]);
+            case 'profile': return class_exists('TNG_Profile_UI') ? \TNG_Profile_UI::render() : self::fallback('Explorer Profile', 'See your XP, achievements, completed adventures, photos, and friends.');
         }
         return '';
     }
