@@ -4,7 +4,7 @@ namespace TNG_OS\Platform;
 if (!defined('ABSPATH')) exit;
 
 final class App_Router {
-    private const ROUTES = ['explore', 'play', 'map', 'trips', 'profile', 'trails', 'events', 'food', 'top-sights', 'destinations'];
+    private const ROUTES = ['explore', 'play', 'map', 'trips', 'profile', 'search', 'trails', 'events', 'food', 'top-sights', 'destinations'];
     private static string $route = '';
 
     public static function boot(): void {
@@ -35,6 +35,7 @@ final class App_Router {
         global $wp_query;
         $wp_query->is_404 = false;
         $wp_query->is_page = true;
+        $wp_query->is_search = false;
         status_header(200);
     }
 
@@ -63,7 +64,7 @@ final class App_Router {
     public static function document_title(array $parts): array {
         if (!self::is_app_request()) return $parts;
         $titles = [
-            'explore'=>'Explore','play'=>'Play','map'=>'Map','trips'=>'Trips','profile'=>'Explorer Profile',
+            'explore'=>'Explore','play'=>'Play','map'=>'Map','trips'=>'Trips','profile'=>'Explorer Profile','search'=>'Search',
             'trails'=>'Trails','events'=>'Events','food'=>'Food and Drink','top-sights'=>'Top Sights','destinations'=>'Destinations'
         ];
         $parts['title'] = $titles[self::$route] ?? 'The TN Game';
@@ -77,6 +78,7 @@ final class App_Router {
             case 'map': return class_exists('TNG_Map_UI') ? \TNG_Map_UI::render() : self::fallback('Map', 'Explore trails, games, sights, food, and local places around you.');
             case 'trips': return class_exists('TNG_Trips_UI') ? \TNG_Trips_UI::render() : self::fallback('Trips', 'Save places, organize stops, and continue active adventures.');
             case 'profile': return class_exists('TNG_Profile_UI') ? \TNG_Profile_UI::render() : self::fallback('Explorer Profile', 'See your XP, achievements, completed adventures, photos, and friends.');
+            case 'search': return class_exists('TNG_Search_UI') ? \TNG_Search_UI::render() : self::fallback('Search', 'Search everything in The TN Game.');
             case 'trails':
             case 'events':
             case 'food':
