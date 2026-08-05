@@ -4,7 +4,7 @@ namespace TNG_OS\Platform;
 if (!defined('ABSPATH')) exit;
 
 final class App_Router {
-    private const ROUTES = ['explore', 'play', 'map', 'trips', 'profile', 'search', 'leaderboard', 'achievements', 'friends', 'activity', 'challenges', 'journal', 'explorer-journal', 'completed', 'my-photos', 'trails', 'events', 'food', 'top-sights', 'destinations'];
+    private const ROUTES = ['explore', 'play', 'map', 'trips', 'profile', 'profile-settings', 'search', 'leaderboard', 'achievements', 'friends', 'activity', 'challenges', 'journal', 'explorer-journal', 'completed', 'my-photos', 'trails', 'events', 'food', 'top-sights', 'destinations'];
     private static string $route = '';
 
     public static function boot(): void {
@@ -64,7 +64,7 @@ final class App_Router {
     public static function document_title(array $parts): array {
         if (!self::is_app_request()) return $parts;
         $titles = [
-            'explore'=>'Explore','play'=>'Play','map'=>'Map','trips'=>'Trips','profile'=>'Explorer Profile','search'=>'Search',
+            'explore'=>'Explore','play'=>'Play','map'=>'Map','trips'=>'Trips','profile'=>'Explorer Profile','profile-settings'=>'Profile Settings','search'=>'Search',
             'leaderboard'=>'Explorer Leaderboard','achievements'=>'Achievements','friends'=>'Friends','activity'=>'Explorer Activity','challenges'=>'Challenges',
             'journal'=>'Explorer Journal','explorer-journal'=>'Explorer Journal','completed'=>'Completed Adventures','my-photos'=>'My Photos',
             'trails'=>'Trails','events'=>'Events','food'=>'Food and Drink','top-sights'=>'Top Sights','destinations'=>'Destinations'
@@ -80,6 +80,7 @@ final class App_Router {
             case 'map': return class_exists('TNG_Map_UI') ? \TNG_Map_UI::render() : self::fallback('Map', 'Explore trails, games, sights, food, and local places around you.');
             case 'trips': return class_exists('TNG_Trips_UI') ? \TNG_Trips_UI::render() : self::fallback('Trips', 'Save places, organize stops, and continue active adventures.');
             case 'profile': return class_exists('TNG_Profile_UI') ? \TNG_Profile_UI::render() : self::fallback('Explorer Profile', 'See your XP, achievements, completed adventures, photos, and friends.');
+            case 'profile-settings': return class_exists('TNG_Settings_UI') ? \TNG_Settings_UI::render() : self::fallback('Profile Settings', 'Manage your Explorer account and preferences.');
             case 'search': return class_exists('TNG_Search_UI') ? \TNG_Search_UI::render() : self::fallback('Search', 'Search everything in The TN Game.');
             case 'leaderboard': return class_exists('TNG_Progress_UI') ? \TNG_Progress_UI::leaderboard() : self::fallback('Leaderboard', 'See the top explorers across The TN Game.');
             case 'achievements': return class_exists('TNG_Progress_UI') ? \TNG_Progress_UI::achievements() : self::fallback('Achievements', 'Unlock milestones as you explore and play.');
