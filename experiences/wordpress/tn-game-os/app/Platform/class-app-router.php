@@ -11,6 +11,7 @@ final class App_Router {
         add_action('init', [self::class, 'register_rewrites'], 20);
         add_filter('query_vars', [self::class, 'query_vars']);
         add_action('template_redirect', [self::class, 'resolve_route'], 0);
+        add_action('wp_enqueue_scripts', [self::class, 'enqueue_assets'], 90);
         add_filter('template_include', [self::class, 'template'], 99999);
         add_filter('body_class', [self::class, 'body_classes'], 999);
         add_filter('document_title_parts', [self::class, 'document_title']);
@@ -51,6 +52,11 @@ final class App_Router {
         return self::$route !== '';
     }
 
+    public static function enqueue_assets(): void {
+        if (!self::is_app_request()) return;
+        wp_enqueue_style('tng-app-router', TNG_OS_URL . 'assets/css/app-router.css', ['tng-platform-ui'], TNG_OS_VERSION);
+    }
+
     public static function template(string $template): string {
         if (!self::is_app_request()) return $template;
         $app_template = TNG_OS_PATH . 'templates/app-shell.php';
@@ -68,13 +74,7 @@ final class App_Router {
 
     public static function document_title(array $parts): array {
         if (!self::is_app_request()) return $parts;
-        $titles = [
-            'explore' => 'Explore',
-            'play' => 'Play',
-            'map' => 'Map',
-            'trips' => 'Trips',
-            'profile' => 'Explorer Profile',
-        ];
+        $titles = ['explore' => 'Explore', 'play' => 'Play', 'map' => 'Map', 'trips' => 'Trips', 'profile' => 'Explorer Profile'];
         $parts['title'] = $titles[self::$route] ?? 'The TN Game';
         return $parts;
     }
@@ -87,25 +87,16 @@ final class App_Router {
                 return class_exists('TNG_Play_UI') ? \TNG_Play_UI::render() : self::fallback('Play', 'Choose a game and start your next adventure.');
             case 'map':
                 return self::screen('Map', 'Explore nearby', 'Find trails, games, checkpoints, food, and local places around you.', [
-                    ['📍', 'Use my location', '/map/?locate=1'],
-                    ['🥾', 'Trails', '/trails/'],
-                    ['🎮', 'Games', '/play/'],
-                    ['⭐', 'Top Sights', '/top-sights/'],
+                    ['📍', 'Use my location', '/map/?locate=1'], ['🥾', 'Trails', '/trails/'], ['🎮', 'Games', '/play/'], ['⭐', 'Top Sights', '/top-sights/'],
                 ]);
             case 'trips':
                 return self::screen('Trips', 'Plan your next day out', 'Save places, organize stops, and continue active adventures.', [
-                    ['➕', 'Build a trip', '/trip-builder/'],
-                    ['▶', 'Active trip', '/active-trip/'],
-                    ['♡', 'Saved places', '/saved/'],
-                    ['↺', 'Past trips', '/past-trips/'],
+                    ['➕', 'Build a trip', '/trip-builder/'], ['▶', 'Active trip', '/active-trip/'], ['♡', 'Saved places', '/saved/'], ['↺', 'Past trips', '/past-trips/'],
                 ]);
             case 'profile':
                 $logged_in = is_user_logged_in();
                 return self::screen('Explorer', $logged_in ? wp_get_current_user()->display_name : 'Your adventure starts here', $logged_in ? 'See your XP, achievements, completed adventures, photos, and friends.' : 'Create an account to earn XP and save your progress.', [
-                    ['⭐', $logged_in ? 'My XP' : 'Create account', $logged_in ? '/achievements/' : wp_registration_url()],
-                    ['🏆', 'Achievements', '/achievements/'],
-                    ['📸', 'My photos', '/my-photos/'],
-                    ['👥', 'Friends', '/friends/'],
+                    ['⭐', $logged_in ? 'My XP' : 'Create account', $logged_in ? '/achievements/' : wp_registration_url()], ['🏆', 'Achievements', '/achievements/'], ['📸', 'My photos', '/my-photos/'], ['👥', 'Friends', '/friends/'],
                 ]);
         }
         return '';
@@ -118,26 +109,14 @@ final class App_Router {
     private static function screen(string $eyebrow, string $title, string $copy, array $actions): string {
         ob_start(); ?>
         <main class="tng-native-screen tng-app-shell">
-            <section class="tng-native-hero">
-                <span class="tng-eyebrow"><?php echo esc_html($eyebrow); ?></span>
-                <h1><?php echo esc_html($title); ?></h1>
-                <p><?php echo esc_html($copy); ?></p>
-            </section>
-            <?php if ($actions): ?>
-                <section class="tng-native-actions">
-                    <?php foreach ($actions as $action): ?>
-                        <a href="<?php echo esc_url(is_string($action[2]) && str_starts_with($action[2], 'http') ? $action[2] : home_url($action[2])); ?>">
-                            <span><?php echo esc_html($action[0]); ?></span>
-                            <strong><?php echo esc_html($action[1]); ?></strong>
-                            <small>Open</small>
-                        </a>
-                    <?php endforeach; ?>
-                </section>
-            <?php endif; ?>
-            <section class="tng-native-placeholder">
-                <span>TN</span>
-                <div><h2>This screen is connected to the new app shell.</h2><p>Its full feature interface will be built here without Traveler templates or shortcodes.</p></div>
-            </section>
+            <section class="tng-native-hero"><span class="tng-eyebrow"><?php echo esc_html($eyebrow); ?></span><h1><?php echo esc_html($title); ?></h1><p><?php echo esc_html($copy); ?></p></section>
+            <?php if ($actions): ?><section class="tng-native-actions">
+                <?php foreach ($actions as $action):
+                    $url = is_string($action[2]) && str_starts_with($action[2], 'http') ? $action[2] : home_url($action[2]); ?>
+                    <a href="<?php echo esc_url($url); ?>"><span><?php echo esc_html($action[0]); ?></span><strong><?php echo esc_html($action[1]); ?></strong><small>Open</small></a>
+                <?php endforeach; ?>
+            </section><?php endif; ?>
+            <section class="tng-native-placeholder"><span>TN</span><div><h2>This screen is connected to the new app shell.</h2><p>Its full feature interface will be built here without Traveler templates or shortcodes.</p></div></section>
         </main>
         <?php return (string) ob_get_clean();
     }
