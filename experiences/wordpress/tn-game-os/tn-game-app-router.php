@@ -3,7 +3,7 @@
  * Plugin Name: TN Game App Router
  * Plugin URI: https://thetngame.com
  * Description: Native TN Game application routes and full-page app shell for Explore, Play, Map, Trips, Profile, and trail pages.
- * Version: 1.5.0
+ * Version: 1.5.1
  * Author: The TN Game
  * Text Domain: tn-game-app-router
  */
@@ -22,19 +22,51 @@ add_action('plugins_loaded', static function (): void {
 
 add_action('wp_enqueue_scripts', static function (): void {
     if (!class_exists('TNG_OS\\Platform\\App_Router') || !\TNG_OS\Platform\App_Router::is_app_request()) return;
-    wp_enqueue_style('tng-platform-ui', TNG_OS_URL . 'assets/css/platform-ui.css', [], '0.9.0');
-    wp_enqueue_style('tng-platform-ui-refinements', TNG_OS_URL . 'assets/css/platform-ui-refinements.css', ['tng-platform-ui'], '0.9.0');
-    wp_enqueue_style('tng-app-router', TNG_OS_URL . 'assets/css/app-router.css', ['tng-platform-ui'], '1.5.0');
-    wp_enqueue_style('tng-ui-kit', TNG_OS_URL . 'assets/css/ui-kit.css', ['tng-platform-ui', 'tng-app-router'], '1.4.0');
+    wp_enqueue_style('tng-platform-ui', TNG_OS_URL . 'assets/css/platform-ui.css', [], '0.9.1');
+    wp_enqueue_style('tng-platform-ui-refinements', TNG_OS_URL . 'assets/css/platform-ui-refinements.css', ['tng-platform-ui'], '0.9.1');
+    wp_enqueue_style('tng-app-router', TNG_OS_URL . 'assets/css/app-router.css', ['tng-platform-ui'], '1.5.1');
+    wp_enqueue_style('tng-ui-kit', TNG_OS_URL . 'assets/css/ui-kit.css', ['tng-platform-ui', 'tng-app-router'], '1.4.1');
 
     $route = \TNG_OS\Platform\App_Router::current_route();
-    if ($route === 'play') wp_enqueue_style('tng-play-ui', TNG_OS_URL . 'assets/css/play-ui.css', ['tng-ui-kit'], '0.2.0');
-    if ($route === 'map') wp_enqueue_style('tng-map-ui', TNG_OS_URL . 'assets/css/map-ui.css', ['tng-ui-kit'], '0.2.0');
-    if ($route === 'trips') wp_enqueue_style('tng-trips-ui', TNG_OS_URL . 'assets/css/trips-ui.css', ['tng-ui-kit'], '0.1.0');
-    if ($route === 'profile') wp_enqueue_style('tng-profile-ui', TNG_OS_URL . 'assets/css/profile-ui.css', ['tng-ui-kit'], '0.1.0');
+    if ($route === 'play') wp_enqueue_style('tng-play-ui', TNG_OS_URL . 'assets/css/play-ui.css', ['tng-ui-kit'], '0.2.1');
+    if ($route === 'map') wp_enqueue_style('tng-map-ui', TNG_OS_URL . 'assets/css/map-ui.css', ['tng-ui-kit'], '0.2.1');
+    if ($route === 'trips') wp_enqueue_style('tng-trips-ui', TNG_OS_URL . 'assets/css/trips-ui.css', ['tng-ui-kit'], '0.1.1');
+    if ($route === 'profile') wp_enqueue_style('tng-profile-ui', TNG_OS_URL . 'assets/css/profile-ui.css', ['tng-ui-kit'], '0.1.1');
 
-    wp_enqueue_script('tng-platform-ui', TNG_OS_URL . 'assets/js/platform-ui.js', [], '0.9.0', true);
+    wp_enqueue_script('tng-platform-ui', TNG_OS_URL . 'assets/js/platform-ui.js', [], '0.9.1', true);
 }, 100);
+
+/*
+ * The legacy Platform UI originally linked signed-in users to Traveler's
+ * author/vendor profile. Enforce the native app route on every screen,
+ * including cached pages and non-router trail templates.
+ */
+add_action('wp_footer', static function (): void {
+    if (is_admin()) return;
+    ?>
+    <script id="tng-profile-route-fix">
+    (() => {
+        const profileUrl = <?php echo wp_json_encode(home_url('/profile/')); ?>;
+        const fixLinks = () => {
+            document.querySelectorAll('.tng-app-nav__item').forEach((link) => {
+                const label = (link.textContent || '').trim().toLowerCase();
+                if (label.includes('profile')) link.setAttribute('href', profileUrl);
+            });
+        };
+        fixLinks();
+        document.addEventListener('click', (event) => {
+            const link = event.target.closest('.tng-app-nav__item');
+            if (!link) return;
+            const label = (link.textContent || '').trim().toLowerCase();
+            if (!label.includes('profile')) return;
+            event.preventDefault();
+            window.location.assign(profileUrl);
+        }, true);
+        new MutationObserver(fixLinks).observe(document.documentElement, {childList: true, subtree: true});
+    })();
+    </script>
+    <?php
+}, 999);
 
 register_activation_hook(__FILE__, static function (): void {
     update_option('tng_os_rewrite_flush_needed', 1, false);
