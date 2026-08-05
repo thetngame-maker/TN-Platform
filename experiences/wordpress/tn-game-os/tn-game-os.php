@@ -3,13 +3,13 @@
  * Plugin Name: TN Game OS
  * Plugin URI: https://thetngame.com
  * Description: Modular tourism operating system for Traveler listings, trails, food, maps, Explorer progression, reusable assets, destinations, and developer tools.
- * Version: 5.28.0
+ * Version: 5.29.0
  * Author: The TN Game
  * Text Domain: tn-game-os
  */
 if (!defined('ABSPATH')) exit;
 
-define('TNG_OS_VERSION', '5.28.0');
+define('TNG_OS_VERSION', '5.29.0');
 define('TNG_OS_FILE', __FILE__);
 define('TNG_OS_PATH', plugin_dir_path(__FILE__));
 define('TNG_OS_URL', plugin_dir_url(__FILE__));
@@ -40,6 +40,7 @@ require_once TNG_OS_PATH . 'app/Modules/Destinations/class-public-explorer-profi
 require_once TNG_OS_PATH . 'app/Modules/Destinations/class-explorer-profile-settings.php';
 require_once TNG_OS_PATH . 'app/Modules/Destinations/class-explorer-showcase.php';
 require_once TNG_OS_PATH . 'app/Modules/Destinations/class-explorer-discovery.php';
+require_once TNG_OS_PATH . 'app/Modules/Destinations/class-explorer-network-intelligence.php';
 require_once TNG_OS_PATH . 'app/Modules/Destinations/class-coordinate-intelligence.php';
 require_once TNG_OS_PATH . 'app/Modules/Destinations/class-coordinate-quality-controls.php';
 require_once TNG_OS_PATH . 'app/Modules/Destinations/class-coordinate-source-resolver.php';
@@ -147,6 +148,10 @@ add_action('plugins_loaded', static function () {
     $explorer_discovery = new TNG_OS\Modules\Destinations\Explorer_Discovery();
     $explorer_discovery->register($container);
     $explorer_discovery->boot($container);
+
+    $network_intelligence = new TNG_OS\Modules\Destinations\Explorer_Network_Intelligence();
+    $network_intelligence->register($container);
+    $network_intelligence->boot($container);
 
     $coordinate_intelligence = new TNG_OS\Modules\Destinations\Coordinate_Intelligence();
     $coordinate_intelligence->register($container);
