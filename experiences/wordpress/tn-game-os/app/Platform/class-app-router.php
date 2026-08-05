@@ -4,7 +4,7 @@ namespace TNG_OS\Platform;
 if (!defined('ABSPATH')) exit;
 
 final class App_Router {
-    private const ROUTES = ['explore', 'play', 'map', 'trips', 'profile'];
+    private const ROUTES = ['explore', 'play', 'map', 'trips', 'profile', 'trails', 'events', 'food', 'top-sights', 'destinations'];
     private static string $route = '';
 
     public static function boot(): void {
@@ -62,7 +62,10 @@ final class App_Router {
 
     public static function document_title(array $parts): array {
         if (!self::is_app_request()) return $parts;
-        $titles = ['explore'=>'Explore','play'=>'Play','map'=>'Map','trips'=>'Trips','profile'=>'Explorer Profile'];
+        $titles = [
+            'explore'=>'Explore','play'=>'Play','map'=>'Map','trips'=>'Trips','profile'=>'Explorer Profile',
+            'trails'=>'Trails','events'=>'Events','food'=>'Food and Drink','top-sights'=>'Top Sights','destinations'=>'Destinations'
+        ];
         $parts['title'] = $titles[self::$route] ?? 'The TN Game';
         return $parts;
     }
@@ -74,6 +77,12 @@ final class App_Router {
             case 'map': return class_exists('TNG_Map_UI') ? \TNG_Map_UI::render() : self::fallback('Map', 'Explore trails, games, sights, food, and local places around you.');
             case 'trips': return class_exists('TNG_Trips_UI') ? \TNG_Trips_UI::render() : self::fallback('Trips', 'Save places, organize stops, and continue active adventures.');
             case 'profile': return class_exists('TNG_Profile_UI') ? \TNG_Profile_UI::render() : self::fallback('Explorer Profile', 'See your XP, achievements, completed adventures, photos, and friends.');
+            case 'trails':
+            case 'events':
+            case 'food':
+            case 'top-sights':
+            case 'destinations':
+                return class_exists('TNG_Directory_UI') ? \TNG_Directory_UI::render(self::$route) : self::fallback(ucwords(str_replace('-', ' ', self::$route)), 'Explore more from The TN Game.');
         }
         return '';
     }
