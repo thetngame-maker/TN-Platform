@@ -36,6 +36,7 @@ require_once TNG_OS_PATH . 'app/Modules/Destinations/class-past-trips-journal.ph
 require_once TNG_OS_PATH . 'app/Modules/Destinations/class-trip-explorer-integration.php';
 require_once TNG_OS_PATH . 'app/Modules/Destinations/class-explorer-journal.php';
 require_once TNG_OS_PATH . 'app/Modules/Destinations/class-explorer-timeline-bridge.php';
+require_once TNG_OS_PATH . 'app/Modules/Destinations/class-public-explorer-profile.php';
 require_once TNG_OS_PATH . 'app/Modules/Destinations/class-coordinate-intelligence.php';
 require_once TNG_OS_PATH . 'app/Modules/Destinations/class-coordinate-quality-controls.php';
 require_once TNG_OS_PATH . 'app/Modules/Destinations/class-coordinate-source-resolver.php';
@@ -127,6 +128,10 @@ add_action('plugins_loaded', static function () {
     $timeline_bridge = new TNG_OS\Modules\Destinations\Explorer_Timeline_Bridge();
     $timeline_bridge->register($container);
     $timeline_bridge->boot($container);
+
+    $public_profile = new TNG_OS\Modules\Destinations\Public_Explorer_Profile();
+    $public_profile->register($container);
+    $public_profile->boot($container);
 
     $coordinate_intelligence = new TNG_OS\Modules\Destinations\Coordinate_Intelligence();
     $coordinate_intelligence->register($container);
