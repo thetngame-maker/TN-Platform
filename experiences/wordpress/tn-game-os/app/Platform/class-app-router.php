@@ -4,7 +4,7 @@ namespace TNG_OS\Platform;
 if (!defined('ABSPATH')) exit;
 
 final class App_Router {
-    private const ROUTES = ['explore', 'play', 'map', 'trips', 'profile', 'search', 'leaderboard', 'achievements', 'trails', 'events', 'food', 'top-sights', 'destinations'];
+    private const ROUTES = ['explore', 'play', 'map', 'trips', 'profile', 'search', 'leaderboard', 'achievements', 'friends', 'activity', 'trails', 'events', 'food', 'top-sights', 'destinations'];
     private static string $route = '';
 
     public static function boot(): void {
@@ -65,7 +65,7 @@ final class App_Router {
         if (!self::is_app_request()) return $parts;
         $titles = [
             'explore'=>'Explore','play'=>'Play','map'=>'Map','trips'=>'Trips','profile'=>'Explorer Profile','search'=>'Search',
-            'leaderboard'=>'Explorer Leaderboard','achievements'=>'Achievements',
+            'leaderboard'=>'Explorer Leaderboard','achievements'=>'Achievements','friends'=>'Friends','activity'=>'Explorer Activity',
             'trails'=>'Trails','events'=>'Events','food'=>'Food and Drink','top-sights'=>'Top Sights','destinations'=>'Destinations'
         ];
         $parts['title'] = $titles[self::$route] ?? 'The TN Game';
@@ -82,6 +82,8 @@ final class App_Router {
             case 'search': return class_exists('TNG_Search_UI') ? \TNG_Search_UI::render() : self::fallback('Search', 'Search everything in The TN Game.');
             case 'leaderboard': return class_exists('TNG_Progress_UI') ? \TNG_Progress_UI::leaderboard() : self::fallback('Leaderboard', 'See the top explorers across The TN Game.');
             case 'achievements': return class_exists('TNG_Progress_UI') ? \TNG_Progress_UI::achievements() : self::fallback('Achievements', 'Unlock milestones as you explore and play.');
+            case 'friends': return class_exists('TNG_Social_UI') ? \TNG_Social_UI::friends() : self::fallback('Friends', 'Find explorers and challenge your group.');
+            case 'activity': return class_exists('TNG_Social_UI') ? \TNG_Social_UI::activity() : self::fallback('Activity', 'See what is new across The TN Game.');
             case 'trails':
             case 'events':
             case 'food':
