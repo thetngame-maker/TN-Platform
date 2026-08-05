@@ -3,7 +3,7 @@
  * Plugin Name: TN Game Platform UI
  * Plugin URI: https://thetngame.com
  * Description: Mobile-first TN Game app shell, private preview, Traveler chrome replacement controls, and Explore page components.
- * Version: 0.2.0
+ * Version: 0.3.0
  * Author: The TN Game
  * Text Domain: tn-game-platform-ui
  */
@@ -84,8 +84,9 @@ final class TNG_Platform_UI {
     public static function enqueue(): void {
         if (!self::active()) return;
         $base = plugin_dir_url(__FILE__);
-        wp_enqueue_style('tng-platform-ui', $base . 'assets/css/platform-ui.css', [], '0.2.0');
-        wp_enqueue_script('tng-platform-ui', $base . 'assets/js/platform-ui.js', [], '0.2.0', true);
+        wp_enqueue_style('tng-platform-ui', $base . 'assets/css/platform-ui.css', [], '0.3.0');
+        wp_enqueue_style('tng-platform-ui-refinements', $base . 'assets/css/platform-ui-refinements.css', ['tng-platform-ui'], '0.3.0');
+        wp_enqueue_script('tng-platform-ui', $base . 'assets/js/platform-ui.js', [], '0.3.0', true);
     }
 
     public static function body_class(array $classes): array {
@@ -118,8 +119,32 @@ final class TNG_Platform_UI {
     }
 
     private static function discoverable_post_types(): array {
-        $preferred = ['st_activity', 'activity', 'top_sight', 'tng_destination', 'st_location'];
-        return array_values(array_filter($preferred, 'post_type_exists'));
+        return array_values(array_filter(['st_activity', 'activity', 'top_sight', 'tng_destination', 'st_location'], 'post_type_exists'));
+    }
+
+    private static function clean_excerpt(int $id): string {
+        $source = has_excerpt($id) ? get_post_field('post_excerpt', $id) : get_post_field('post_content', $id);
+        $source = strip_shortcodes((string) $source);
+        $source = preg_replace('/\[[^\]]+\]/', ' ', $source);
+        $source = html_entity_decode(wp_strip_all_tags((string) $source), ENT_QUOTES, get_bloginfo('charset') ?: 'UTF-8');
+        $source = preg_replace('/\s+/', ' ', trim((string) $source));
+        return wp_trim_words($source, 16, '…');
+    }
+
+    private static function card_meta(int $id, string $post_type): array {
+        $meta = [];
+        if (in_array($post_type, ['st_activity', 'activity'], true)) {
+            $location = get_post_meta($id, 'address', true) ?: get_post_meta($id, 'location', true);
+            if ($location) $meta[] = '📍 ' . wp_trim_words(wp_strip_all_tags((string) $location), 5, '');
+            $date = get_post_meta($id, 'start_date', true) ?: get_post_meta($id, 'event_date', true);
+            if ($date) {
+                $timestamp = is_numeric($date) ? (int) $date : strtotime((string) $date);
+                if ($timestamp) $meta[] = '📅 ' . wp_date('M j', $timestamp);
+            }
+        }
+        if ($post_type === 'tng_destination') $meta[] = '🗺️ Destination';
+        if ($post_type === 'top_sight') $meta[] = '📍 Top Sight';
+        return array_slice(array_filter($meta), 0, 2);
     }
 
     private static function content_cards(): string {
@@ -139,13 +164,25 @@ final class TNG_Platform_UI {
         while ($query->have_posts()) {
             $query->the_post();
             $id = get_the_ID();
-            $type = get_post_type_object(get_post_type($id));
+            $post_type = get_post_type($id);
+            $type = get_post_type_object($post_type);
             $label = $type && !empty($type->labels->singular_name) ? $type->labels->singular_name : 'Explore';
             $image = get_the_post_thumbnail_url($id, 'large');
-            $excerpt = wp_trim_words(wp_strip_all_tags(get_the_excerpt($id)), 14);
-            echo '<article class="tng-content-card">';
-            echo '<a class="tng-content-card__media" href="' . esc_url(get_permalink($id)) . '"' . ($image ? ' style="background-image:url(' . esc_url($image) . ')"' : '') . '><span>' . esc_html($label) . '</span></a>';
+            $excerpt = self::clean_excerpt($id);
+            $meta = self::card_meta($id, $post_type);
+            $classes = ['tng-content-card'];
+            if (stripos(get_the_title($id), 'caverns') !== false || get_post_meta($id, 'event_date', true)) $classes[] = 'tng-content-card--event';
+            if ($post_type === 'tng_destination' || $post_type === 'st_location') $classes[] = 'tng-content-card--destination';
+            echo '<article class="' . esc_attr(implode(' ', $classes)) . '">';
+            $media_class = 'tng-content-card__media' . ($image ? '' : ' is-placeholder');
+            $style = $image ? ' style="background-image:url(' . esc_url($image) . ')"' : '';
+            echo '<a class="' . esc_attr($media_class) . '" href="' . esc_url(get_permalink($id)) . '"' . $style . '><span>' . esc_html($label) . '</span></a>';
             echo '<div class="tng-content-card__body"><h3><a href="' . esc_url(get_permalink($id)) . '">' . esc_html(get_the_title($id)) . '</a></h3>';
+            if ($meta) {
+                echo '<div class="tng-content-card__meta">';
+                foreach ($meta as $item) echo '<span>' . esc_html($item) . '</span>';
+                echo '</div>';
+            }
             if ($excerpt) echo '<p>' . esc_html($excerpt) . '</p>';
             echo '<a class="tng-content-card__link" href="' . esc_url(get_permalink($id)) . '">Explore <span aria-hidden="true">→</span></a></div></article>';
         }
@@ -168,7 +205,7 @@ final class TNG_Platform_UI {
             <section class="tng-section"><div class="tng-section__heading"><div><span class="tng-eyebrow">Choose your adventure</span><h2>What are you looking for?</h2></div></div><div class="tng-category-grid">
                 <?php foreach ($categories as $category): ?><a class="tng-category-card" href="<?php echo esc_url(home_url($category[2])); ?>"><span><?php echo esc_html($category[0]); ?></span><strong><?php echo esc_html($category[1]); ?></strong><small>Explore now</small></a><?php endforeach; ?>
             </div></section>
-            <?php if ($cards): ?><section class="tng-section tng-discover"><div class="tng-section__heading"><div><span class="tng-eyebrow">Fresh discoveries</span><h2>Start exploring</h2></div><a href="<?php echo esc_url(home_url('/search/')); ?>">View all</a></div><?php echo $cards; ?></section><?php endif; ?>
+            <?php if ($cards): ?><section class="tng-section tng-discover"><div class="tng-section__heading"><div><span class="tng-eyebrow">Fresh discoveries</span><h2>Continue exploring</h2><p class="tng-curated-note">Updated from places, trails and experiences across The TN Game.</p></div><a href="<?php echo esc_url(home_url('/search/')); ?>">View all</a></div><?php echo $cards; ?></section><?php endif; ?>
             <section class="tng-play-card"><div><span class="tng-eyebrow">Ready to play?</span><h2>Turn your next outing into a game.</h2><p>Find nearby challenges, complete checkpoints and grow your Explorer profile.</p></div><a class="tng-button" href="<?php echo esc_url(home_url('/play/')); ?>">Start Playing</a></section>
         </main>
         <?php return (string) ob_get_clean();
