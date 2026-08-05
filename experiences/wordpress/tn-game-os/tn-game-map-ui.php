@@ -2,12 +2,23 @@
 /**
  * Plugin Name: TN Game Map UI
  * Description: Native TN Game discovery map screen for the app router.
- * Version: 0.1.0
+ * Version: 0.2.0
  * Author: The TN Game
  */
 if (!defined('ABSPATH')) exit;
 
 final class TNG_Map_UI {
+    public static function boot(): void {
+        add_filter('template_include', [self::class, 'template'], 100000);
+    }
+
+    public static function template(string $template): string {
+        if (!class_exists('TNG_OS\\Platform\\App_Router')) return $template;
+        if (TNG_OS\Platform\App_Router::current_route() !== 'map') return $template;
+        $map_template = TNG_OS_PATH . 'templates/map-shell.php';
+        return is_readable($map_template) ? $map_template : $template;
+    }
+
     private static function nearby_posts(): array {
         $types = array_values(array_filter(['st_activity','activity','top_sight','tng_destination','st_location'], 'post_type_exists'));
         if (!$types) return [];
@@ -77,3 +88,5 @@ final class TNG_Map_UI {
         <?php return (string) ob_get_clean();
     }
 }
+
+TNG_Map_UI::boot();
