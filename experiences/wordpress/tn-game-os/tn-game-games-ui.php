@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TN Game Games UI
  * Description: Native game directory and playable activity detail template.
- * Version: 0.1.0
+ * Version: 0.2.0
  * Author: The TN Game
  */
 if (!defined('ABSPATH')) exit;
@@ -57,9 +57,9 @@ final class TNG_Games_UI {
         $route = class_exists('TNG_OS\\Platform\\App_Router') ? \TNG_OS\Platform\App_Router::current_route() : '';
         if ($route !== 'games' && !(is_singular() && self::is_game())) return;
         wp_enqueue_style('tng-platform-ui',TNG_OS_URL.'assets/css/platform-ui.css',[],'2.2.0');
-        wp_enqueue_style('tng-app-router',TNG_OS_URL.'assets/css/app-router.css',['tng-platform-ui'],'3.1.0');
+        wp_enqueue_style('tng-app-router',TNG_OS_URL.'assets/css/app-router.css',['tng-platform-ui'],'3.2.0');
         wp_enqueue_style('tng-ui-kit',TNG_OS_URL.'assets/css/ui-kit.css',['tng-platform-ui'],'2.7.0');
-        wp_enqueue_style('tng-games-ui',TNG_OS_URL.'assets/css/games-ui.css',['tng-ui-kit'],'0.1.0');
+        wp_enqueue_style('tng-games-ui',TNG_OS_URL.'assets/css/games-ui.css',['tng-ui-kit'],'0.2.0');
         wp_enqueue_script('tng-platform-ui',TNG_OS_URL.'assets/js/platform-ui.js',[],'2.2.0',true);
     }
 
@@ -74,12 +74,12 @@ final class TNG_Games_UI {
     }
 
     public static function directory(): string {
-        $games=self::posts(); ob_start(); ?>
+        $games=self::posts(); $can_create=is_user_logged_in() && current_user_can('edit_posts'); ob_start(); ?>
         <main class="tng-games-directory tng-app-shell">
             <section class="tng-games-hero"><div><span class="tng-eyebrow">Choose how to play</span><h1>Games and quests</h1><p>Play quick challenges, scavenger hunts, city games, trail quests, and group adventures.</p></div><div class="tng-games-count"><strong><?php echo esc_html((string)count($games)); ?></strong><small>Playable</small></div></section>
             <nav class="tng-games-modes"><a class="is-active" href="<?php echo esc_url(home_url('/games/')); ?>">🎮 All games</a><a href="<?php echo esc_url(home_url('/map/')); ?>">📍 Nearby</a><a href="<?php echo esc_url(home_url('/challenges/')); ?>">⚔ Challenges</a><a href="<?php echo esc_url(home_url('/play/')); ?>">▶ Play hub</a></nav>
-            <section class="tng-games-content"><div class="tng-section__heading"><div><span class="tng-eyebrow">Playable now</span><h2>Pick an adventure</h2><p>Game listings published across The TN Game appear here automatically.</p></div></div>
-            <?php if (!$games): ?><div class="tng-games-empty"><span>🎮</span><h3>Your first game is ready to be published.</h3><p>Create a Game or tag an Activity as a scavenger hunt, quest, city game, or playable experience.</p></div>
+            <section class="tng-games-content"><div class="tng-section__heading"><div><span class="tng-eyebrow">Playable now</span><h2>Pick an adventure</h2><p>Game listings published across The TN Game appear here automatically.</p></div><?php if($can_create): ?><a href="<?php echo esc_url(home_url('/game-builder/')); ?>">＋ Build a game</a><?php endif; ?></div>
+            <?php if (!$games): ?><div class="tng-games-empty"><span>🎮</span><h3>Your first game is ready to be published.</h3><p>Create a scavenger hunt, quest, city game, Quick Play challenge, or group adventure.</p><?php if($can_create): ?><a class="tng-ui-button" href="<?php echo esc_url(home_url('/game-builder/')); ?>">Build the first game</a><?php endif; ?></div>
             <?php else: ?><div class="tng-games-grid"><?php foreach($games as $game): $id=$game->ID;$image=get_the_post_thumbnail_url($id,'large');$difficulty=self::meta($id,['difficulty','game_difficulty'],'Adventure');$xp=self::meta($id,['xp_available','xp'],'XP available'); ?><article class="tng-games-card"><a class="tng-games-card__media<?php echo $image?'':' is-placeholder'; ?>" href="<?php echo esc_url(get_permalink($id)); ?>"<?php echo $image?' style="background-image:url('.esc_url($image).')"':''; ?>><span>Playable</span></a><div class="tng-games-card__body"><h3><a href="<?php echo esc_url(get_permalink($id)); ?>"><?php echo esc_html(get_the_title($id)); ?></a></h3><div class="tng-games-card__meta"><span>⚡ <?php echo esc_html($difficulty); ?></span><span>⭐ <?php echo esc_html($xp); ?></span></div><p><?php echo esc_html(self::excerpt($id,16)); ?></p><a class="tng-ui-button" href="<?php echo esc_url(get_permalink($id)); ?>">View game</a></div></article><?php endforeach; ?></div><?php endif; ?>
             </section>
         </main><?php return (string)ob_get_clean();
