@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TN Game Trip Builder UI
  * Description: Native route builder for saved TN Game places.
- * Version: 0.1.0
+ * Version: 0.2.0
  * Author: The TN Game
  */
 if (!defined('ABSPATH')) exit;
@@ -14,7 +14,7 @@ final class TNG_Trip_Builder_UI {
         ob_start(); ?>
         <main class="tng-builder-screen tng-app-shell">
             <section class="tng-builder-hero">
-                <div><span class="tng-eyebrow">Plan the day</span><h1>Build your trip.</h1><p>Put saved stops in the order you want to visit them, then open the route when you are ready to go.</p></div>
+                <div><span class="tng-eyebrow">Plan the day</span><h1>Build your trip.</h1><p>Put saved stops in the order you want to visit them, then start Trip Mode when you are ready to go.</p></div>
                 <div class="tng-builder-hero__count"><strong><?php echo esc_html((string) count($posts)); ?></strong><small>Stops</small></div>
             </section>
 
@@ -22,7 +22,7 @@ final class TNG_Trip_Builder_UI {
                 <a href="<?php echo esc_url(home_url('/trips/')); ?>">🗺 Trips</a>
                 <a href="<?php echo esc_url(home_url('/saved/')); ?>">♡ Saved places</a>
                 <a class="is-active" href="<?php echo esc_url(home_url('/trip-builder/')); ?>">☰ Trip builder</a>
-                <a href="<?php echo esc_url(home_url('/completed/')); ?>">🥾 Completed</a>
+                <a href="<?php echo esc_url(home_url('/active-trip/')); ?>">▶ Trip mode</a>
             </nav>
 
             <?php if (!$logged_in): ?>
@@ -48,8 +48,8 @@ final class TNG_Trip_Builder_UI {
                     <aside class="tng-builder-summary">
                         <span class="tng-eyebrow">Trip summary</span><h2>Your Tennessee day</h2>
                         <dl><div><dt>Stops</dt><dd data-tng-builder-count><?php echo esc_html((string)count($posts)); ?></dd></div><div><dt>Suggested time</dt><dd><?php echo esc_html((string) max(2, count($posts) * 2)); ?>–<?php echo esc_html((string) max(4, count($posts) * 3)); ?> hr</dd></div></dl>
-                        <p>Route optimization and drive-time estimates will connect when the live map data is added.</p>
-                        <a class="tng-ui-button" href="<?php echo esc_url(home_url('/map/')); ?>">Open adventure map</a>
+                        <p>Trip Mode keeps the route, directions, and completion status together while you explore.</p>
+                        <a class="tng-ui-button" href="<?php echo esc_url(home_url('/active-trip/')); ?>">Start trip mode</a>
                         <a class="tng-ui-button tng-ui-button--secondary" href="<?php echo esc_url(home_url('/saved/')); ?>">Add more stops</a>
                     </aside>
                 </div>
