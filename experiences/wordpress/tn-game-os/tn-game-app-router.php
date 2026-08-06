@@ -3,7 +3,7 @@
  * Plugin Name: TN Game App Router
  * Plugin URI: https://thetngame.com
  * Description: Native TN Game routes and full-page app shell for the platform.
- * Version: 2.5.0
+ * Version: 2.6.0
  * Author: The TN Game
  * Text Domain: tn-game-app-router
  */
@@ -13,6 +13,7 @@ add_action('plugins_loaded', static function (): void {
     if (!defined('TNG_OS_PATH') || !defined('TNG_OS_URL')) return;
     if (!class_exists('TNG_Platform_UI')) require_once TNG_OS_PATH . 'tn-game-platform-ui.php';
     if (!class_exists('TNG_Trip_Data')) require_once TNG_OS_PATH . 'tn-game-trip-data.php';
+    if (!class_exists('TNG_Trip_Builder_UI')) require_once TNG_OS_PATH . 'tn-game-trip-builder-ui.php';
     if (!class_exists('TNG_Play_UI')) require_once TNG_OS_PATH . 'tn-game-play-ui.php';
     if (!class_exists('TNG_OS\\Platform\\App_Router')) require_once TNG_OS_PATH . 'app/Platform/class-app-router.php';
     if (!class_exists('TNG_Map_UI')) require_once TNG_OS_PATH . 'tn-game-map-ui.php';
@@ -32,23 +33,25 @@ add_action('plugins_loaded', static function (): void {
 
 add_action('wp_enqueue_scripts', static function (): void {
     if (!class_exists('TNG_OS\\Platform\\App_Router') || !\TNG_OS\Platform\App_Router::is_app_request()) return;
-    wp_enqueue_style('tng-platform-ui', TNG_OS_URL . 'assets/css/platform-ui.css', [], '1.8.0');
-    wp_enqueue_style('tng-platform-ui-refinements', TNG_OS_URL . 'assets/css/platform-ui-refinements.css', ['tng-platform-ui'], '1.8.0');
-    wp_enqueue_style('tng-app-router', TNG_OS_URL . 'assets/css/app-router.css', ['tng-platform-ui'], '2.5.0');
-    wp_enqueue_style('tng-ui-kit', TNG_OS_URL . 'assets/css/ui-kit.css', ['tng-platform-ui', 'tng-app-router'], '2.3.0');
+    wp_enqueue_style('tng-platform-ui', TNG_OS_URL . 'assets/css/platform-ui.css', [], '1.9.0');
+    wp_enqueue_style('tng-platform-ui-refinements', TNG_OS_URL . 'assets/css/platform-ui-refinements.css', ['tng-platform-ui'], '1.9.0');
+    wp_enqueue_style('tng-app-router', TNG_OS_URL . 'assets/css/app-router.css', ['tng-platform-ui'], '2.6.0');
+    wp_enqueue_style('tng-ui-kit', TNG_OS_URL . 'assets/css/ui-kit.css', ['tng-platform-ui', 'tng-app-router'], '2.4.0');
     $route = \TNG_OS\Platform\App_Router::current_route();
-    if ($route === 'play') wp_enqueue_style('tng-play-ui', TNG_OS_URL . 'assets/css/play-ui.css', ['tng-ui-kit'], '0.3.0');
-    if ($route === 'map') wp_enqueue_style('tng-map-ui', TNG_OS_URL . 'assets/css/map-ui.css', ['tng-ui-kit'], '0.3.0');
-    if (in_array($route, ['trips','saved'], true)) wp_enqueue_style('tng-trips-ui', TNG_OS_URL . 'assets/css/trips-ui.css', ['tng-ui-kit'], '0.2.0');
-    if ($route === 'profile') wp_enqueue_style('tng-profile-ui', TNG_OS_URL . 'assets/css/profile-ui.css', ['tng-ui-kit'], '0.2.0');
-    if ($route === 'profile-settings') wp_enqueue_style('tng-settings-ui', TNG_OS_URL . 'assets/css/settings-ui.css', ['tng-ui-kit'], '0.1.0');
-    if ($route === 'search') wp_enqueue_style('tng-search-ui', TNG_OS_URL . 'assets/css/search-ui.css', ['tng-ui-kit'], '0.1.5');
-    if (in_array($route, ['leaderboard','achievements'], true)) wp_enqueue_style('tng-progress-ui', TNG_OS_URL . 'assets/css/progress-ui.css', ['tng-ui-kit'], '0.1.4');
-    if (in_array($route, ['friends','activity'], true)) wp_enqueue_style('tng-social-ui', TNG_OS_URL . 'assets/css/social-ui.css', ['tng-ui-kit'], '0.1.3');
-    if ($route === 'challenges') wp_enqueue_style('tng-challenges-ui', TNG_OS_URL . 'assets/css/challenges-ui.css', ['tng-ui-kit'], '0.1.2');
-    if (in_array($route, ['journal','explorer-journal','completed','my-photos'], true)) wp_enqueue_style('tng-library-ui', TNG_OS_URL . 'assets/css/library-ui.css', ['tng-ui-kit'], '0.1.1');
-    if (in_array($route, ['trails','events','food','top-sights','destinations'], true)) wp_enqueue_style('tng-directory-ui', TNG_OS_URL . 'assets/css/directory-ui.css', ['tng-ui-kit'], '0.1.6');
-    wp_enqueue_script('tng-platform-ui', TNG_OS_URL . 'assets/js/platform-ui.js', [], '1.8.0', true);
+    if ($route === 'play') wp_enqueue_style('tng-play-ui', TNG_OS_URL . 'assets/css/play-ui.css', ['tng-ui-kit'], '0.3.1');
+    if ($route === 'map') wp_enqueue_style('tng-map-ui', TNG_OS_URL . 'assets/css/map-ui.css', ['tng-ui-kit'], '0.3.1');
+    if (in_array($route, ['trips','saved','trip-builder'], true)) wp_enqueue_style('tng-trips-ui', TNG_OS_URL . 'assets/css/trips-ui.css', ['tng-ui-kit'], '0.2.1');
+    if (in_array($route, ['saved','trip-builder'], true)) wp_enqueue_style('tng-trip-builder-ui', TNG_OS_URL . 'assets/css/trip-builder-ui.css', ['tng-trips-ui'], '0.1.0');
+    if ($route === 'profile') wp_enqueue_style('tng-profile-ui', TNG_OS_URL . 'assets/css/profile-ui.css', ['tng-ui-kit'], '0.2.1');
+    if ($route === 'profile-settings') wp_enqueue_style('tng-settings-ui', TNG_OS_URL . 'assets/css/settings-ui.css', ['tng-ui-kit'], '0.1.1');
+    if ($route === 'search') wp_enqueue_style('tng-search-ui', TNG_OS_URL . 'assets/css/search-ui.css', ['tng-ui-kit'], '0.1.6');
+    if (in_array($route, ['leaderboard','achievements'], true)) wp_enqueue_style('tng-progress-ui', TNG_OS_URL . 'assets/css/progress-ui.css', ['tng-ui-kit'], '0.1.5');
+    if (in_array($route, ['friends','activity'], true)) wp_enqueue_style('tng-social-ui', TNG_OS_URL . 'assets/css/social-ui.css', ['tng-ui-kit'], '0.1.4');
+    if ($route === 'challenges') wp_enqueue_style('tng-challenges-ui', TNG_OS_URL . 'assets/css/challenges-ui.css', ['tng-ui-kit'], '0.1.3');
+    if (in_array($route, ['journal','explorer-journal','completed','my-photos'], true)) wp_enqueue_style('tng-library-ui', TNG_OS_URL . 'assets/css/library-ui.css', ['tng-ui-kit'], '0.1.2');
+    if (in_array($route, ['trails','events','food','top-sights','destinations'], true)) wp_enqueue_style('tng-directory-ui', TNG_OS_URL . 'assets/css/directory-ui.css', ['tng-ui-kit'], '0.1.7');
+    wp_enqueue_script('tng-platform-ui', TNG_OS_URL . 'assets/js/platform-ui.js', [], '1.9.0', true);
+    if ($route === 'trip-builder') wp_enqueue_script('tng-trip-builder', TNG_OS_URL . 'assets/js/trip-builder.js', ['tng-trip-data'], '0.1.0', true);
 }, 100);
 
 add_action('wp_footer', static function (): void {
