@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TN Game Past Trips UI
  * Description: Archived Explorer trip history and completed itinerary summaries.
- * Version: 0.1.0
+ * Version: 0.1.1
  * Author: The TN Game
  */
 if (!defined('ABSPATH')) exit;
@@ -12,6 +12,17 @@ final class TNG_Past_Trips_UI {
 
     public static function boot(): void {
         add_action('wp_ajax_tng_archive_active_trip', [self::class, 'ajax_archive']);
+        add_action('wp_enqueue_scripts', [self::class, 'assets'], 120);
+    }
+
+    public static function assets(): void {
+        if (is_admin()) return;
+        wp_enqueue_script('tng-past-trips', TNG_OS_URL . 'assets/js/past-trips.js', [], '0.1.0', true);
+        wp_localize_script('tng-past-trips', 'TNGPastTrips', [
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('tng_archive_trip'),
+            'historyUrl' => home_url('/past-trips/'),
+        ]);
     }
 
     public static function history(int $user_id = 0): array {
@@ -27,16 +38,15 @@ final class TNG_Past_Trips_UI {
         $user_id = get_current_user_id();
         $posts = class_exists('TNG_Trip_Data') ? TNG_Trip_Data::posts($user_id) : [];
         if (!$posts) wp_send_json_error(['code' => 'empty_trip'], 400);
-        $saved_ids = array_map(static fn($post) => (int) $post->ID, $posts);
+        $saved_ids = array_map(static fn($post) => (int)$post->ID, $posts);
         $completed = get_user_meta($user_id, 'tng_active_trip_completed', true);
         $completed = is_array($completed) ? array_map('absint', $completed) : [];
         if (count(array_intersect($saved_ids, $completed)) !== count($saved_ids)) wp_send_json_error(['code' => 'trip_incomplete'], 400);
-
         $trip = [
             'id' => wp_generate_uuid4(),
             'completed_at' => current_time('mysql'),
             'items' => array_map(static function ($post): array {
-                return ['id' => (int)$post->ID, 'title' => get_the_title($post), 'url' => get_permalink($post), 'image' => get_the_post_thumbnail_url($post->ID, 'medium_large') ?: ''];
+                return ['id'=>(int)$post->ID,'title'=>get_the_title($post),'url'=>get_permalink($post),'image'=>get_the_post_thumbnail_url($post->ID,'medium_large') ?: ''];
             }, $posts),
         ];
         $history = self::history($user_id);
@@ -44,7 +54,7 @@ final class TNG_Past_Trips_UI {
         update_user_meta($user_id, self::META_KEY, array_slice($history, 0, 50));
         update_user_meta($user_id, 'tng_active_trip_completed', []);
         update_user_meta($user_id, 'tng_saved_trip_items', []);
-        wp_send_json_success(['redirect' => home_url('/past-trips/'), 'trip' => $trip]);
+        wp_send_json_success(['redirect'=>home_url('/past-trips/'),'trip'=>$trip]);
     }
 
     public static function render(): string {
