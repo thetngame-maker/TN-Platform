@@ -3,7 +3,7 @@
  * Plugin Name: TN Game App Router
  * Plugin URI: https://thetngame.com
  * Description: Native TN Game routes and full-page app shell for the platform.
- * Version: 3.0.0
+ * Version: 3.1.0
  * Author: The TN Game
  * Text Domain: tn-game-app-router
  */
@@ -18,6 +18,7 @@ add_action('plugins_loaded', static function (): void {
     if (!class_exists('TNG_Past_Trips_UI')) require_once TNG_OS_PATH . 'tn-game-past-trips-ui.php';
     if (!class_exists('TNG_Trip_Dock')) require_once TNG_OS_PATH . 'tn-game-trip-dock.php';
     if (!class_exists('TNG_Play_UI')) require_once TNG_OS_PATH . 'tn-game-play-ui.php';
+    if (!class_exists('TNG_Games_UI')) require_once TNG_OS_PATH . 'tn-game-games-ui.php';
     if (!class_exists('TNG_OS\\Platform\\App_Router')) require_once TNG_OS_PATH . 'app/Platform/class-app-router.php';
     if (!class_exists('TNG_Map_UI')) require_once TNG_OS_PATH . 'tn-game-map-ui.php';
     if (!class_exists('TNG_Trips_UI')) require_once TNG_OS_PATH . 'tn-game-trips-ui.php';
@@ -38,10 +39,11 @@ add_action('wp_enqueue_scripts', static function (): void {
     if (!class_exists('TNG_OS\\Platform\\App_Router') || !\TNG_OS\Platform\App_Router::is_app_request()) return;
     wp_enqueue_style('tng-platform-ui', TNG_OS_URL . 'assets/css/platform-ui.css', [], '2.2.0');
     wp_enqueue_style('tng-platform-ui-refinements', TNG_OS_URL . 'assets/css/platform-ui-refinements.css', ['tng-platform-ui'], '2.2.0');
-    wp_enqueue_style('tng-app-router', TNG_OS_URL . 'assets/css/app-router.css', ['tng-platform-ui'], '3.0.0');
+    wp_enqueue_style('tng-app-router', TNG_OS_URL . 'assets/css/app-router.css', ['tng-platform-ui'], '3.1.0');
     wp_enqueue_style('tng-ui-kit', TNG_OS_URL . 'assets/css/ui-kit.css', ['tng-platform-ui', 'tng-app-router'], '2.7.0');
     $route = \TNG_OS\Platform\App_Router::current_route();
     if ($route === 'play') wp_enqueue_style('tng-play-ui', TNG_OS_URL . 'assets/css/play-ui.css', ['tng-ui-kit'], '0.3.4');
+    if ($route === 'games') wp_enqueue_style('tng-games-ui', TNG_OS_URL . 'assets/css/games-ui.css', ['tng-ui-kit'], '0.1.0');
     if ($route === 'map') wp_enqueue_style('tng-map-ui', TNG_OS_URL . 'assets/css/map-ui.css', ['tng-ui-kit'], '0.3.4');
     if (in_array($route, ['trips','saved','trip-builder','active-trip','trip-mode','past-trips'], true)) wp_enqueue_style('tng-trips-ui', TNG_OS_URL . 'assets/css/trips-ui.css', ['tng-ui-kit'], '0.3.0');
     if (in_array($route, ['saved','trip-builder','active-trip','trip-mode','past-trips'], true)) wp_enqueue_style('tng-trip-builder-ui', TNG_OS_URL . 'assets/css/trip-builder-ui.css', ['tng-trips-ui'], '0.1.3');
