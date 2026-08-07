@@ -24,7 +24,9 @@ final class TNG_Gameplay_UI_Milestone {
         wp_enqueue_style('tng-gameplay-milestone-1',TNG_OS_URL . 'assets/frontend/gameplay-milestone-1.css',array(),TNG_OS_VERSION);
         wp_enqueue_style('tng-gameplay-milestone-2',TNG_OS_URL . 'assets/frontend/gameplay-milestone-2.css',array('tng-gameplay-milestone-1'),TNG_OS_VERSION);
         wp_enqueue_style('tng-gameplay-success-transition',TNG_OS_URL . 'assets/frontend/gameplay-success-transition.css',array('tng-gameplay-milestone-2'),TNG_OS_VERSION);
+        wp_enqueue_style('tng-gameplay-adventure-complete',TNG_OS_URL . 'assets/frontend/gameplay-adventure-complete.css',array('tng-gameplay-success-transition'),TNG_OS_VERSION);
         wp_enqueue_script('tng-gameplay-success-transition',TNG_OS_URL . 'assets/frontend/gameplay-success-transition.js',array(),TNG_OS_VERSION,true);
+        wp_enqueue_script('tng-gameplay-adventure-complete',TNG_OS_URL . 'assets/frontend/gameplay-adventure-complete.js',array('tng-gameplay-success-transition'),TNG_OS_VERSION,true);
     }
 
     public static function body_class(array $classes): array {
