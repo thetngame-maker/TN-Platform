@@ -20,9 +20,38 @@
 .tng-adventure-complete__secondary{border:1px solid rgba(255,255,255,.18)!important;background:rgba(255,255,255,.1)!important;color:#fff!important}
 .tng-adventure-complete__profile{grid-column:1/-1;background:#fff!important;color:#12301f!important}
 
-/* A completed runtime should also feel finished after the celebration is dismissed or on revisit. */
+/* Completed adventure state shown after the celebration is dismissed or on revisit. */
 .tng-gameplay-ui-v1.tng-game-is-complete .tng-runtime-progress{border-color:#bdd9c7;background:linear-gradient(135deg,#edf8f0,#fff)}
 .tng-gameplay-ui-v1.tng-game-is-complete .tng-runtime-progressbar span{background:linear-gradient(90deg,#4e8b65,#74ad87)!important}
 .tng-gameplay-ui-v1.tng-game-is-complete .tng-runtime-side>.tng-runtime-card:first-child{background:linear-gradient(145deg,#0d4d2f,#17663f);box-shadow:0 18px 45px rgba(13,77,47,.16)}
+.tng-completed-recap{position:relative;overflow:hidden;margin:24px 0;padding:30px;border:1px solid #c7dfcf;border-radius:28px;background:linear-gradient(145deg,#f6fbf7 0%,#fff 56%,#f2f8f4 100%);box-shadow:0 16px 45px rgba(21,77,47,.08);scroll-margin-top:110px}
+.tng-completed-recap::after{content:"";position:absolute;width:240px;height:240px;right:-105px;top:-115px;border:1px solid rgba(28,117,72,.11);border-radius:50%;box-shadow:0 0 0 34px rgba(28,117,72,.035);pointer-events:none}
+.tng-completed-recap__header{position:relative;z-index:1;display:flex;align-items:flex-start;gap:18px}
+.tng-completed-recap__seal{display:grid;flex:0 0 auto;place-items:center;width:58px;height:58px;border-radius:18px;background:#17633e;color:#fff;font-size:26px;font-weight:900;box-shadow:0 12px 25px rgba(23,99,62,.18)}
+.tng-completed-recap__copy{min-width:0}
+.tng-completed-recap__eyebrow,.tng-completed-recap__label{display:block;color:#e85f1b;font-size:10px;font-weight:900;letter-spacing:.13em;text-transform:uppercase}
+.tng-completed-recap__copy h2{margin:5px 0 7px;color:#12281d;font-size:clamp(27px,4vw,38px);font-weight:800;line-height:1.08;letter-spacing:-.025em}
+.tng-completed-recap__copy p{max-width:720px;margin:0;color:#68796f;font-size:14px;line-height:1.55}
+.tng-completed-recap__stats{position:relative;z-index:1;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:24px 0}
+.tng-completed-recap__stats>div{padding:16px 18px;border:1px solid #dceae1;border-radius:17px;background:#fff}
+.tng-completed-recap__stats strong{display:block;color:#153125;font-size:23px;line-height:1.05}
+.tng-completed-recap__stats span{display:block;margin-top:5px;color:#819087;font-size:9px;font-weight:850;letter-spacing:.08em;text-transform:uppercase}
+.tng-completed-recap__body{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1.45fr) minmax(240px,.75fr);gap:14px}
+.tng-completed-recap__route,.tng-completed-recap__next{padding:19px;border:1px solid #e0e9e3;border-radius:20px;background:rgba(255,255,255,.82)}
+.tng-completed-recap__checkpoints{display:grid;gap:8px;margin-top:12px}
+.tng-completed-recap__checkpoint{display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:14px;background:#f2f8f4}
+.tng-completed-recap__check{display:grid;flex:0 0 auto;place-items:center;width:34px;height:34px;border-radius:11px;background:#dceee2;color:#17633e;font-size:15px;font-weight:900}
+.tng-completed-recap__checkpoint strong{display:block;color:#183125;font-size:13px;line-height:1.2}
+.tng-completed-recap__checkpoint small{display:block;margin-top:3px;color:#7a8b81;font-size:10px}
+.tng-completed-recap__next h3{margin:8px 0 6px;color:#193125;font-size:21px;line-height:1.15}
+.tng-completed-recap__next p{margin:0;color:#74847b;font-size:12px;line-height:1.5}
+.tng-completed-recap__actions{display:grid;gap:8px;margin-top:16px}
+.tng-completed-recap__actions a{display:flex;align-items:center;justify-content:center;min-height:44px;padding:11px 14px;border-radius:13px;font-size:11px;font-weight:900;text-decoration:none!important}
+.tng-completed-recap__primary{background:#f26722;color:#fff!important;box-shadow:0 8px 18px rgba(242,103,34,.18)}
+.tng-completed-recap__secondary{border:1px solid #cfe0d5;background:#fff;color:#183125!important}
+.tng-completed-recap__details{color:#d85b1e!important;background:transparent}
+.tng-game-is-complete .tng-runtime-stop.is-complete{transition:transform .18s ease,box-shadow .18s ease}
+.tng-game-is-complete .tng-runtime-stop.is-complete:hover{transform:translateY(-1px);box-shadow:0 9px 20px rgba(26,83,52,.07)}
 
-@media(max-width:700px){.tng-adventure-complete{padding:14px}.tng-adventure-complete__card{padding:28px 20px 22px;border-radius:25px}.tng-adventure-complete__badge{width:64px;height:64px;border-radius:20px;font-size:32px}.tng-adventure-complete__stats{gap:7px;margin:22px 0 20px}.tng-adventure-complete__stat{padding:13px 8px;border-radius:14px}.tng-adventure-complete__stat strong{font-size:20px}.tng-adventure-complete__stat span{font-size:8px}.tng-adventure-complete__actions{grid-template-columns:1fr}.tng-adventure-complete__profile{grid-column:auto}}
+@media(max-width:900px){.tng-completed-recap__body{grid-template-columns:1fr}}
+@media(max-width:700px){.tng-adventure-complete{padding:14px}.tng-adventure-complete__card{padding:28px 20px 22px;border-radius:25px}.tng-adventure-complete__badge{width:64px;height:64px;border-radius:20px;font-size:32px}.tng-adventure-complete__stats{gap:7px;margin:22px 0 20px}.tng-adventure-complete__stat{padding:13px 8px;border-radius:14px}.tng-adventure-complete__stat strong{font-size:20px}.tng-adventure-complete__stat span{font-size:8px}.tng-adventure-complete__actions{grid-template-columns:1fr}.tng-adventure-complete__profile{grid-column:auto}.tng-completed-recap{margin:18px 0;padding:20px 16px;border-radius:22px}.tng-completed-recap__header{gap:12px}.tng-completed-recap__seal{width:48px;height:48px;border-radius:15px;font-size:22px}.tng-completed-recap__copy h2{font-size:27px}.tng-completed-recap__stats{grid-template-columns:1fr 1fr;gap:8px;margin:18px 0}.tng-completed-recap__stats>div:last-child{grid-column:1/-1}.tng-completed-recap__stats>div{padding:13px 14px}.tng-completed-recap__stats strong{font-size:20px}.tng-completed-recap__route,.tng-completed-recap__next{padding:15px;border-radius:17px}}
