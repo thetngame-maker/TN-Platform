@@ -29,6 +29,14 @@ final class TNG_Game_Visual_Builder {
         return '';
     }
 
+    private static function clean_text(string $text, int $words = 28): string {
+        $text = strip_shortcodes($text);
+        $text = preg_replace('/\[[^\]]+\]/', ' ', $text) ?? $text;
+        $text = html_entity_decode(wp_strip_all_tags($text), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $text = preg_replace('/\s+/', ' ', $text) ?? $text;
+        return wp_trim_words(trim($text), $words, '…');
+    }
+
     private static function gpx_url(int $post_id): string {
         $keys = ['trail_gpx_url','gpx_url','trail_gpx','gpx_file','route_gpx','trail_route_gpx','_trail_gpx_url'];
         foreach ($keys as $key) {
@@ -105,9 +113,21 @@ final class TNG_Game_Visual_Builder {
         ]);
         $out = [];
         foreach ($posts as $post) {
-            [$lat,$lng] = self::coordinates((int)$post->ID);
+            $id = (int)$post->ID;
+            [$lat,$lng] = self::coordinates($id);
             if (!$lat && !$lng) continue;
-            $out[] = ['id'=>(int)$post->ID,'title'=>get_the_title($post),'lat'=>$lat,'lng'=>$lng,'postType'=>$post->post_type];
+            $sight_type = self::first_meta($id, ['sight_type','_sight_type','top_sight_type','type']);
+            $short = self::first_meta($id, ['sight_short_description','_sight_short_description','short_description','summary']);
+            if ($short === '') $short = (string)get_the_excerpt($id);
+            $out[] = [
+                'id'=>$id,
+                'title'=>get_the_title($post),
+                'lat'=>$lat,
+                'lng'=>$lng,
+                'postType'=>$post->post_type,
+                'sightType'=>$sight_type,
+                'shortDescription'=>self::clean_text($short, 18),
+            ];
         }
         return $out;
     }
@@ -179,13 +199,14 @@ final class TNG_Game_Visual_Builder {
             $sight_ids = self::linked_sight_ids($id,$sights);
             $difficulty = self::first_meta($id, ['trail_difficulty','_trail_difficulty','difficulty','activity_difficulty']);
             $duration = self::first_meta($id, ['trail_time','_trail_time','estimated_time','duration','activity_duration']);
+            $players = self::first_meta($id, ['player_count','players','recommended_players']);
             $summary = self::first_meta($id, ['_tng_destination_ai_profile']);
             if ($summary !== '') {
                 $decoded = maybe_unserialize($summary);
-                if (is_array($decoded) && !empty($decoded['summary'])) $summary = wp_strip_all_tags((string)$decoded['summary']);
+                if (is_array($decoded) && !empty($decoded['summary'])) $summary = (string)$decoded['summary'];
                 else $summary = '';
             }
-            if ($summary === '') $summary = get_the_excerpt($id);
+            if ($summary === '') $summary = (string)get_the_excerpt($id);
             $out[] = [
                 'id'=>$id,
                 'title'=>get_the_title($post),
@@ -193,16 +214,11 @@ final class TNG_Game_Visual_Builder {
                 'sightIds'=>$sight_ids,
                 'difficulty'=>$difficulty,
                 'duration'=>$duration,
-                'summary'=>wp_trim_words(wp_strip_all_tags((string)$summary), 28, '…'),
+                'players'=>$players,
+                'summary'=>self::clean_text($summary, 28),
             ];
         }
         return $out;
-    }
-
-    private static function asset_version(string $relative_path): string {
-        $path = TNG_OS_PATH . ltrim($relative_path, '/');
-        if (is_file($path)) return (string) filemtime($path);
-        return defined('TNG_OS_VERSION') ? (string) TNG_OS_VERSION : '0.3.1';
     }
 
     public static function enqueue(): void {
@@ -211,8 +227,12 @@ final class TNG_Game_Visual_Builder {
         $trails = self::trails($sights);
         wp_enqueue_style('tng-builder-leaflet', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css', [], '1.9.4');
         wp_enqueue_script('tng-builder-leaflet', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', [], '1.9.4', true);
-        wp_enqueue_style('tng-game-visual-builder', TNG_OS_URL . 'assets/css/game-visual-builder.css', ['tng-game-builder-ui','tng-builder-leaflet'], self::asset_version('assets/css/game-visual-builder.css'));
-        wp_enqueue_script('tng-game-visual-builder', TNG_OS_URL . 'assets/js/game-visual-builder.js', ['tng-builder-leaflet'], self::asset_version('assets/js/game-visual-builder.js'), true);
+        $css_path = TNG_OS_PATH . 'assets/css/game-visual-builder.css';
+        $js_path = TNG_OS_PATH . 'assets/js/game-visual-builder.js';
+        $css_version = is_file($css_path) ? (string)filemtime($css_path) : '0.3.1';
+        $js_version = is_file($js_path) ? (string)filemtime($js_path) : '0.3.1';
+        wp_enqueue_style('tng-game-visual-builder', TNG_OS_URL . 'assets/css/game-visual-builder.css', ['tng-game-builder-ui','tng-builder-leaflet'], $css_version);
+        wp_enqueue_script('tng-game-visual-builder', TNG_OS_URL . 'assets/js/game-visual-builder.js', ['tng-builder-leaflet'], $js_version, true);
         wp_localize_script('tng-game-visual-builder', 'TNG_VISUAL_BUILDER', [
             'trails' => $trails,
             'sights' => $sights,
