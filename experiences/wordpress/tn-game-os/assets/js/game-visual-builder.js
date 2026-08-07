@@ -11,6 +11,37 @@
     const trailSelect = form?.querySelector('select[name="trail_route_source"]');
     if (!form || !textarea || !trailSelect || form.querySelector('[data-tng-visual-builder]')) return;
 
+    const titleInput = form.querySelector('input[name="game_title"]');
+    const typeSelect = form.querySelector('select[name="game_type"]');
+    const difficultySelect = form.querySelector('select[name="game_difficulty"]');
+    const durationInput = form.querySelector('input[name="game_duration"]');
+    const summaryInput = form.querySelector('textarea[name="game_summary"]');
+    const checkpointCountInput = form.querySelector('input[name="checkpoint_count"]');
+
+    const touched = new WeakSet();
+    [titleInput,typeSelect,difficultySelect,durationInput,summaryInput,checkpointCountInput].filter(Boolean).forEach(el => {
+      el.addEventListener('input', () => touched.add(el));
+      el.addEventListener('change', () => touched.add(el));
+    });
+
+    const setIfBlank = (el, value) => {
+      if (!el || touched.has(el) || value === undefined || value === null || String(value).trim() === '') return;
+      if (String(el.value || '').trim() !== '') return;
+      el.value = String(value);
+      el.dispatchEvent(new Event('change', { bubbles:true }));
+    };
+
+    const setSelectIfAvailable = (el, value, forceWhenDefault=false) => {
+      if (!el || touched.has(el) || value === undefined || value === null || String(value).trim() === '') return;
+      const wanted = String(value).trim().toLowerCase();
+      const option = [...el.options].find(o => String(o.value || o.textContent).trim().toLowerCase() === wanted);
+      if (!option) return;
+      const current = String(el.value || '').trim();
+      if (current && !forceWhenDefault) return;
+      el.value = option.value;
+      el.dispatchEvent(new Event('change', { bubbles:true }));
+    };
+
     const label = textarea.closest('label');
     if (!label) return;
 
@@ -73,6 +104,28 @@
     const trailSightsBox = wrap.querySelector('[data-tng-trail-sights]');
     const trailById = new Map((data.trails || []).map(t => [String(t.id), t]));
 
+    const applyTrailDefaults = trail => {
+      if (!trail) return;
+      setIfBlank(titleInput, trail.title);
+      if (typeSelect && !touched.has(typeSelect)) {
+        const current = String(typeSelect.value || '').trim().toLowerCase();
+        if (!current || current === 'scavenger hunt') {
+          const option = [...typeSelect.options].find(o => String(o.value || o.textContent).trim().toLowerCase() === 'trail quest');
+          if (option) typeSelect.value = option.value;
+        }
+      }
+      if (difficultySelect && !touched.has(difficultySelect) && trail.difficulty) {
+        const wanted = String(trail.difficulty).trim().toLowerCase();
+        const option = [...difficultySelect.options].find(o => String(o.value || o.textContent).trim().toLowerCase() === wanted);
+        if (option) difficultySelect.value = option.value;
+      }
+      setIfBlank(durationInput, trail.duration);
+      setIfBlank(summaryInput, trail.summary);
+      if (checkpointCountInput && !touched.has(checkpointCountInput) && Array.isArray(trail.sightIds) && trail.sightIds.length) {
+        checkpointCountInput.value = String(trail.sightIds.length);
+      }
+    };
+
     const lineFor = cp => {
       const title = (cp.title || '').trim();
       const instructions = (cp.instructions || '').trim();
@@ -84,7 +137,10 @@
       return `${title} | ${instructions} | tap`;
     };
 
-    const sync = () => { textarea.value = checkpoints.map(lineFor).join('\n'); };
+    const sync = () => {
+      textarea.value = checkpoints.map(lineFor).join('\n');
+      if (checkpointCountInput && !touched.has(checkpointCountInput) && checkpoints.length) checkpointCountInput.value = String(checkpoints.length);
+    };
 
     const hasSight = id => checkpoints.some(cp => String(cp.sightId || '') === String(id));
     const addSightCheckpoint = (sight, source='manual') => {
@@ -221,6 +277,8 @@
         routeStatus.textContent = 'No linked trail. Click the map to place checkpoints manually.';
         return;
       }
+
+      applyTrailDefaults(trail);
       const added = preloadTrailSights(trail);
       const sightNote = (trail.sightIds || []).length ? ` ${trail.sightIds.length} linked Top Sight${trail.sightIds.length===1?'':'s'} loaded automatically.` : '';
       if (!trail.gpxUrl) {
@@ -237,9 +295,9 @@
         const bounds = routeLayer.getBounds();
         (trail.sightIds || []).map(id => sightById.get(String(id))).filter(Boolean).forEach(s => bounds.extend([Number(s.lat),Number(s.lng)]));
         map.fitBounds(bounds, { padding:[35,35] });
-        routeStatus.textContent = `${trail.title} route loaded.${sightNote} Click the trail to add more checkpoints.`;
+        routeStatus.textContent = `${trail.title} route loaded.${sightNote} Game details were filled from the trail where available.`;
       } catch (e) {
-        routeStatus.textContent = `The trail is linked, but its GPX preview could not load.${sightNote} You can still place checkpoints manually.`;
+        routeStatus.textContent = `The trail is linked, but its GPX preview could not load.${sightNote} Game details were still filled where available.`;
       }
       if (added) renderTrailSights(trail);
     };
