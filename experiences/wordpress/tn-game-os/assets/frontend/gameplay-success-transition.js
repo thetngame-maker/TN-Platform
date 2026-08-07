@@ -8,6 +8,11 @@
     catch(e){ return 0; }
   }
 
+  function isComplete(){
+    var complete=qs('.tng-runtime-progress .tng-eyebrow');
+    return !!(complete && /game complete/i.test(complete.textContent||''));
+  }
+
   function cleanUrl(){
     try {
       var u=new URL(window.location.href);
@@ -18,10 +23,6 @@
   }
 
   function target(){
-    var complete=qs('.tng-runtime-progress .tng-eyebrow');
-    if(complete && /game complete/i.test(complete.textContent||'')) {
-      return qs('.tng-runtime-progress');
-    }
     return qs('.tng-runtime-stop.is-next') || qs('.tng-runtime-progress');
   }
 
@@ -59,7 +60,6 @@
       if('scrollRestoration' in history) history.scrollRestoration='manual';
     } catch(e){}
 
-    // Beat Safari/browser scroll restoration and put the new active mission in view first.
     focusTarget('auto');
     window.setTimeout(function(){focusTarget('auto');},60);
     window.setTimeout(function(){focusTarget('auto');},220);
@@ -70,7 +70,7 @@
 
   document.addEventListener('DOMContentLoaded',function(){
     var xp=getXP();
-    if(!xp) return;
+    if(!xp || isComplete()) return;
     beginSuccessFlow(xp);
   });
 })();
