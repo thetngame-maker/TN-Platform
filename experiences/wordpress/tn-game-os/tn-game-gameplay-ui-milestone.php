@@ -36,3 +36,6 @@ final class TNG_Gameplay_UI_Milestone {
 }
 
 TNG_Gameplay_UI_Milestone::boot();
+
+// Gameplay-only adapter that turns the persistent trip dock into an Active Game dock.
+require_once TNG_OS_PATH . 'tn-game-gameplay-dock-context.php';
