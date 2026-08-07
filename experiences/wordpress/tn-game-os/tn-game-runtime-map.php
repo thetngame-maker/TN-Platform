@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: TN Game Runtime Map
- * Description: Live checkpoint map for active TN Game adventures.
- * Version: 0.1.0
+ * Description: Live checkpoint map and trail route for active TN Game adventures.
+ * Version: 0.2.0
  * Author: The TN Game
  */
 if (!defined('ABSPATH')) exit;
@@ -64,6 +64,70 @@ final class TNG_Game_Runtime_Map {
         return $out;
     }
 
+    private static function normalize_media_url($value): string {
+        if (is_numeric($value)) {
+            $url = wp_get_attachment_url(absint($value));
+            return $url ? esc_url_raw($url) : '';
+        }
+        if (is_array($value)) {
+            foreach (['url','file','src','ID','id'] as $key) {
+                if (isset($value[$key])) {
+                    $url = self::normalize_media_url($value[$key]);
+                    if ($url !== '') return $url;
+                }
+            }
+            return '';
+        }
+        $value = trim((string) $value);
+        if ($value === '') return '';
+        if (strpos($value, '/') === 0) return esc_url_raw(home_url($value));
+        return esc_url_raw($value);
+    }
+
+    private static function route_url_from_post(int $post_id): string {
+        if (!$post_id) return '';
+        $keys = [
+            'trail_gpx_url', 'trail_gpx', 'gpx_url', 'gpx_file', 'gpx',
+            'tng_gpx_url', 'tng_trail_gpx', 'route_gpx_url', 'route_gpx'
+        ];
+        foreach ($keys as $key) {
+            $value = get_post_meta($post_id, $key, true);
+            $url = self::normalize_media_url($value);
+            if ($url !== '') return $url;
+            if (function_exists('get_field')) {
+                $url = self::normalize_media_url(get_field($key, $post_id));
+                if ($url !== '') return $url;
+            }
+        }
+        return '';
+    }
+
+    private static function linked_trail_id(int $game_id): int {
+        $keys = [
+            'trail_id', 'tng_trail_id', 'source_trail_id', 'source_activity_id',
+            'linked_activity_id', 'activity_id', 'parent_activity_id', 'game_trail_id'
+        ];
+        foreach ($keys as $key) {
+            $id = absint(get_post_meta($game_id, $key, true));
+            if ($id && get_post($id)) return $id;
+            if (function_exists('get_field')) {
+                $value = get_field($key, $game_id);
+                if (is_object($value) && !empty($value->ID)) $id = absint($value->ID);
+                elseif (is_array($value) && isset($value['ID'])) $id = absint($value['ID']);
+                else $id = absint($value);
+                if ($id && get_post($id)) return $id;
+            }
+        }
+        return 0;
+    }
+
+    private static function route_url(int $game_id): string {
+        $url = self::route_url_from_post($game_id);
+        if ($url !== '') return $url;
+        $trail_id = self::linked_trail_id($game_id);
+        return $trail_id ? self::route_url_from_post($trail_id) : '';
+    }
+
     public static function enqueue(): void {
         if (!self::is_game_play()) return;
         $game_id = self::game_id();
@@ -73,17 +137,20 @@ final class TNG_Game_Runtime_Map {
 
         wp_enqueue_style('tng-leaflet', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css', [], '1.9.4');
         wp_enqueue_script('tng-leaflet', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', [], '1.9.4', true);
-        wp_enqueue_style('tng-game-runtime-map', TNG_OS_URL . 'assets/css/game-runtime-map.css', ['tng-game-runtime-ui','tng-leaflet'], '0.1.0');
-        wp_enqueue_script('tng-game-runtime-map', TNG_OS_URL . 'assets/js/game-runtime-map.js', ['tng-leaflet'], '0.1.0', true);
+        wp_enqueue_style('tng-game-runtime-map', TNG_OS_URL . 'assets/css/game-runtime-map.css', ['tng-game-runtime-ui','tng-leaflet'], '0.2.0');
+        wp_enqueue_script('tng-game-runtime-map', TNG_OS_URL . 'assets/js/game-runtime-map.js', ['tng-leaflet'], '0.2.0', true);
         wp_localize_script('tng-game-runtime-map', 'TNG_GAME_MAP', [
             'gameId' => $game_id,
             'checkpoints' => $checkpoints,
+            'routeUrl' => self::route_url($game_id),
             'labels' => [
                 'eyebrow' => 'Live adventure',
                 'title' => 'Game map',
                 'subtitle' => 'Follow your route and watch checkpoints unlock as you progress.',
                 'locate' => 'Find me',
                 'locationError' => 'We could not read your location. Check your browser location permission.',
+                'routeReady' => 'Trail route loaded',
+                'routeUnavailable' => 'Checkpoint map',
                 'current' => 'Up next',
                 'completed' => 'Completed',
                 'locked' => 'Locked',
