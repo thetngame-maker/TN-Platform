@@ -1,0 +1,165 @@
+/*
+ * TN Game — Gameplay UI Milestone 2
+ * Map interaction polish + gameplay-owned persistent dock.
+ * Presentation only. Runtime validation and progression remain untouched.
+ */
+
+/* The normal itinerary dock must never compete with an active game. */
+.tng-gameplay-ui-v1 .tng-atm,
+.tng-gameplay-ui-v1 .tng-atm-panel{
+  display:none!important;
+}
+
+.tng-game-dock{
+  position:fixed;
+  left:50%;
+  bottom:18px;
+  z-index:999996;
+  display:grid;
+  grid-template-columns:46px minmax(0,1fr) 118px auto auto;
+  align-items:center;
+  gap:10px;
+  width:min(760px,calc(100% - 28px));
+  padding:11px 12px;
+  transform:translateX(-50%);
+  border:1px solid #dfe6df;
+  border-radius:20px;
+  background:rgba(255,255,255,.96);
+  color:#13231a;
+  box-shadow:0 18px 50px rgba(18,40,27,.16);
+  backdrop-filter:blur(14px);
+}
+
+.tng-game-dock__icon{
+  display:grid;
+  place-items:center;
+  width:42px;
+  height:42px;
+  border-radius:14px;
+  background:#f26722;
+  color:#fff;
+  font-size:17px;
+  box-shadow:0 7px 16px rgba(242,103,34,.22);
+}
+
+.tng-game-dock__copy{min-width:0}
+.tng-game-dock__kicker{color:#d94e0d;font-size:9px;font-weight:900;letter-spacing:.12em;text-transform:uppercase}
+.tng-game-dock__title{margin-top:1px;overflow:hidden;color:#13231a;font-size:14px;font-weight:900;line-height:1.15;text-overflow:ellipsis;white-space:nowrap}
+.tng-game-dock__meta{margin-top:3px;overflow:hidden;color:#6e7a73;font-size:10px;line-height:1.15;text-overflow:ellipsis;white-space:nowrap}
+.tng-game-dock__progress{height:7px;overflow:hidden;border-radius:999px;background:#e7eee8}
+.tng-game-dock__progress span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#f26722,#ff9a62);transition:width .35s ease}
+
+.tng-game-dock__checkpoint,
+.tng-game-dock__details{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:40px;
+  padding:9px 12px;
+  border-radius:12px;
+  font:inherit;
+  font-size:11px;
+  font-weight:900;
+  line-height:1;
+  text-decoration:none!important;
+  white-space:nowrap;
+  cursor:pointer;
+}
+.tng-game-dock__checkpoint{border:1px solid #dfe5df;background:#fff;color:#13231a}
+.tng-game-dock__details{border:0;background:#f26722;color:#fff!important}
+
+/* Treat the Leaflet popup as an in-game mission card. */
+.tng-game-runtime .leaflet-popup-content-wrapper{
+  overflow:hidden;
+  border:1px solid rgba(19,35,26,.08);
+  border-radius:20px;
+  background:rgba(255,255,255,.98);
+  box-shadow:0 18px 46px rgba(18,40,27,.19);
+}
+.tng-game-runtime .leaflet-popup-content{
+  min-width:255px;
+  margin:0!important;
+  padding:17px 18px 16px;
+  color:#13231a;
+  font-family:inherit;
+  line-height:1.35;
+}
+.tng-game-runtime .leaflet-popup-content::before{
+  content:"CURRENT MISSION";
+  display:block;
+  margin:0 0 7px;
+  color:#f26722;
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.12em;
+}
+.tng-game-runtime .leaflet-popup-content strong,
+.tng-game-runtime .leaflet-popup-content b{
+  color:#13231a;
+  font-size:16px;
+  line-height:1.18;
+}
+.tng-game-runtime .leaflet-popup-content a{
+  display:inline-flex;
+  align-items:center;
+  min-height:34px;
+  margin-top:8px;
+  padding:7px 10px;
+  border-radius:999px;
+  background:#fff3ed;
+  color:#d94e0d!important;
+  font-size:11px;
+  font-weight:900;
+  text-decoration:none!important;
+}
+.tng-game-runtime .leaflet-popup-tip{background:#fff}
+.tng-game-runtime .leaflet-popup-close-button{
+  top:7px!important;
+  right:7px!important;
+  display:grid!important;
+  place-items:center;
+  width:30px!important;
+  height:30px!important;
+  padding:0!important;
+  border-radius:50%;
+  background:#f5f6f3!important;
+  color:#68736d!important;
+  font-size:18px!important;
+}
+
+/* Bring the map itself visually closer to a native game surface. */
+.tng-game-runtime .leaflet-container{
+  background:#edf1e9;
+}
+.tng-game-runtime .leaflet-control-zoom{
+  overflow:hidden;
+  border:0!important;
+  border-radius:13px!important;
+  box-shadow:0 8px 22px rgba(18,40,27,.12)!important;
+}
+.tng-game-runtime .leaflet-control-zoom a{
+  width:36px!important;
+  height:36px!important;
+  border-color:#edf0eb!important;
+  color:#13231a!important;
+  font-size:20px!important;
+  line-height:36px!important;
+}
+
+@media(max-width:700px){
+  .tng-game-dock{
+    bottom:10px;
+    grid-template-columns:42px minmax(0,1fr) auto;
+    gap:8px;
+    width:calc(100% - 20px);
+    padding:9px 10px;
+    border-radius:18px;
+  }
+  .tng-game-dock__icon{width:38px;height:38px;border-radius:12px}
+  .tng-game-dock__progress{grid-column:2/4;width:100%}
+  .tng-game-dock__checkpoint{grid-column:3;grid-row:1/3;min-height:42px;padding:8px 10px}
+  .tng-game-dock__details{display:none}
+  .tng-game-dock__title{font-size:13px}
+  .tng-game-dock__meta{font-size:9px}
+  .tng-game-runtime .leaflet-popup-content{min-width:215px;padding:15px 16px 14px}
+}
