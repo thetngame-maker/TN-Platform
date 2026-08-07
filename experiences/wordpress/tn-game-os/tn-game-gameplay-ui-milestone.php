@@ -1,7 +1,7 @@
 <?php
 /**
- * TN Game Gameplay UI Milestone 1
- * Loads the player-first presentation layer only on the native /game-play/ runtime.
+ * TN Game Gameplay UI Milestones
+ * Loads player-first presentation layers only on the native /game-play/ runtime.
  */
 if (!defined('ABSPATH')) exit;
 
@@ -27,15 +27,24 @@ final class TNG_Gameplay_UI_Milestone {
             array(),
             TNG_OS_VERSION
         );
+        wp_enqueue_style(
+            'tng-gameplay-milestone-2',
+            TNG_OS_URL . 'assets/frontend/gameplay-milestone-2.css',
+            array('tng-gameplay-milestone-1'),
+            TNG_OS_VERSION
+        );
     }
 
     public static function body_class(array $classes): array {
-        if (self::is_gameplay_request()) $classes[] = 'tng-gameplay-ui-v1';
+        if (self::is_gameplay_request()) {
+            $classes[] = 'tng-gameplay-ui-v1';
+            $classes[] = 'tng-gameplay-ui-v2';
+        }
         return $classes;
     }
 }
 
 TNG_Gameplay_UI_Milestone::boot();
 
-// Gameplay-only adapter that turns the persistent trip dock into an Active Game dock.
+// Gameplay owns its dock while the native runtime is open.
 require_once TNG_OS_PATH . 'tn-game-gameplay-dock-context.php';
