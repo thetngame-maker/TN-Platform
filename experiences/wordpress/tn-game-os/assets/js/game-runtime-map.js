@@ -14,7 +14,7 @@
     section.innerHTML = `
       <div class="tng-runtime-map-panel__head">
         <div><span class="tng-eyebrow">${data.labels.eyebrow}</span><h2>${data.labels.title}</h2><p>${data.labels.subtitle}</p></div>
-        <div class="tng-runtime-map-panel__actions"><button type="button" data-tng-game-locate>⌖ ${data.labels.locate}</button></div>
+        <div class="tng-runtime-map-panel__actions"><span class="tng-runtime-map-badge" data-tng-route-badge>${data.routeUrl ? 'Loading route…' : data.labels.routeUnavailable}</span><button type="button" data-tng-game-locate>⌖ ${data.labels.locate}</button></div>
       </div>
       <div class="tng-runtime-map" data-tng-game-map aria-label="Live game checkpoint map"></div>
       <div class="tng-runtime-map-status" data-tng-map-status></div>`;
@@ -22,6 +22,7 @@
 
     const mapNode = section.querySelector('[data-tng-game-map]');
     const status = section.querySelector('[data-tng-map-status]');
+    const routeBadge = section.querySelector('[data-tng-route-badge]');
     const map = L.map(mapNode, { zoomControl: true, scrollWheelZoom: false });
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
@@ -47,7 +48,8 @@
       popup.querySelector('strong').textContent = checkpoint.title;
       popup.querySelector('p').textContent = checkpoint.instructions || `${checkpoint.radius} m checkpoint radius`;
       popup.querySelector('button').addEventListener('click', () => {
-        const stop = document.querySelector(`.tng-runtime-stop:nth-of-type(${checkpoint.index + 1})`);
+        const stops = document.querySelectorAll('.tng-runtime-stop');
+        const stop = stops[checkpoint.index];
         if (stop) stop.scrollIntoView({ behavior: 'smooth', block: 'center' });
       });
       marker.bindPopup(popup);
@@ -65,8 +67,43 @@
       }
     });
 
-    if (bounds.length === 1) map.setView(bounds[0], 16);
-    else map.fitBounds(bounds, { padding: [44,44], maxZoom: 16 });
+    const fitAll = () => {
+      if (bounds.length === 1) map.setView(bounds[0], 16);
+      else if (bounds.length > 1) map.fitBounds(bounds, { padding: [44,44], maxZoom: 16 });
+    };
+    fitAll();
+
+    const loadRoute = async () => {
+      if (!data.routeUrl) return;
+      try {
+        const response = await fetch(data.routeUrl, { credentials: 'same-origin' });
+        if (!response.ok) throw new Error('Route request failed');
+        const xmlText = await response.text();
+        const xml = new DOMParser().parseFromString(xmlText, 'application/xml');
+        if (xml.querySelector('parsererror')) throw new Error('Invalid GPX');
+        const points = Array.from(xml.querySelectorAll('trkpt, rtept')).map((node) => {
+          const lat = Number(node.getAttribute('lat'));
+          const lng = Number(node.getAttribute('lon'));
+          return Number.isFinite(lat) && Number.isFinite(lng) ? [lat, lng] : null;
+        }).filter(Boolean);
+        if (points.length < 2) throw new Error('No route points');
+
+        L.polyline(points, {
+          color: '#ef6425',
+          weight: 5,
+          opacity: .9,
+          lineJoin: 'round',
+          lineCap: 'round'
+        }).addTo(map).bringToBack();
+        points.forEach((point) => bounds.push(point));
+        map.fitBounds(bounds, { padding: [44,44], maxZoom: 16 });
+        routeBadge.textContent = data.labels.routeReady;
+        routeBadge.classList.add('is-ready');
+      } catch (error) {
+        routeBadge.textContent = data.labels.routeUnavailable;
+      }
+    };
+    loadRoute();
 
     const current = data.checkpoints.find((cp) => cp.current);
     if (current && markerByIndex.has(current.index)) markerByIndex.get(current.index).openPopup();
