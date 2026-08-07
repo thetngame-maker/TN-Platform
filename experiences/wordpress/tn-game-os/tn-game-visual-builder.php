@@ -17,6 +17,18 @@ final class TNG_Game_Visual_Builder {
             && TNG_OS\Platform\App_Router::current_route() === 'game-builder';
     }
 
+    private static function first_meta(int $post_id, array $keys): string {
+        foreach ($keys as $key) {
+            $value = get_post_meta($post_id, $key, true);
+            if (is_scalar($value) && trim((string)$value) !== '') return trim((string)$value);
+            if (function_exists('get_field')) {
+                $value = get_field($key, $post_id);
+                if (is_scalar($value) && trim((string)$value) !== '') return trim((string)$value);
+            }
+        }
+        return '';
+    }
+
     private static function gpx_url(int $post_id): string {
         $keys = ['trail_gpx_url','gpx_url','trail_gpx','gpx_file','route_gpx','trail_route_gpx','_trail_gpx_url'];
         foreach ($keys as $key) {
@@ -41,10 +53,8 @@ final class TNG_Game_Visual_Builder {
     }
 
     private static function coordinates(int $post_id): array {
-        // Legacy TN Game Top Sights store their precise checkpoint coordinates here.
         $pairs = [
-            ['_sight_latitude','_sight_longitude'],
-            ['sight_latitude','sight_longitude'],
+            ['_sight_latitude','_sight_longitude'],['sight_latitude','sight_longitude'],
             ['latitude','longitude'],['lat','lng'],['trail_latitude','trail_longitude'],['st_latitude','st_longitude'],
             ['map_lat','map_lng'],['location_lat','location_lng'],['_latitude','_longitude'],['tng_latitude','tng_longitude']
         ];
@@ -67,10 +77,7 @@ final class TNG_Game_Visual_Builder {
     }
 
     private static function sight_post_types(): array {
-        // This is the actual legacy TN Game Top Sight CPT on the live site.
-        $out = post_type_exists('top-sights') ? ['top-sights'] : [];
-
-        // Keep compatibility with alternate/older registrations.
+        $out = [];
         foreach (get_post_types([], 'objects') as $slug => $obj) {
             $haystack = strtolower($slug . ' ' . ($obj->label ?? '') . ' ' . ($obj->labels->singular_name ?? ''));
             if (
@@ -100,14 +107,7 @@ final class TNG_Game_Visual_Builder {
         foreach ($posts as $post) {
             [$lat,$lng] = self::coordinates((int)$post->ID);
             if (!$lat && !$lng) continue;
-            $out[] = [
-                'id'=>(int)$post->ID,
-                'title'=>get_the_title($post),
-                'lat'=>$lat,
-                'lng'=>$lng,
-                'postType'=>$post->post_type,
-                'sightType'=>(string)get_post_meta((int)$post->ID, '_sight_type', true),
-            ];
+            $out[] = ['id'=>(int)$post->ID,'title'=>get_the_title($post),'lat'=>$lat,'lng'=>$lng,'postType'=>$post->post_type];
         }
         return $out;
     }
@@ -135,16 +135,12 @@ final class TNG_Game_Visual_Builder {
         $valid = array_fill_keys(array_map(static fn($s)=>(int)$s['id'], $sights), true);
         $ids = [];
 
-        // Exact legacy trail -> Top Sight relationship used by TN Game/ACF.
-        $related = get_post_meta($trail_id, 'related_top_sights', true);
-        self::collect_ids($related, $ids);
-
-        if (function_exists('get_field')) {
-            $acf_related = get_field('related_top_sights', $trail_id);
-            self::collect_ids($acf_related, $ids);
+        foreach (['related_top_sights','_related_top_sights'] as $relationship_key) {
+            $relationship = get_post_meta($trail_id, $relationship_key, true);
+            self::collect_ids($relationship, $ids);
+            if (function_exists('get_field')) self::collect_ids(get_field($relationship_key, $trail_id), $ids);
         }
 
-        // Compatibility fallback for other relationship fields.
         $trail_meta = get_post_meta($trail_id);
         foreach ($trail_meta as $key => $values) {
             if (!preg_match('/sight|checkpoint|poi|landmark|attraction/i', (string)$key)) continue;
@@ -180,11 +176,24 @@ final class TNG_Game_Visual_Builder {
         $out = [];
         foreach ($posts as $post) {
             $id = (int)$post->ID;
+            $sight_ids = self::linked_sight_ids($id,$sights);
+            $difficulty = self::first_meta($id, ['trail_difficulty','_trail_difficulty','difficulty','activity_difficulty']);
+            $duration = self::first_meta($id, ['trail_time','_trail_time','estimated_time','duration','activity_duration']);
+            $summary = self::first_meta($id, ['_tng_destination_ai_profile']);
+            if ($summary !== '') {
+                $decoded = maybe_unserialize($summary);
+                if (is_array($decoded) && !empty($decoded['summary'])) $summary = wp_strip_all_tags((string)$decoded['summary']);
+                else $summary = '';
+            }
+            if ($summary === '') $summary = get_the_excerpt($id);
             $out[] = [
                 'id'=>$id,
                 'title'=>get_the_title($post),
                 'gpxUrl'=>self::gpx_url($id),
-                'sightIds'=>self::linked_sight_ids($id,$sights),
+                'sightIds'=>$sight_ids,
+                'difficulty'=>$difficulty,
+                'duration'=>$duration,
+                'summary'=>wp_trim_words(wp_strip_all_tags((string)$summary), 28, '…'),
             ];
         }
         return $out;
@@ -201,12 +210,7 @@ final class TNG_Game_Visual_Builder {
         wp_localize_script('tng-game-visual-builder', 'TNG_VISUAL_BUILDER', [
             'trails' => $trails,
             'sights' => $sights,
-            'debug' => [
-                'sightCount'=>count($sights),
-                'sightPostTypes'=>self::sight_post_types(),
-                'relationshipField'=>'related_top_sights',
-                'coordinateFields'=>['_sight_latitude','_sight_longitude'],
-            ],
+            'debug' => ['sightCount'=>count($sights),'sightPostTypes'=>self::sight_post_types()],
             'labels' => [
                 'title' => 'Visual checkpoint builder',
                 'subtitle' => 'Click the map to add a checkpoint. Existing Top Sights on the selected trail load automatically.',
