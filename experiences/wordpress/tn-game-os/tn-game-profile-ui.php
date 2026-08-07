@@ -2,19 +2,34 @@
 /**
  * Plugin Name: TN Game Profile UI
  * Description: Native Explorer profile dashboard for the TN Game app router.
- * Version: 0.1.0
+ * Version: 0.1.1
  * Author: The TN Game
  */
 if (!defined('ABSPATH')) exit;
 
 final class TNG_Profile_UI {
+    private static function points_type(): string {
+        $configured = sanitize_key((string) get_option('tng_gamipress_points_type', ''));
+        if ($configured !== '') return $configured;
+        if (!function_exists('gamipress_get_points_types')) return '';
+        $types = gamipress_get_points_types();
+        if (!is_array($types) || empty($types)) return '';
+        foreach (['explorer-xp', 'xp', 'points'] as $preferred) {
+            if (isset($types[$preferred])) return $preferred;
+        }
+        foreach ($types as $slug => $data) {
+            $text = strtolower((string) $slug . ' ' . wp_json_encode($data));
+            if (strpos($text, 'explorer') !== false && strpos($text, 'xp') !== false) return sanitize_key((string) $slug);
+        }
+        if (count($types) === 1) return sanitize_key((string) array_key_first($types));
+        return '';
+    }
+
     private static function points(int $user_id): int {
         if (!$user_id) return 0;
         if (function_exists('gamipress_get_user_points')) {
-            foreach (['xp', 'explorer-xp', 'points'] as $type) {
-                $value = (int) gamipress_get_user_points($user_id, $type);
-                if ($value > 0) return $value;
-            }
+            $type = self::points_type();
+            if ($type !== '') return max(0, (int) gamipress_get_user_points($user_id, $type));
         }
         foreach (['tng_xp', 'gamipress_xp', '_gamipress_xp'] as $key) {
             $value = (int) get_user_meta($user_id, $key, true);
