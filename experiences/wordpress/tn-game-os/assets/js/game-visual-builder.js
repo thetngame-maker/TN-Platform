@@ -15,11 +15,13 @@
     const typeSelect = form.querySelector('select[name="game_type"]');
     const difficultySelect = form.querySelector('select[name="game_difficulty"]');
     const durationInput = form.querySelector('input[name="game_duration"]');
+    const playerCountInput = form.querySelector('input[name="player_count"]');
     const summaryInput = form.querySelector('textarea[name="game_summary"]');
+    const descriptionInput = form.querySelector('textarea[name="game_description"]');
     const checkpointCountInput = form.querySelector('input[name="checkpoint_count"]');
 
     const touched = new WeakSet();
-    [titleInput,typeSelect,difficultySelect,durationInput,summaryInput,checkpointCountInput].filter(Boolean).forEach(el => {
+    [titleInput,typeSelect,difficultySelect,durationInput,playerCountInput,summaryInput,descriptionInput,checkpointCountInput].filter(Boolean).forEach(el => {
       el.addEventListener('input', () => touched.add(el));
       el.addEventListener('change', () => touched.add(el));
     });
@@ -28,17 +30,6 @@
       if (!el || touched.has(el) || value === undefined || value === null || String(value).trim() === '') return;
       if (String(el.value || '').trim() !== '') return;
       el.value = String(value);
-      el.dispatchEvent(new Event('change', { bubbles:true }));
-    };
-
-    const setSelectIfAvailable = (el, value, forceWhenDefault=false) => {
-      if (!el || touched.has(el) || value === undefined || value === null || String(value).trim() === '') return;
-      const wanted = String(value).trim().toLowerCase();
-      const option = [...el.options].find(o => String(o.value || o.textContent).trim().toLowerCase() === wanted);
-      if (!option) return;
-      const current = String(el.value || '').trim();
-      if (current && !forceWhenDefault) return;
-      el.value = option.value;
       el.dispatchEvent(new Event('change', { bubbles:true }));
     };
 
@@ -79,7 +70,7 @@
       allSights.forEach(s => {
         const option = document.createElement('option');
         option.value = String(s.id);
-        option.textContent = s.title;
+        option.textContent = s.sightType ? `${s.title} — ${s.sightType}` : s.title;
         sightSelect.appendChild(option);
       });
     } else {
@@ -120,10 +111,22 @@
         if (option) difficultySelect.value = option.value;
       }
       setIfBlank(durationInput, trail.duration);
+      setIfBlank(playerCountInput, trail.players || '1+ players');
       setIfBlank(summaryInput, trail.summary);
+      setIfBlank(descriptionInput, 'Follow the trail route and visit each checkpoint in order. Use your location to check in when you arrive. Complete every checkpoint to finish the trail quest and earn Explorer XP.');
       if (checkpointCountInput && !touched.has(checkpointCountInput) && Array.isArray(trail.sightIds) && trail.sightIds.length) {
         checkpointCountInput.value = String(trail.sightIds.length);
       }
+    };
+
+    const instructionForSight = sight => {
+      const kind = String(sight?.sightType || '').toLowerCase();
+      if (kind.includes('waterfall')) return `Reach ${sight.title} and check in when you arrive.`;
+      if (kind.includes('overlook') || kind.includes('viewpoint') || kind.includes('view point')) return `Reach ${sight.title} and take in the view.`;
+      if (kind.includes('historic') || kind.includes('history') || kind.includes('landmark')) return `Find ${sight.title} and check in at the site.`;
+      if (kind.includes('cave') || kind.includes('cavern')) return `Reach ${sight.title} and check in at the site.`;
+      if (kind.includes('bridge')) return `Find ${sight.title} and check in when you arrive.`;
+      return `Visit ${sight.title} and check in when you arrive.`;
     };
 
     const lineFor = cp => {
@@ -147,9 +150,10 @@
       if (!sight || hasSight(sight.id)) return false;
       checkpoints.push({
         title:sight.title,
-        instructions:`Visit ${sight.title}.`,
+        instructions:instructionForSight(sight),
         type:'gps',
         sightId:sight.id,
+        sightType:sight.sightType || '',
         lat:Number(sight.lat),
         lng:Number(sight.lng),
         radius:30,
@@ -174,7 +178,7 @@
         const marker = L.circleMarker([Number(sight.lat),Number(sight.lng)], {
           radius:8, color:'#0f5132', weight:3, fillColor:'#fff', fillOpacity:1
         }).addTo(trailSightLayer);
-        marker.bindTooltip(sight.title, { direction:'top' });
+        marker.bindTooltip(sight.sightType ? `${sight.title} · ${sight.sightType}` : sight.title, { direction:'top' });
         marker.on('click', () => {
           if (addSightCheckpoint(sight,'manual')) { sync(); render(); }
         });
@@ -217,7 +221,7 @@
               <input data-field="radius" type="number" min="5" max="500" value="${cp.radius || 30}" ${cp.type==='gps'?'':'hidden'} aria-label="GPS radius in meters">
               <input data-field="answer" value="${esc(cp.answer || '')}" placeholder="Correct answer" ${cp.type==='question'?'':'hidden'}>
             </div>
-            ${cp.sightId ? `<small>📍 Linked Top Sight · coordinates filled automatically${cp.autoTrailId ? ' · preloaded from trail' : ''}</small>` : (cp.type==='gps' ? `<small>📍 ${round(cp.lat)}, ${round(cp.lng)} · drag marker to adjust</small>` : '')}
+            ${cp.sightId ? `<small>📍 Linked Top Sight${cp.sightType ? ` · ${esc(cp.sightType)}` : ''} · coordinates filled automatically${cp.autoTrailId ? ' · preloaded from trail' : ''}</small>` : (cp.type==='gps' ? `<small>📍 ${round(cp.lat)}, ${round(cp.lng)} · drag marker to adjust</small>` : '')}
           </div>
           <div class="tng-visual-checkpoint__actions">
             <button type="button" data-move="up" aria-label="Move up">↑</button>
@@ -295,7 +299,7 @@
         const bounds = routeLayer.getBounds();
         (trail.sightIds || []).map(id => sightById.get(String(id))).filter(Boolean).forEach(s => bounds.extend([Number(s.lat),Number(s.lng)]));
         map.fitBounds(bounds, { padding:[35,35] });
-        routeStatus.textContent = `${trail.title} route loaded.${sightNote} Game details were filled from the trail where available.`;
+        routeStatus.textContent = `${trail.title} route loaded.${sightNote} Game details and checkpoint instructions were filled from the trail where available.`;
       } catch (e) {
         routeStatus.textContent = `The trail is linked, but its GPX preview could not load.${sightNote} Game details were still filled where available.`;
       }
