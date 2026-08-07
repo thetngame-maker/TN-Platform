@@ -4,9 +4,10 @@
  * Presentation only. Runtime validation and progression remain untouched.
  */
 
-/* The normal itinerary dock must never compete with an active game. */
+/* The normal itinerary docks must never compete with an active game. */
 .tng-gameplay-ui-v1 .tng-atm,
-.tng-gameplay-ui-v1 .tng-atm-panel{
+.tng-gameplay-ui-v1 .tng-atm-panel,
+.tng-gameplay-ui-v1 [data-tng-trip-dock]{
   display:none!important;
 }
 
