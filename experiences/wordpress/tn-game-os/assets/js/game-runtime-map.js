@@ -44,14 +44,20 @@
       const state = checkpoint.completed ? data.labels.completed : (checkpoint.current ? data.labels.current : data.labels.locked);
       const popup = document.createElement('div');
       popup.className = 'tng-runtime-map-popup';
-      popup.innerHTML = `<small>${state}</small><strong></strong><p></p><button type="button">View checkpoint ↓</button>`;
+      popup.innerHTML = `<small>${state}</small><strong></strong><p></p><button type="button" data-tng-view-checkpoint>View checkpoint ↓</button><button type="button" data-tng-dev-teleport hidden>🧪 Teleport here</button>`;
       popup.querySelector('strong').textContent = checkpoint.title;
       popup.querySelector('p').textContent = checkpoint.instructions || `${checkpoint.radius} m checkpoint radius`;
-      popup.querySelector('button').addEventListener('click', () => {
+      popup.querySelector('[data-tng-view-checkpoint]').addEventListener('click', () => {
         const stops = document.querySelectorAll('.tng-runtime-stop');
         const stop = stops[checkpoint.index];
         if (stop) stop.scrollIntoView({ behavior: 'smooth', block: 'center' });
       });
+      const teleportButton = popup.querySelector('[data-tng-dev-teleport]');
+      teleportButton.dataset.checkpointIndex = String(checkpoint.index);
+      teleportButton.dataset.checkpointLat = String(checkpoint.lat);
+      teleportButton.dataset.checkpointLng = String(checkpoint.lng);
+      teleportButton.dataset.checkpointCurrent = checkpoint.current ? '1' : '0';
+      teleportButton.dataset.checkpointType = checkpoint.type || '';
       marker.bindPopup(popup);
       markerByIndex.set(checkpoint.index, marker);
       bounds.push([checkpoint.lat, checkpoint.lng]);
@@ -110,6 +116,22 @@
 
     let playerMarker = null;
     let accuracyCircle = null;
+    const placePlayer = (lat, lng, accuracy = 10, label = 'You are here', simulated = false) => {
+      const latlng = [Number(lat), Number(lng)];
+      if (!Number.isFinite(latlng[0]) || !Number.isFinite(latlng[1])) return;
+      const icon = L.divIcon({ className: '', html: `<div class="tng-runtime-player${simulated ? ' is-simulated' : ''}"></div>`, iconSize: [22,22], iconAnchor: [11,11] });
+      if (playerMarker) {
+        playerMarker.setLatLng(latlng).setIcon(icon);
+        playerMarker.setPopupContent(label);
+      } else {
+        playerMarker = L.marker(latlng, { icon, zIndexOffset: 1000 }).addTo(map).bindPopup(label);
+      }
+      if (accuracyCircle) accuracyCircle.setLatLng(latlng).setRadius(accuracy || 10);
+      else accuracyCircle = L.circle(latlng, { radius: accuracy || 10, color: '#ef6425', weight: 1, opacity: .35, fillOpacity: .06 }).addTo(map);
+      map.setView(latlng, Math.max(map.getZoom(), 17));
+      playerMarker.openPopup();
+    };
+
     const locate = () => {
       if (!navigator.geolocation) {
         status.textContent = data.labels.locationError;
@@ -119,10 +141,7 @@
       navigator.geolocation.getCurrentPosition((position) => {
         status.classList.remove('is-visible');
         const latlng = [position.coords.latitude, position.coords.longitude];
-        const icon = L.divIcon({ className: '', html: '<div class="tng-runtime-player"></div>', iconSize: [22,22], iconAnchor: [11,11] });
-        if (playerMarker) playerMarker.setLatLng(latlng); else playerMarker = L.marker(latlng, { icon, zIndexOffset: 1000 }).addTo(map).bindPopup('You are here');
-        if (accuracyCircle) accuracyCircle.setLatLng(latlng).setRadius(position.coords.accuracy || 10);
-        else accuracyCircle = L.circle(latlng, { radius: position.coords.accuracy || 10, color: '#ef6425', weight: 1, opacity: .35, fillOpacity: .06 }).addTo(map);
+        placePlayer(latlng[0], latlng[1], position.coords.accuracy || 10, 'You are here', false);
         const all = bounds.concat([latlng]);
         if (all.length > 1) map.fitBounds(all, { padding: [44,44], maxZoom: 17 }); else map.setView(latlng, 16);
       }, () => {
@@ -130,6 +149,16 @@
         status.classList.add('is-visible');
       }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 15000 });
     };
+
+    window.addEventListener('tng:developer-location', (event) => {
+      const detail = event && event.detail ? event.detail : {};
+      const lat = Number(detail.lat);
+      const lng = Number(detail.lng);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+      status.textContent = detail.title ? `Developer location: ${detail.title}` : 'Developer simulated location loaded.';
+      status.classList.add('is-visible');
+      placePlayer(lat, lng, 5, detail.title ? `Developer: ${detail.title}` : 'Developer simulated location', true);
+    });
 
     section.querySelector('[data-tng-game-locate]').addEventListener('click', locate);
     setTimeout(() => map.invalidateSize(), 150);
