@@ -4,6 +4,7 @@
 
   const esc = (value='') => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
   const round = n => Math.round(Number(n) * 1e6) / 1e6;
+  const xpForType = type => ({ tap:10, gps:25, question:50, photo:40 }[String(type || '').toLowerCase()] || 25);
 
   const mount = () => {
     const form = document.querySelector('.tng-game-builder-form');
@@ -19,6 +20,7 @@
     const summaryInput = form.querySelector('textarea[name="game_summary"]');
     const descriptionInput = form.querySelector('textarea[name="game_description"]');
     const checkpointCountInput = form.querySelector('input[name="checkpoint_count"]');
+    const xpTotalInput = form.querySelector('input[name="xp_available"]');
 
     const touched = new WeakSet();
     [titleInput,typeSelect,difficultySelect,durationInput,playerCountInput,summaryInput,descriptionInput,checkpointCountInput].filter(Boolean).forEach(el => {
@@ -133,16 +135,21 @@
       const title = (cp.title || '').trim();
       const instructions = (cp.instructions || '').trim();
       const type = cp.type || 'gps';
-      if (cp.sightId) return `${title} | ${instructions} | sight | ${cp.sightId} | ${type} | ${cp.radius || 30}`;
-      if (type === 'question') return `${title} | ${instructions} | question | ${cp.answer || ''}`;
-      if (type === 'gps') return `${title} | ${instructions} | gps | ${round(cp.lat)} | ${round(cp.lng)} | ${cp.radius || 30}`;
-      if (type === 'photo') return `${title} | ${instructions} | photo`;
-      return `${title} | ${instructions} | tap`;
+      const xp = Math.max(0, Number(cp.xp ?? xpForType(type)) || 0);
+      if (cp.sightId) return `${title} | ${instructions} | sight | ${cp.sightId} | ${type} | ${cp.radius || 30} | ${xp}`;
+      if (type === 'question') return `${title} | ${instructions} | question | ${cp.answer || ''} | ${xp}`;
+      if (type === 'gps') return `${title} | ${instructions} | gps | ${round(cp.lat)} | ${round(cp.lng)} | ${cp.radius || 30} | ${xp}`;
+      if (type === 'photo') return `${title} | ${instructions} | photo | ${xp}`;
+      return `${title} | ${instructions} | tap | ${xp}`;
     };
 
     const sync = () => {
       textarea.value = checkpoints.map(lineFor).join('\n');
       if (checkpointCountInput && !touched.has(checkpointCountInput) && checkpoints.length) checkpointCountInput.value = String(checkpoints.length);
+      if (xpTotalInput && checkpoints.length) {
+        const total = checkpoints.reduce((sum, cp) => sum + Math.max(0, Number(cp.xp ?? xpForType(cp.type)) || 0), 0);
+        xpTotalInput.value = String(total);
+      }
     };
 
     const hasSight = id => checkpoints.some(cp => String(cp.sightId || '') === String(id));
@@ -152,6 +159,7 @@
         title:sight.title,
         instructions:instructionForSight(sight),
         type:'gps',
+        xp:xpForType('gps'),
         sightId:sight.id,
         sightType:sight.sightType || '',
         lat:Number(sight.lat),
@@ -197,6 +205,7 @@
       checkpointLayer.clearLayers();
       list.innerHTML = '';
       checkpoints.forEach((cp, index) => {
+        if (cp.xp === undefined || cp.xp === null || cp.xp === '') cp.xp = xpForType(cp.type);
         if (Number.isFinite(cp.lat) && Number.isFinite(cp.lng) && (cp.lat || cp.lng)) {
           const marker = L.marker([cp.lat, cp.lng], { draggable: !cp.sightId }).addTo(checkpointLayer);
           marker.bindTooltip(String(index + 1), { permanent:true, direction:'center', className:'tng-builder-marker-label' });
@@ -220,6 +229,7 @@
               </select>
               <input data-field="radius" type="number" min="5" max="500" value="${cp.radius || 30}" ${cp.type==='gps'?'':'hidden'} aria-label="GPS radius in meters">
               <input data-field="answer" value="${esc(cp.answer || '')}" placeholder="Correct answer" ${cp.type==='question'?'':'hidden'}>
+              <label class="tng-visual-checkpoint__xp"><span>XP</span><input data-field="xp" type="number" min="0" step="5" value="${Math.max(0, Number(cp.xp) || 0)}" aria-label="Checkpoint XP"></label>
             </div>
             ${cp.sightId ? `<small>📍 Linked Top Sight${cp.sightType ? ` · ${esc(cp.sightType)}` : ''} · coordinates filled automatically${cp.autoTrailId ? ' · preloaded from trail' : ''}</small>` : (cp.type==='gps' ? `<small>📍 ${round(cp.lat)}, ${round(cp.lng)} · drag marker to adjust</small>` : '')}
           </div>
@@ -230,8 +240,15 @@
           </div>`;
         row.querySelectorAll('[data-field]').forEach(el => el.addEventListener('input', () => {
           const field = el.dataset.field;
-          cp[field] = field === 'radius' ? Number(el.value || 30) : el.value;
-          if (field === 'type') render(); else sync();
+          if (field === 'radius' || field === 'xp') cp[field] = Math.max(0, Number(el.value || 0));
+          else cp[field] = el.value;
+          if (field === 'type') {
+            if (!cp.xpTouched) cp.xp = xpForType(cp.type);
+            render();
+          } else {
+            if (field === 'xp') cp.xpTouched = true;
+            sync();
+          }
         }));
         row.querySelector('[data-remove]').addEventListener('click', () => { checkpoints.splice(index,1); sync(); render(); renderTrailSights(trailById.get(activeTrailId)); });
         row.querySelector('[data-move="up"]').addEventListener('click', () => {
@@ -246,7 +263,7 @@
     };
 
     map.on('click', e => {
-      checkpoints.push({ title:`${data.labels.checkpoint} ${checkpoints.length+1}`, instructions:'', type:'gps', lat:round(e.latlng.lat), lng:round(e.latlng.lng), radius:30 });
+      checkpoints.push({ title:`${data.labels.checkpoint} ${checkpoints.length+1}`, instructions:'', type:'gps', xp:xpForType('gps'), lat:round(e.latlng.lat), lng:round(e.latlng.lng), radius:30 });
       render();
     });
 
@@ -299,7 +316,7 @@
         const bounds = routeLayer.getBounds();
         (trail.sightIds || []).map(id => sightById.get(String(id))).filter(Boolean).forEach(s => bounds.extend([Number(s.lat),Number(s.lng)]));
         map.fitBounds(bounds, { padding:[35,35] });
-        routeStatus.textContent = `${trail.title} route loaded.${sightNote} Game details and checkpoint instructions were filled from the trail where available.`;
+        routeStatus.textContent = `${trail.title} route loaded.${sightNote} Game details, checkpoint instructions, and XP were filled automatically.`;
       } catch (e) {
         routeStatus.textContent = `The trail is linked, but its GPX preview could not load.${sightNote} Game details were still filled where available.`;
       }
