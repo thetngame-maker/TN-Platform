@@ -3,7 +3,7 @@
  * Plugin Name: TN Game App Router
  * Plugin URI: https://thetngame.com
  * Description: Native TN Game routes and full-page app shell for the platform.
- * Version: 3.7.0
+ * Version: 3.7.1
  * Author: The TN Game
  * Text Domain: tn-game-app-router
  */
@@ -11,7 +11,7 @@ if (!defined('ABSPATH')) exit;
 add_action('plugins_loaded',static function():void{
     if(!defined('TNG_OS_PATH')||!defined('TNG_OS_URL'))return;
     foreach([
-        'TNG_Platform_UI'=>'tn-game-platform-ui.php','TNG_Trip_Data'=>'tn-game-trip-data.php','TNG_Trip_Builder_UI'=>'tn-game-trip-builder-ui.php','TNG_Active_Trip_UI'=>'tn-game-active-trip-ui.php','TNG_Past_Trips_UI'=>'tn-game-past-trips-ui.php','TNG_Trip_Dock'=>'tn-game-trip-dock.php','TNG_Play_UI'=>'tn-game-play-ui.php','TNG_Games_UI'=>'tn-game-games-ui.php','TNG_Game_Builder_UI'=>'tn-game-builder-ui.php','TNG_Game_Visual_Builder'=>'tn-game-visual-builder.php','TNG_Game_Runtime_UI'=>'tn-game-runtime-ui.php','TNG_Game_Runtime_Map'=>'tn-game-runtime-map.php','TNG_Game_Progression'=>'tn-game-game-progression.php','TNG_Map_UI'=>'tn-game-map-ui.php','TNG_Trips_UI'=>'tn-game-trips-ui.php','TNG_Profile_UI'=>'tn-game-profile-ui.php','TNG_Settings_UI'=>'tn-game-settings-ui.php','TNG_Search_UI'=>'tn-game-search-ui.php','TNG_Progress_UI'=>'tn-game-progress-ui.php','TNG_Social_UI'=>'tn-game-social-ui.php','TNG_Challenges_UI'=>'tn-game-challenges-ui.php','TNG_Library_UI'=>'tn-game-library-ui.php','TNG_Directory_UI'=>'tn-game-directory-ui.php','TNG_Trail_UI'=>'tn-game-trail-ui.php','TNG_Place_UI'=>'tn-game-place-ui.php','TNG_Event_UI'=>'tn-game-event-ui.php'
+        'TNG_Platform_UI'=>'tn-game-platform-ui.php','TNG_Trip_Data'=>'tn-game-trip-data.php','TNG_Trip_Builder_UI'=>'tn-game-trip-builder-ui.php','TNG_Active_Trip_UI'=>'tn-game-active-trip-ui.php','TNG_Past_Trips_UI'=>'tn-game-past-trips-ui.php','TNG_Trip_Dock'=>'tn-game-trip-dock.php','TNG_Play_UI'=>'tn-game-play-ui.php','TNG_Games_UI'=>'tn-game-games-ui.php','TNG_Game_Builder_UI'=>'tn-game-builder-ui.php','TNG_Game_Visual_Builder'=>'tn-game-visual-builder.php','TNG_Game_Runtime_UI'=>'tn-game-runtime-ui.php','TNG_Game_Runtime_Map'=>'tn-game-runtime-map.php','TNG_Game_Developer_GPS'=>'tn-game-developer-gps.php','TNG_Game_Progression'=>'tn-game-game-progression.php','TNG_Map_UI'=>'tn-game-map-ui.php','TNG_Trips_UI'=>'tn-game-trips-ui.php','TNG_Profile_UI'=>'tn-game-profile-ui.php','TNG_Settings_UI'=>'tn-game-settings-ui.php','TNG_Search_UI'=>'tn-game-search-ui.php','TNG_Progress_UI'=>'tn-game-progress-ui.php','TNG_Social_UI'=>'tn-game-social-ui.php','TNG_Challenges_UI'=>'tn-game-challenges-ui.php','TNG_Library_UI'=>'tn-game-library-ui.php','TNG_Directory_UI'=>'tn-game-directory-ui.php','TNG_Trail_UI'=>'tn-game-trail-ui.php','TNG_Place_UI'=>'tn-game-place-ui.php','TNG_Event_UI'=>'tn-game-event-ui.php'
     ] as$class=>$file){if(!class_exists($class)&&is_readable(TNG_OS_PATH.$file))require_once TNG_OS_PATH.$file;}
     if(!class_exists('TNG_OS\\Platform\\App_Router'))require_once TNG_OS_PATH.'app/Platform/class-app-router.php';
 },20);
@@ -19,7 +19,7 @@ add_action('wp_enqueue_scripts',static function():void{
     if(!class_exists('TNG_OS\\Platform\\App_Router')||!\TNG_OS\Platform\App_Router::is_app_request())return;
     wp_enqueue_style('tng-platform-ui',TNG_OS_URL.'assets/css/platform-ui.css',[],'2.2.0');
     wp_enqueue_style('tng-platform-ui-refinements',TNG_OS_URL.'assets/css/platform-ui-refinements.css',['tng-platform-ui'],'2.2.0');
-    wp_enqueue_style('tng-app-router',TNG_OS_URL.'assets/css/app-router.css',['tng-platform-ui'],'3.7.0');
+    wp_enqueue_style('tng-app-router',TNG_OS_URL.'assets/css/app-router.css',['tng-platform-ui'],'3.7.1');
     wp_enqueue_style('tng-ui-kit',TNG_OS_URL.'assets/css/ui-kit.css',['tng-platform-ui','tng-app-router'],'2.7.0');
     $route=\TNG_OS\Platform\App_Router::current_route();
     if($route==='play')wp_enqueue_style('tng-play-ui',TNG_OS_URL.'assets/css/play-ui.css',['tng-ui-kit'],'0.3.4');
