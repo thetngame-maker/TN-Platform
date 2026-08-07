@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TN Game Visual Checkpoint Builder
  * Description: Visual map-based checkpoint creator for the TN Game front-end game builder.
- * Version: 0.2.0
+ * Version: 0.3.0
  * Author: The TN Game
  */
 if (!defined('ABSPATH')) exit;
@@ -41,7 +41,10 @@ final class TNG_Game_Visual_Builder {
     }
 
     private static function coordinates(int $post_id): array {
+        // Legacy TN Game Top Sights store their precise checkpoint coordinates here.
         $pairs = [
+            ['_sight_latitude','_sight_longitude'],
+            ['sight_latitude','sight_longitude'],
             ['latitude','longitude'],['lat','lng'],['trail_latitude','trail_longitude'],['st_latitude','st_longitude'],
             ['map_lat','map_lng'],['location_lat','location_lng'],['_latitude','_longitude'],['tng_latitude','tng_longitude']
         ];
@@ -64,7 +67,10 @@ final class TNG_Game_Visual_Builder {
     }
 
     private static function sight_post_types(): array {
-        $out = [];
+        // This is the actual legacy TN Game Top Sight CPT on the live site.
+        $out = post_type_exists('top-sights') ? ['top-sights'] : [];
+
+        // Keep compatibility with alternate/older registrations.
         foreach (get_post_types([], 'objects') as $slug => $obj) {
             $haystack = strtolower($slug . ' ' . ($obj->label ?? '') . ' ' . ($obj->labels->singular_name ?? ''));
             if (
@@ -94,7 +100,14 @@ final class TNG_Game_Visual_Builder {
         foreach ($posts as $post) {
             [$lat,$lng] = self::coordinates((int)$post->ID);
             if (!$lat && !$lng) continue;
-            $out[] = ['id'=>(int)$post->ID,'title'=>get_the_title($post),'lat'=>$lat,'lng'=>$lng,'postType'=>$post->post_type];
+            $out[] = [
+                'id'=>(int)$post->ID,
+                'title'=>get_the_title($post),
+                'lat'=>$lat,
+                'lng'=>$lng,
+                'postType'=>$post->post_type,
+                'sightType'=>(string)get_post_meta((int)$post->ID, '_sight_type', true),
+            ];
         }
         return $out;
     }
@@ -121,6 +134,17 @@ final class TNG_Game_Visual_Builder {
     private static function linked_sight_ids(int $trail_id, array $sights): array {
         $valid = array_fill_keys(array_map(static fn($s)=>(int)$s['id'], $sights), true);
         $ids = [];
+
+        // Exact legacy trail -> Top Sight relationship used by TN Game/ACF.
+        $related = get_post_meta($trail_id, 'related_top_sights', true);
+        self::collect_ids($related, $ids);
+
+        if (function_exists('get_field')) {
+            $acf_related = get_field('related_top_sights', $trail_id);
+            self::collect_ids($acf_related, $ids);
+        }
+
+        // Compatibility fallback for other relationship fields.
         $trail_meta = get_post_meta($trail_id);
         foreach ($trail_meta as $key => $values) {
             if (!preg_match('/sight|checkpoint|poi|landmark|attraction/i', (string)$key)) continue;
@@ -172,12 +196,17 @@ final class TNG_Game_Visual_Builder {
         $trails = self::trails($sights);
         wp_enqueue_style('tng-builder-leaflet', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css', [], '1.9.4');
         wp_enqueue_script('tng-builder-leaflet', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', [], '1.9.4', true);
-        wp_enqueue_style('tng-game-visual-builder', TNG_OS_URL . 'assets/css/game-visual-builder.css', ['tng-game-builder-ui','tng-builder-leaflet'], '0.2.0');
-        wp_enqueue_script('tng-game-visual-builder', TNG_OS_URL . 'assets/js/game-visual-builder.js', ['tng-builder-leaflet'], '0.2.0', true);
+        wp_enqueue_style('tng-game-visual-builder', TNG_OS_URL . 'assets/css/game-visual-builder.css', ['tng-game-builder-ui','tng-builder-leaflet'], '0.3.0');
+        wp_enqueue_script('tng-game-visual-builder', TNG_OS_URL . 'assets/js/game-visual-builder.js', ['tng-builder-leaflet'], '0.3.0', true);
         wp_localize_script('tng-game-visual-builder', 'TNG_VISUAL_BUILDER', [
             'trails' => $trails,
             'sights' => $sights,
-            'debug' => ['sightCount'=>count($sights),'sightPostTypes'=>self::sight_post_types()],
+            'debug' => [
+                'sightCount'=>count($sights),
+                'sightPostTypes'=>self::sight_post_types(),
+                'relationshipField'=>'related_top_sights',
+                'coordinateFields'=>['_sight_latitude','_sight_longitude'],
+            ],
             'labels' => [
                 'title' => 'Visual checkpoint builder',
                 'subtitle' => 'Click the map to add a checkpoint. Existing Top Sights on the selected trail load automatically.',
