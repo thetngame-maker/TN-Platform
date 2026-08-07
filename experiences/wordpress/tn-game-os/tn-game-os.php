@@ -47,6 +47,7 @@ require_once TNG_OS_PATH . 'app/Modules/Destinations/class-coordinate-source-res
 require_once TNG_OS_PATH . 'app/Modules/Destinations/class-knowledge-graph-core.php';
 require_once TNG_OS_PATH . 'app/Modules/Destinations/class-knowledge-graph-inspector.php';
 require_once TNG_OS_PATH . 'tn-game-developer-test-report.php';
+require_once TNG_OS_PATH . 'tn-game-game-audit.php';
 
 register_activation_hook(__FILE__, ['TNG_OS\\Core\\Plugin', 'activate']);
 register_deactivation_hook(__FILE__, ['TNG_OS\\Core\\Plugin', 'deactivate']);
