@@ -3,7 +3,7 @@
  * Plugin Name: TN Game App Router
  * Plugin URI: https://thetngame.com
  * Description: Native TN Game routes and full-page app shell for the platform.
- * Version: 3.3.1
+ * Version: 3.3.2
  * Author: The TN Game
  * Text Domain: tn-game-app-router
  */
@@ -19,7 +19,7 @@ add_action('wp_enqueue_scripts',static function():void{
     if(!class_exists('TNG_OS\\Platform\\App_Router')||!\TNG_OS\Platform\App_Router::is_app_request())return;
     wp_enqueue_style('tng-platform-ui',TNG_OS_URL.'assets/css/platform-ui.css',[],'2.2.0');
     wp_enqueue_style('tng-platform-ui-refinements',TNG_OS_URL.'assets/css/platform-ui-refinements.css',['tng-platform-ui'],'2.2.0');
-    wp_enqueue_style('tng-app-router',TNG_OS_URL.'assets/css/app-router.css',['tng-platform-ui'],'3.3.1');
+    wp_enqueue_style('tng-app-router',TNG_OS_URL.'assets/css/app-router.css',['tng-platform-ui'],'3.3.2');
     wp_enqueue_style('tng-ui-kit',TNG_OS_URL.'assets/css/ui-kit.css',['tng-platform-ui','tng-app-router'],'2.7.0');
     $route=\TNG_OS\Platform\App_Router::current_route();
     if($route==='play')wp_enqueue_style('tng-play-ui',TNG_OS_URL.'assets/css/play-ui.css',['tng-ui-kit'],'0.3.4');
@@ -43,6 +43,28 @@ add_action('wp_enqueue_scripts',static function():void{
     if($route==='trip-builder')wp_enqueue_script('tng-trip-builder',TNG_OS_URL.'assets/js/trip-builder.js',['tng-trip-data'],'0.1.3',true);
     if(in_array($route,['active-trip','trip-mode'],true))wp_enqueue_script('tng-active-trip',TNG_OS_URL.'assets/js/active-trip.js',['tng-trip-data'],'0.1.2',true);
 },100);
-add_action('wp_footer',static function():void{if(is_admin())return;?><script id="tng-platform-route-fixes">(()=>{const profileUrl=<?php echo wp_json_encode(home_url('/profile/'));?>,searchUrl=<?php echo wp_json_encode(home_url('/search/'));?>;const fix=()=>{document.querySelectorAll('.tng-app-nav__item').forEach(link=>{const label=(link.textContent||'').trim().toLowerCase();if(label.includes('profile'))link.setAttribute('href',profileUrl)});document.querySelectorAll('.tng-topbar__action').forEach(link=>link.setAttribute('href',searchUrl))};fix();new MutationObserver(fix).observe(document.documentElement,{childList:true,subtree:true})})();</script><?php},999);
+add_action('wp_footer', static function (): void {
+    if (is_admin()) {
+        return;
+    }
+
+    $profile_url = wp_json_encode(home_url('/profile/'));
+    $search_url  = wp_json_encode(home_url('/search/'));
+
+    echo '<script id="tng-platform-route-fixes">';
+    echo '(() => {';
+    echo 'const profileUrl=' . $profile_url . ',searchUrl=' . $search_url . ';';
+    echo 'const fix=()=>{';
+    echo 'document.querySelectorAll(".tng-app-nav__item").forEach(link=>{';
+    echo 'const label=(link.textContent||"").trim().toLowerCase();';
+    echo 'if(label.includes("profile"))link.setAttribute("href",profileUrl);';
+    echo '});';
+    echo 'document.querySelectorAll(".tng-topbar__action").forEach(link=>link.setAttribute("href",searchUrl));';
+    echo '};';
+    echo 'fix();';
+    echo 'new MutationObserver(fix).observe(document.documentElement,{childList:true,subtree:true});';
+    echo '})();';
+    echo '</script>';
+}, 999);
 register_activation_hook(__FILE__,static function():void{update_option('tng_os_rewrite_flush_needed',1,false);flush_rewrite_rules(false);});
 register_deactivation_hook(__FILE__,static function():void{flush_rewrite_rules(false);});
