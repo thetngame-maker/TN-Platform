@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TN Game Game Progression
  * Description: Bridges completed TN Game checkpoints into Explorer XP and Top Sight progression.
- * Version: 0.1.0
+ * Version: 0.1.1
  * Author: The TN Game
  */
 if (!defined('ABSPATH')) exit;
@@ -23,12 +23,10 @@ final class TNG_Game_Progression {
 
     private static function handle_user_meta(int $user_id, string $meta_key, $meta_value): void {
         if (!$user_id) return;
-
         if ($meta_key === '_tng_completed_games') {
             self::process_completed_games($user_id, $meta_value);
             return;
         }
-
         if (strpos($meta_key, '_tng_game_progress_') === 0) {
             $game_id = absint(substr($meta_key, strlen('_tng_game_progress_')));
             if ($game_id) self::process_completed_sights($user_id, $game_id, $meta_value);
@@ -47,21 +45,19 @@ final class TNG_Game_Progression {
         $configured = sanitize_key((string) get_option('tng_gamipress_points_type', ''));
         if ($configured !== '') return $configured;
 
-        if (function_exists('gamipress_get_points_types')) {
-            $types = gamipress_get_points_types();
-            if (is_array($types) && !empty($types)) {
-                foreach (['xp', 'explorer-xp', 'points'] as $preferred) {
-                    if (isset($types[$preferred])) return $preferred;
-                }
-                foreach ($types as $slug => $data) {
-                    $text = strtolower((string) $slug . ' ' . wp_json_encode($data));
-                    if (strpos($text, 'explorer') !== false && strpos($text, 'xp') !== false) return sanitize_key((string) $slug);
-                }
-                if (count($types) === 1) return sanitize_key((string) array_key_first($types));
-            }
-        }
+        if (!function_exists('gamipress_get_points_types')) return '';
+        $types = gamipress_get_points_types();
+        if (!is_array($types) || empty($types)) return '';
 
-        return 'xp';
+        foreach (['xp', 'explorer-xp', 'points'] as $preferred) {
+            if (isset($types[$preferred])) return $preferred;
+        }
+        foreach ($types as $slug => $data) {
+            $text = strtolower((string) $slug . ' ' . wp_json_encode($data));
+            if (strpos($text, 'explorer') !== false && strpos($text, 'xp') !== false) return sanitize_key((string) $slug);
+        }
+        if (count($types) === 1) return sanitize_key((string) array_key_first($types));
+        return '';
     }
 
     private static function award_game_xp(int $user_id, int $game_id): void {
