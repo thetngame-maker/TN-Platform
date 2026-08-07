@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TN Game Visual Checkpoint Builder
  * Description: Visual map-based checkpoint creator for the TN Game front-end game builder.
- * Version: 0.3.0
+ * Version: 0.3.1
  * Author: The TN Game
  */
 if (!defined('ABSPATH')) exit;
@@ -199,14 +199,20 @@ final class TNG_Game_Visual_Builder {
         return $out;
     }
 
+    private static function asset_version(string $relative_path): string {
+        $path = TNG_OS_PATH . ltrim($relative_path, '/');
+        if (is_file($path)) return (string) filemtime($path);
+        return defined('TNG_OS_VERSION') ? (string) TNG_OS_VERSION : '0.3.1';
+    }
+
     public static function enqueue(): void {
         if (!self::is_builder() || !is_user_logged_in() || !current_user_can('edit_posts')) return;
         $sights = self::sights();
         $trails = self::trails($sights);
         wp_enqueue_style('tng-builder-leaflet', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css', [], '1.9.4');
         wp_enqueue_script('tng-builder-leaflet', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', [], '1.9.4', true);
-        wp_enqueue_style('tng-game-visual-builder', TNG_OS_URL . 'assets/css/game-visual-builder.css', ['tng-game-builder-ui','tng-builder-leaflet'], '0.3.0');
-        wp_enqueue_script('tng-game-visual-builder', TNG_OS_URL . 'assets/js/game-visual-builder.js', ['tng-builder-leaflet'], '0.3.0', true);
+        wp_enqueue_style('tng-game-visual-builder', TNG_OS_URL . 'assets/css/game-visual-builder.css', ['tng-game-builder-ui','tng-builder-leaflet'], self::asset_version('assets/css/game-visual-builder.css'));
+        wp_enqueue_script('tng-game-visual-builder', TNG_OS_URL . 'assets/js/game-visual-builder.js', ['tng-builder-leaflet'], self::asset_version('assets/js/game-visual-builder.js'), true);
         wp_localize_script('tng-game-visual-builder', 'TNG_VISUAL_BUILDER', [
             'trails' => $trails,
             'sights' => $sights,
