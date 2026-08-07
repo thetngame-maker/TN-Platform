@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TN Game Visual Checkpoint Builder
  * Description: Visual map-based checkpoint creator for the TN Game front-end game builder.
- * Version: 0.1.0
+ * Version: 0.2.0
  * Author: The TN Game
  */
 if (!defined('ABSPATH')) exit;
@@ -50,72 +50,137 @@ final class TNG_Game_Visual_Builder {
             $lng = get_post_meta($post_id, $pair[1], true);
             if (is_numeric($lat) && is_numeric($lng)) return [(float) $lat, (float) $lng];
         }
-        foreach (['location','top_sight_location','coordinates'] as $key) {
-            $value = get_post_meta($post_id, $key, true);
-            if (is_array($value)) {
+        foreach (['location','top_sight_location','coordinates','map_location'] as $key) {
+            $values = [get_post_meta($post_id, $key, true)];
+            if (function_exists('get_field')) $values[] = get_field($key, $post_id);
+            foreach ($values as $value) {
+                if (!is_array($value)) continue;
                 $lat = $value['lat'] ?? $value['latitude'] ?? null;
                 $lng = $value['lng'] ?? $value['longitude'] ?? null;
                 if (is_numeric($lat) && is_numeric($lng)) return [(float) $lat, (float) $lng];
-            }
-            if (function_exists('get_field')) {
-                $value = get_field($key, $post_id);
-                if (is_array($value)) {
-                    $lat = $value['lat'] ?? $value['latitude'] ?? null;
-                    $lng = $value['lng'] ?? $value['longitude'] ?? null;
-                    if (is_numeric($lat) && is_numeric($lng)) return [(float) $lat, (float) $lng];
-                }
             }
         }
         return [0.0, 0.0];
     }
 
-    private static function trails(): array {
-        $types = array_values(array_filter(['st_activity','activity'], 'post_type_exists'));
-        if (!$types) return [];
-        $posts = get_posts(['post_type'=>$types,'post_status'=>'publish','posts_per_page'=>300,'orderby'=>'title','order'=>'ASC']);
-        $out = [];
-        foreach ($posts as $post) {
-            $url = self::gpx_url((int) $post->ID);
-            $out[] = ['id'=>(int)$post->ID,'title'=>get_the_title($post),'gpxUrl'=>$url];
-        }
-        return $out;
-    }
-
     private static function sight_post_types(): array {
         $out = [];
-        foreach (get_post_types(['public'=>true], 'objects') as $slug => $obj) {
+        foreach (get_post_types([], 'objects') as $slug => $obj) {
             $haystack = strtolower($slug . ' ' . ($obj->label ?? '') . ' ' . ($obj->labels->singular_name ?? ''));
-            if (str_contains($haystack, 'top sight') || str_contains($haystack, 'topsight')) $out[] = $slug;
+            if (
+                str_contains($haystack, 'top sight') || str_contains($haystack, 'topsight') ||
+                str_contains($haystack, 'top_sight') || str_contains($haystack, 'point of interest') ||
+                preg_match('/(^|[^a-z])poi([^a-z]|$)/', $haystack)
+            ) $out[] = $slug;
         }
-        foreach (['top_sight','top-sight','top_sights','top-sights'] as $slug) if (post_type_exists($slug)) $out[] = $slug;
+        foreach (['top_sight','top-sight','top_sights','top-sights','topsight','topsights','tng_top_sight','tng_top_sights','poi'] as $slug) {
+            if (post_type_exists($slug)) $out[] = $slug;
+        }
         return array_values(array_unique($out));
     }
 
     private static function sights(): array {
         $types = self::sight_post_types();
         if (!$types) return [];
-        $posts = get_posts(['post_type'=>$types,'post_status'=>'publish','posts_per_page'=>500,'orderby'=>'title','order'=>'ASC']);
+        $posts = get_posts([
+            'post_type'=>$types,
+            'post_status'=>['publish','private'],
+            'posts_per_page'=>1000,
+            'orderby'=>'title',
+            'order'=>'ASC',
+            'suppress_filters'=>false,
+        ]);
         $out = [];
         foreach ($posts as $post) {
             [$lat,$lng] = self::coordinates((int)$post->ID);
             if (!$lat && !$lng) continue;
-            $out[] = ['id'=>(int)$post->ID,'title'=>get_the_title($post),'lat'=>$lat,'lng'=>$lng];
+            $out[] = ['id'=>(int)$post->ID,'title'=>get_the_title($post),'lat'=>$lat,'lng'=>$lng,'postType'=>$post->post_type];
+        }
+        return $out;
+    }
+
+    private static function collect_ids($value, array &$ids): void {
+        if ($value instanceof WP_Post) { $ids[] = (int)$value->ID; return; }
+        if (is_object($value) && isset($value->ID) && is_numeric($value->ID)) { $ids[] = (int)$value->ID; return; }
+        if (is_numeric($value)) { $ids[] = (int)$value; return; }
+        if (is_string($value)) {
+            $maybe = maybe_unserialize($value);
+            if ($maybe !== $value) { self::collect_ids($maybe, $ids); return; }
+            if (preg_match_all('/\b\d{1,10}\b/', $value, $m)) foreach ($m[0] as $id) $ids[] = (int)$id;
+            return;
+        }
+        if (is_array($value)) foreach ($value as $item) self::collect_ids($item, $ids);
+    }
+
+    private static function value_contains_id($value, int $target): bool {
+        $ids = [];
+        self::collect_ids($value, $ids);
+        return in_array($target, array_map('intval',$ids), true);
+    }
+
+    private static function linked_sight_ids(int $trail_id, array $sights): array {
+        $valid = array_fill_keys(array_map(static fn($s)=>(int)$s['id'], $sights), true);
+        $ids = [];
+        $trail_meta = get_post_meta($trail_id);
+        foreach ($trail_meta as $key => $values) {
+            if (!preg_match('/sight|checkpoint|poi|landmark|attraction/i', (string)$key)) continue;
+            foreach ($values as $value) self::collect_ids($value, $ids);
+        }
+        if (function_exists('get_fields')) {
+            $fields = get_fields($trail_id);
+            if (is_array($fields)) foreach ($fields as $key=>$value) {
+                if (preg_match('/sight|checkpoint|poi|landmark|attraction/i', (string)$key)) self::collect_ids($value, $ids);
+            }
+        }
+        foreach ($sights as $sight) {
+            $sid = (int)$sight['id'];
+            foreach (get_post_meta($sid) as $key=>$values) {
+                if (!preg_match('/trail|activity|route/i', (string)$key)) continue;
+                foreach ($values as $value) if (self::value_contains_id($value, $trail_id)) { $ids[] = $sid; break 2; }
+            }
+            if (function_exists('get_fields')) {
+                $fields = get_fields($sid);
+                if (is_array($fields)) foreach ($fields as $key=>$value) {
+                    if (preg_match('/trail|activity|route/i', (string)$key) && self::value_contains_id($value,$trail_id)) { $ids[]=$sid; break; }
+                }
+            }
+        }
+        $ids = array_values(array_unique(array_map('intval',$ids)));
+        return array_values(array_filter($ids, static fn($id)=>isset($valid[$id])));
+    }
+
+    private static function trails(array $sights): array {
+        $types = array_values(array_filter(['st_activity','activity'], 'post_type_exists'));
+        if (!$types) return [];
+        $posts = get_posts(['post_type'=>$types,'post_status'=>'publish','posts_per_page'=>300,'orderby'=>'title','order'=>'ASC']);
+        $out = [];
+        foreach ($posts as $post) {
+            $id = (int)$post->ID;
+            $out[] = [
+                'id'=>$id,
+                'title'=>get_the_title($post),
+                'gpxUrl'=>self::gpx_url($id),
+                'sightIds'=>self::linked_sight_ids($id,$sights),
+            ];
         }
         return $out;
     }
 
     public static function enqueue(): void {
         if (!self::is_builder() || !is_user_logged_in() || !current_user_can('edit_posts')) return;
+        $sights = self::sights();
+        $trails = self::trails($sights);
         wp_enqueue_style('tng-builder-leaflet', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css', [], '1.9.4');
         wp_enqueue_script('tng-builder-leaflet', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', [], '1.9.4', true);
-        wp_enqueue_style('tng-game-visual-builder', TNG_OS_URL . 'assets/css/game-visual-builder.css', ['tng-game-builder-ui','tng-builder-leaflet'], '0.1.0');
-        wp_enqueue_script('tng-game-visual-builder', TNG_OS_URL . 'assets/js/game-visual-builder.js', ['tng-builder-leaflet'], '0.1.0', true);
+        wp_enqueue_style('tng-game-visual-builder', TNG_OS_URL . 'assets/css/game-visual-builder.css', ['tng-game-builder-ui','tng-builder-leaflet'], '0.2.0');
+        wp_enqueue_script('tng-game-visual-builder', TNG_OS_URL . 'assets/js/game-visual-builder.js', ['tng-builder-leaflet'], '0.2.0', true);
         wp_localize_script('tng-game-visual-builder', 'TNG_VISUAL_BUILDER', [
-            'trails' => self::trails(),
-            'sights' => self::sights(),
+            'trails' => $trails,
+            'sights' => $sights,
+            'debug' => ['sightCount'=>count($sights),'sightPostTypes'=>self::sight_post_types()],
             'labels' => [
                 'title' => 'Visual checkpoint builder',
-                'subtitle' => 'Click the map to add a checkpoint. Drag markers to fine-tune their position.',
+                'subtitle' => 'Click the map to add a checkpoint. Existing Top Sights on the selected trail load automatically.',
                 'addSight' => 'Add Top Sight',
                 'chooseSight' => 'Choose an existing Top Sight…',
                 'checkpoint' => 'Checkpoint',
