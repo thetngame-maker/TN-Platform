@@ -3,7 +3,7 @@
  * Plugin Name: TN Game App Router
  * Plugin URI: https://thetngame.com
  * Description: Native TN Game routes and full-page app shell for the platform.
- * Version: 3.8.1
+ * Version: 3.8.2
  * Author: The TN Game
  * Text Domain: tn-game-app-router
  */
@@ -16,12 +16,12 @@ add_action('plugins_loaded',static function():void{
     if(!class_exists('TNG_OS\\Platform\\App_Router'))require_once TNG_OS_PATH.'app/Platform/class-app-router.php';
 },20);
 add_action('wp_enqueue_scripts',static function():void{
-    if(!class_exists('TNG_OS\\Platform\\App_Router')||!\TNG_OS\Platform\App_Router::is_app_request())return;
+    if(!class_exists('TNG_OS\\Platform\\App_Router')||!\\TNG_OS\\Platform\\App_Router::is_app_request())return;
     wp_enqueue_style('tng-platform-ui',TNG_OS_URL.'assets/css/platform-ui.css',[],'2.2.0');
     wp_enqueue_style('tng-platform-ui-refinements',TNG_OS_URL.'assets/css/platform-ui-refinements.css',['tng-platform-ui'],'2.2.0');
-    wp_enqueue_style('tng-app-router',TNG_OS_URL.'assets/css/app-router.css',['tng-platform-ui'],'3.8.1');
+    wp_enqueue_style('tng-app-router',TNG_OS_URL.'assets/css/app-router.css',['tng-platform-ui'],'3.8.2');
     wp_enqueue_style('tng-ui-kit',TNG_OS_URL.'assets/css/ui-kit.css',['tng-platform-ui','tng-app-router'],'2.7.0');
-    $route=\TNG_OS\Platform\App_Router::current_route();
+    $route=\\TNG_OS\\Platform\\App_Router::current_route();
     if($route==='play')wp_enqueue_style('tng-play-ui',TNG_OS_URL.'assets/css/play-ui.css',['tng-ui-kit'],'0.3.4');
     if($route==='games')wp_enqueue_style('tng-games-ui',TNG_OS_URL.'assets/css/games-ui.css',['tng-ui-kit'],'0.3.0');
     if($route==='game-builder')wp_enqueue_style('tng-game-builder-ui',TNG_OS_URL.'assets/css/game-builder-ui.css',['tng-ui-kit'],'0.5.0');
@@ -53,15 +53,29 @@ add_action('wp_footer', static function (): void {
     echo 'const profileUrl=' . $profile_url . ',searchUrl=' . $search_url . ';';
     echo 'const hideTravelerContactBar=()=>{';
     echo 'if(!document.querySelector(".tng-app-nav,.tng-router-shell,.tng-native-screen"))return;';
-    echo 'const anchors=[...document.querySelectorAll("a[href^=\"mailto:\"],a[href^=\"tel:\"]")];';
-    echo 'const target=anchors.find(a=>{const s=((a.getAttribute("href")||"")+" "+(a.textContent||"")).toLowerCase();return s.includes("travelerwp@gmail.com")||s.includes("999-656-888");});';
-    echo 'if(!target)return;';
-    echo 'let row=target;';
-    echo 'for(let i=0;i<7&&row&&row!==document.body;i++){';
-    echo 'const r=row.getBoundingClientRect();';
-    echo 'const text=(row.textContent||"").toLowerCase();';
-    echo 'if(r.width>=window.innerWidth*.65&&r.height>20&&r.height<=90&&text.includes("travelerwp@gmail.com")){row.style.setProperty("display","none","important");row.setAttribute("data-tng-hidden-traveler-contact","1");break;}';
-    echo 'row=row.parentElement;';
+    echo 'const normalize=s=>(s||"").replace(/\\s+/g," ").trim().toLowerCase();';
+    echo 'const digits=s=>(s||"").replace(/\\D/g,"");';
+    echo 'let emailNode=null,phoneNode=null;';
+    echo 'const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);';
+    echo 'let n;while((n=walker.nextNode())){';
+    echo 'const t=normalize(n.nodeValue);';
+    echo 'if(!emailNode&&t.includes("travelerwp@gmail.com"))emailNode=n.parentElement;';
+    echo 'if(!phoneNode&&digits(t).includes("999656888"))phoneNode=n.parentElement;';
+    echo 'if(emailNode&&phoneNode)break;';
+    echo '}';
+    echo 'const seed=emailNode||phoneNode;if(!seed)return;';
+    echo 'let row=seed;';
+    echo 'for(let i=0;i<10&&row&&row!==document.body;i++,row=row.parentElement){';
+    echo 'const r=row.getBoundingClientRect(),txt=normalize(row.textContent),d=digits(txt);';
+    echo 'const hasEmail=txt.includes("travelerwp@gmail.com"),hasPhone=d.includes("999656888");';
+    echo 'if((hasEmail||hasPhone)&&r.width>=Math.min(window.innerWidth*.65,700)&&r.height>=24&&r.height<=110){';
+    echo 'row.style.setProperty("display","none","important");';
+    echo 'row.style.setProperty("height","0","important");';
+    echo 'row.style.setProperty("min-height","0","important");';
+    echo 'row.style.setProperty("margin","0","important");';
+    echo 'row.style.setProperty("padding","0","important");';
+    echo 'row.setAttribute("data-tng-hidden-traveler-contact","1");return;';
+    echo '}';
     echo '}';
     echo '};';
     echo 'const fix=()=>{';
@@ -72,8 +86,9 @@ add_action('wp_footer', static function (): void {
     echo 'document.querySelectorAll(".tng-topbar__action").forEach(link=>link.setAttribute("href",searchUrl));';
     echo 'hideTravelerContactBar();';
     echo '};';
+    echo 'let queued=false;const queueFix=()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;fix();});};';
     echo 'fix();';
-    echo 'new MutationObserver(fix).observe(document.documentElement,{childList:true,subtree:true});';
+    echo 'new MutationObserver(queueFix).observe(document.documentElement,{childList:true,subtree:true});';
     echo '})();';
     echo '</script>';
 }, 999);
