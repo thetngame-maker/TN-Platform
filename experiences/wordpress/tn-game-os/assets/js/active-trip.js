@@ -9,10 +9,26 @@
   let mapRequest = null;
   let legRequest = null;
   let developerLocation = null;
+  let finishEventSent = false;
 
-  const updateSummary = (done, total) => {
+  const isComplete = stop => stop?.classList.contains('is-complete');
+  const isSkipped = stop => stop?.classList.contains('is-skipped');
+  const isResolved = stop => isComplete(stop) || isSkipped(stop);
+
+  const counts = () => {
+    const all = stops();
+    const done = all.filter(isComplete).length;
+    const skipped = all.filter(isSkipped).length;
+    return {done, skipped, resolved: done + skipped, total: all.length};
+  };
+
+  const updateSummary = (done, total, skipped = counts().skipped) => {
     document.querySelectorAll('[data-tng-trip-progress]').forEach(el => { el.textContent = `${done}/${total}`; });
-    document.querySelectorAll('[data-tng-trip-progress-bar]').forEach(el => { el.style.width = `${total ? Math.round((done / total) * 100) : 0}%`; });
+    const resolved = Math.min(total, done + skipped);
+    document.querySelectorAll('[data-tng-trip-progress-bar]').forEach(el => { el.style.width = `${total ? Math.round((resolved / total) * 100) : 0}%`; });
+    document.querySelectorAll('.tng-active-trip-score small').forEach(el => {
+      el.textContent = `Stops complete${skipped ? ` · ${skipped} skipped` : ''}`;
+    });
   };
 
   const distanceMeters = (lat1, lng1, lat2, lng2) => {
@@ -30,14 +46,15 @@
     title: stop.querySelector('h3')?.textContent?.trim() || `Stop ${index + 1}`,
     lat: Number(stop.dataset.lat),
     lng: Number(stop.dataset.lng),
-    complete: stop.classList.contains('is-complete')
+    complete: isComplete(stop),
+    skipped: isSkipped(stop)
   })).filter(stop => Number.isFinite(stop.lat) && Number.isFinite(stop.lng));
 
-  const firstIncomplete = () => stops().find(stop => !stop.classList.contains('is-complete')) || null;
+  const firstIncomplete = () => stops().find(stop => !isResolved(stop)) || null;
 
   const routeIcon = stop => L.divIcon({
     className: 'tng-active-map-marker-wrap',
-    html: `<span class="tng-active-map-marker${stop.complete ? ' is-complete' : ''}"><i>${stop.complete ? '✓' : stop.order}</i></span>`,
+    html: `<span class="tng-active-map-marker${stop.complete ? ' is-complete' : ''}${stop.skipped ? ' is-skipped' : ''}"><i>${stop.complete ? '✓' : (stop.skipped ? '↷' : stop.order)}</i></span>`,
     iconSize: [40, 40],
     iconAnchor: [20, 34],
     popupAnchor: [0, -30]
@@ -74,8 +91,9 @@
 
     const mapped = mappedStops();
     mapped.forEach(stop => {
+      const state = stop.complete ? 'Completed' : (stop.skipped ? 'Skipped' : 'Planned stop');
       const marker = L.marker([stop.lat, stop.lng], {icon:routeIcon(stop), keyboard:true})
-        .bindPopup(`<strong>${stop.order}. ${escapeHtml(stop.title)}</strong>${stop.complete ? '<br><small>Completed</small>' : ''}`)
+        .bindPopup(`<strong>${stop.order}. ${escapeHtml(stop.title)}</strong><br><small>${state}</small>`)
         .on('click', () => stop.el.scrollIntoView({behavior:'smooth', block:'center'}));
       markerLayer.addLayer(marker);
     });
@@ -84,16 +102,19 @@
     const bounds = L.latLngBounds(mapped.map(stop => [stop.lat, stop.lng]));
     tripMap.fitBounds(bounds, {padding:[42,42], maxZoom:13});
 
+    const routePoints = mapped.filter(stop => !stop.skipped);
     if (mapRequest) mapRequest.abort?.();
     const controller = new AbortController();
     mapRequest = controller;
-    try {
-      const geometry = await fetchRoadGeometry(mapped);
-      if (controller.signal.aborted || !geometry) return;
-      fullRouteLine = L.polyline(geometry, {color:'#355f4a', weight:5, opacity:.42, lineCap:'round', lineJoin:'round'}).addTo(tripMap);
-    } catch (error) {
-      if (controller.signal.aborted) return;
-      fullRouteLine = L.polyline(mapped.map(stop => [stop.lat, stop.lng]), {color:'#355f4a', weight:4, opacity:.35, dashArray:'8 8'}).addTo(tripMap);
+    if (routePoints.length > 1) {
+      try {
+        const geometry = await fetchRoadGeometry(routePoints);
+        if (controller.signal.aborted || !geometry) return;
+        fullRouteLine = L.polyline(geometry, {color:'#355f4a', weight:5, opacity:.42, lineCap:'round', lineJoin:'round'}).addTo(tripMap);
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        fullRouteLine = L.polyline(routePoints.map(stop => [stop.lat, stop.lng]), {color:'#355f4a', weight:4, opacity:.35, dashArray:'8 8'}).addTo(tripMap);
+      }
     }
 
     await drawCurrentLeg();
@@ -106,7 +127,8 @@
     const currentEl = firstIncomplete();
     const status = document.querySelector('[data-tng-active-map-status]');
     if (!currentEl) {
-      if (status) status.textContent = 'Every stop is complete.';
+      const c = counts();
+      if (status) status.textContent = c.skipped ? `Trip finished · ${c.done} completed · ${c.skipped} skipped` : 'Every stop is complete.';
       return;
     }
     const currentIndex = stops().indexOf(currentEl);
@@ -114,8 +136,13 @@
     if (!current) return;
     if (status) status.textContent = `Current leg highlighted to ${current.title}`;
 
-    const previousEl = currentIndex > 0 ? stops()[currentIndex - 1] : null;
-    const previous = previousEl ? all.find(stop => stop.el === previousEl) : null;
+    let previous = null;
+    for (let index = currentIndex - 1; index >= 0; index--) {
+      const candidate = stops()[index];
+      if (isSkipped(candidate)) continue;
+      previous = all.find(stop => stop.el === candidate) || null;
+      if (previous) break;
+    }
     if (!previous) {
       tripMap.panTo([current.lat, current.lng], {animate:true});
       return;
@@ -135,36 +162,75 @@
     }
   };
 
-  const syncCurrentStop = () => {
+  const syncFinishCard = (allowEvent = false) => {
+    const c = counts();
+    const card = document.querySelector('[data-trip-finish-card]');
+    const finished = c.total > 0 && c.resolved >= c.total;
+    card?.classList.toggle('is-visible', finished);
+    if (card && finished) {
+      const title = card.querySelector('[data-trip-finish-title]');
+      const copy = card.querySelector('[data-trip-finish-copy]');
+      if (title) title.textContent = c.skipped ? 'Your day is wrapped up.' : 'You completed every stop!';
+      if (copy) copy.textContent = c.skipped ? `${c.done} completed · ${c.skipped} skipped. Your progress is saved, and skipped stops can be revisited later.` : 'Your entire itinerary is complete and ready to be saved to your Explorer story.';
+    }
+    if (!finished) {
+      finishEventSent = false;
+      return;
+    }
+    if (!allowEvent || finishEventSent) return;
+    finishEventSent = true;
+    window.dispatchEvent(new CustomEvent(c.skipped ? 'tng:trip-finished' : 'tng:trip-completed', {detail:c}));
+  };
+
+  const syncCurrentStop = (allowFinishEvent = false) => {
     const current = firstIncomplete();
     stops().forEach(stop => {
       const isCurrent = stop === current;
       stop.classList.toggle('is-current', isCurrent);
-      if (!stop.classList.contains('is-complete')) {
-        const arrive = stop.querySelector('[data-trip-arrive]');
-        const complete = stop.querySelector('[data-trip-complete]');
+      const arrive = stop.querySelector('[data-trip-arrive]');
+      const complete = stop.querySelector('[data-trip-complete]');
+      if (isSkipped(stop)) {
+        if (arrive) arrive.disabled = true;
+        if (complete) complete.disabled = true;
+        return;
+      }
+      if (!isComplete(stop)) {
         if (arrive && !stop.classList.contains('is-arrived')) arrive.disabled = !isCurrent || !stop.dataset.lat || !stop.dataset.lng;
         if (complete && !stop.classList.contains('is-arrived')) complete.disabled = true;
       }
     });
 
+    const c = counts();
+    updateSummary(c.done, c.total, c.skipped);
+    syncFinishCard(allowFinishEvent);
+
     const heading = document.querySelector('[data-tng-trip-next-heading]');
+    const nextTitle = document.querySelector('[data-tng-next-title]');
+    const nextLeg = document.querySelector('[data-tng-next-leg]');
+    const nextDirections = document.querySelector('[data-tng-next-directions]');
+    const nextView = document.querySelector('[data-tng-next-view]');
     if (!current) {
-      if (heading) heading.textContent = 'You finished every stop.';
+      if (heading) heading.textContent = c.skipped ? 'Trip finished — review your day below.' : 'You finished every stop.';
+      if (nextTitle) nextTitle.textContent = c.skipped ? 'Trip finished.' : 'Adventure complete.';
+      if (nextLeg) nextLeg.textContent = c.skipped ? `${c.done} completed · ${c.skipped} skipped` : 'You visited every stop in this trip.';
+      if (nextDirections) nextDirections.style.display = 'none';
+      if (nextView) nextView.style.display = 'none';
       drawTripMap();
       syncDeveloperPanel();
       return;
     }
     const title = current.querySelector('h3')?.textContent?.trim() || 'Next stop';
     if (heading) heading.textContent = `Next: ${title}`;
-    const nextTitle = document.querySelector('[data-tng-next-title]');
     if (nextTitle) nextTitle.textContent = title;
-    const nextDirections = document.querySelector('[data-tng-next-directions]');
-    if (nextDirections && current.dataset.directions) nextDirections.href = current.dataset.directions;
-    const nextView = document.querySelector('[data-tng-next-view]');
+    if (nextDirections) {
+      nextDirections.style.display = '';
+      if (current.dataset.directions) nextDirections.href = current.dataset.directions;
+    }
     const viewLink = current.querySelector('.tng-active-trip-stop__copy a');
-    if (nextView && viewLink?.href) nextView.href = viewLink.href;
-    const nextLeg = document.querySelector('[data-tng-next-leg]');
+    if (nextView) {
+      nextView.style.display = '';
+      if (viewLink?.href) nextView.href = viewLink.href;
+    }
     const leg = current.querySelector('.tng-active-trip-leg');
     if (nextLeg && leg) nextLeg.textContent = leg.textContent.trim();
     drawTripMap();
@@ -212,7 +278,7 @@
     event.preventDefault();
     if (arrive.disabled || arrive.dataset.loading === '1') return;
     const stop = arrive.closest('[data-trip-stop]');
-    if (!stop) return;
+    if (!stop || isSkipped(stop)) return;
     const lat = Number(stop.dataset.lat), lng = Number(stop.dataset.lng);
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
       window.alert('This stop does not have a usable GPS location yet.');
@@ -266,12 +332,14 @@
       button.setAttribute('aria-pressed', json.data.complete ? 'true' : 'false');
       button.textContent = json.data.complete ? 'Undo' : 'Complete stop';
       stop?.classList.toggle('is-complete', json.data.complete);
-      if (json.data.complete) stop?.classList.remove('is-arrived');
+      if (json.data.complete) {
+        stop?.classList.remove('is-arrived', 'is-skipped');
+        delete stop?.dataset.skipReason;
+      }
       const number = stop?.querySelector('.tng-active-trip-stop__number');
-      if (number) number.textContent = json.data.complete ? '✓' : String(Array.from(stop.parentElement.children).indexOf(stop) + 1);
-      updateSummary(json.data.done, json.data.total);
+      if (number) number.textContent = json.data.complete ? '✓' : String(stops().indexOf(stop) + 1);
       developerLocation = null;
-      syncCurrentStop();
+      syncCurrentStop(true);
       if (json.data.complete) {
         const next = firstIncomplete();
         if (next) window.setTimeout(() => next.scrollIntoView({behavior:'smooth', block:'center'}), 250);
@@ -281,6 +349,80 @@
     } finally {
       if (!button.getAttribute('aria-pressed') || button.getAttribute('aria-pressed') !== 'true') button.disabled = true;
       else button.disabled = false;
+      delete button.dataset.loading;
+    }
+  });
+
+  const reasonLabels = {closed:'Closed', inaccessible:'Inaccessible', weather:'Weather', changed_plans:'Changed plans', other:'Other'};
+
+  const chooseSkipReason = title => new Promise(resolve => {
+    const dialog = document.createElement('div');
+    dialog.className = 'tng-trip-skip-dialog';
+    dialog.innerHTML = `<div class="tng-trip-skip-dialog__card" role="dialog" aria-modal="true" aria-label="Skip ${escapeHtml(title)}"><h3>Skip this stop?</h3><p>Tell TN Game why ${escapeHtml(title)} can’t be visited today. You can restore it later.</p><div class="tng-trip-skip-reasons">${Object.entries(reasonLabels).map(([key,label]) => `<button type="button" data-skip-reason="${key}">${label}</button>`).join('')}</div><button type="button" class="tng-trip-skip-dialog__cancel">Keep stop</button></div>`;
+    document.body.appendChild(dialog);
+    const close = value => { dialog.remove(); resolve(value); };
+    dialog.addEventListener('click', event => {
+      const reason = event.target.closest('[data-skip-reason]');
+      if (reason) return close(reason.dataset.skipReason || 'other');
+      if (event.target === dialog || event.target.closest('.tng-trip-skip-dialog__cancel')) close('');
+    });
+    const onKey = event => { if (event.key === 'Escape') { document.removeEventListener('keydown', onKey); close(''); } };
+    document.addEventListener('keydown', onKey, {once:true});
+  });
+
+  const applySkippedState = (stop, skipped, reason = '') => {
+    if (!stop) return;
+    stop.classList.toggle('is-skipped', skipped);
+    stop.classList.remove('is-arrived');
+    if (skipped) stop.dataset.skipReason = reason || 'other';
+    else delete stop.dataset.skipReason;
+    const number = stop.querySelector('.tng-active-trip-stop__number');
+    if (number) number.textContent = skipped ? '↷' : String(stops().indexOf(stop) + 1);
+    let label = stop.querySelector('.tng-active-trip-skip-label');
+    if (skipped) {
+      if (!label) {
+        label = document.createElement('span');
+        label.className = 'tng-active-trip-skip-label';
+        const copy = stop.querySelector('.tng-active-trip-stop__copy');
+        const details = copy?.querySelector('a');
+        if (copy) copy.insertBefore(label, details || null);
+      }
+      label.textContent = `Skipped · ${reasonLabels[reason] || 'Other'}`;
+    } else label?.remove();
+    const button = stop.querySelector('[data-trip-skip]');
+    if (button) {
+      button.setAttribute('aria-pressed', skipped ? 'true' : 'false');
+      button.textContent = skipped ? 'Restore stop' : 'Can’t visit?';
+    }
+  };
+
+  document.addEventListener('click', async event => {
+    const button = event.target.closest('[data-trip-skip]');
+    if (!button) return;
+    event.preventDefault();
+    if (button.dataset.loading === '1') return;
+    const stop = button.closest('[data-trip-stop]');
+    if (!stop || isComplete(stop)) return;
+    const restoring = isSkipped(stop);
+    const title = stop.querySelector('h3')?.textContent?.trim() || 'this stop';
+    const reason = restoring ? (stop.dataset.skipReason || 'other') : await chooseSkipReason(title);
+    if (!restoring && !reason) return;
+    button.dataset.loading = '1';
+    button.disabled = true;
+    try {
+      const body = new URLSearchParams({action:'tng_trip_skip_status', nonce:cfg.nonce || '', postId:String(Number(stop.dataset.tripStop || 0)), skip:restoring ? '' : '1', reason});
+      const response = await fetch(cfg.ajaxUrl, {method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'}, body});
+      const json = await response.json();
+      if (!json.success) throw new Error('Unable to update skipped stop');
+      applySkippedState(stop, !!json.data.skip, json.data.reason || reason);
+      developerLocation = null;
+      syncCurrentStop(true);
+      const next = firstIncomplete();
+      if (!restoring && next) window.setTimeout(() => next.scrollIntoView({behavior:'smooth', block:'center'}), 250);
+    } catch (error) {
+      window.alert('The stop could not be skipped. Please try again.');
+    } finally {
+      button.disabled = false;
       delete button.dataset.loading;
     }
   });
@@ -309,7 +451,7 @@
         const option = document.createElement('option');
         option.value = String(index);
         const title = stop.querySelector('h3')?.textContent?.trim() || `Stop ${index + 1}`;
-        const state = stop.classList.contains('is-complete') ? 'Completed' : (stop === current ? 'Active stop' : 'Future stop');
+        const state = isComplete(stop) ? 'Completed' : (isSkipped(stop) ? 'Skipped' : (stop === current ? 'Active stop' : 'Future stop'));
         option.textContent = `${index + 1}. ${title} — ${state}`;
         select.appendChild(option);
       });
@@ -317,8 +459,10 @@
     }
     const status = devPanel.querySelector('[data-trip-dev-status]');
     if (status) {
-      if (!current) status.innerHTML = '<strong>Trip complete.</strong> Undo a completed stop to test the route again.';
-      else {
+      if (!current) {
+        const c = counts();
+        status.innerHTML = c.skipped ? `<strong>Trip finished.</strong> ${c.done} completed · ${c.skipped} skipped.` : '<strong>Trip complete.</strong> Undo a completed stop to test the route again.';
+      } else {
         const title = current.querySelector('h3')?.textContent?.trim() || 'Current stop';
         const sim = developerLocation ? `<br>Simulated GPS: ${developerLocation.mode === 'outside' ? 'outside radius' : 'at stop'}` : '';
         status.innerHTML = `<strong>Active:</strong> ${escapeHtml(title)}${sim}`;
@@ -328,8 +472,8 @@
     if (quick) quick.disabled = !current || !current.dataset.lat || !current.dataset.lng;
     const complete = devPanel.querySelector('[data-trip-dev-complete]');
     if (complete) {
-      const button = current?.querySelector('[data-trip-complete]');
-      complete.disabled = !button || button.disabled;
+      const action = current?.querySelector('[data-trip-complete]');
+      complete.disabled = !action || action.disabled;
       complete.textContent = current?.classList.contains('is-arrived') ? 'Complete current stop' : 'Complete current stop (arrive first)';
     }
   };
@@ -401,7 +545,7 @@
   };
 
   initMap();
-  syncCurrentStop();
+  syncCurrentStop(false);
   renderDeveloperPanel();
   window.addEventListener('resize', () => tripMap && window.setTimeout(() => tripMap.invalidateSize(), 80));
 })();
