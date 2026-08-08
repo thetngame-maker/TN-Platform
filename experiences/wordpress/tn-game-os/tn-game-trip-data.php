@@ -2,23 +2,25 @@
 /**
  * Plugin Name: TN Game Trip Data
  * Description: Persistent saved places and trip actions for The TN Game app.
- * Version: 0.2.0
+ * Version: 0.3.0
  * Author: The TN Game
  */
 if (!defined('ABSPATH')) exit;
 
 final class TNG_Trip_Data {
     private const META_KEY = 'tng_saved_trip_items';
+    private const ROUTE_META_KEY = 'tng_saved_trip_route';
 
     public static function boot(): void {
         add_action('wp_ajax_tng_toggle_saved', [self::class, 'ajax_toggle']);
         add_action('wp_ajax_tng_reorder_saved', [self::class, 'ajax_reorder']);
+        add_action('wp_ajax_tng_save_trip_route', [self::class, 'ajax_save_route']);
         add_action('wp_enqueue_scripts', [self::class, 'assets'], 110);
     }
 
     public static function assets(): void {
         if (is_admin()) return;
-        wp_enqueue_script('tng-trip-data', TNG_OS_URL . 'assets/js/trip-data.js', [], '0.2.0', true);
+        wp_enqueue_script('tng-trip-data', TNG_OS_URL . 'assets/js/trip-data.js', [], '0.3.0', true);
         wp_localize_script('tng-trip-data', 'TNGTripData', [
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('tng_trip_data'),
@@ -39,12 +41,24 @@ final class TNG_Trip_Data {
 
     public static function is_saved(int $post_id, int $user_id = 0): bool { return in_array($post_id, self::ids($user_id), true); }
 
+    public static function route_data(int $user_id = 0): array {
+        $user_id = $user_id ?: get_current_user_id();
+        if (!$user_id) return [];
+        $data = get_user_meta($user_id, self::ROUTE_META_KEY, true);
+        return is_array($data) ? $data : [];
+    }
+
+    private static function clear_route(int $user_id): void {
+        delete_user_meta($user_id, self::ROUTE_META_KEY);
+    }
+
     public static function toggle(int $post_id, int $user_id): array {
         $ids = self::ids($user_id);
         $saved = in_array($post_id, $ids, true);
         if ($saved) $ids = array_values(array_diff($ids, [$post_id]));
         else { array_unshift($ids, $post_id); $ids = array_slice(array_values(array_unique($ids)), 0, 100); }
         update_user_meta($user_id, self::META_KEY, $ids);
+        self::clear_route($user_id);
         return ['postId' => $post_id, 'saved' => !$saved, 'count' => count($ids), 'ids' => $ids];
     }
 
@@ -64,7 +78,45 @@ final class TNG_Trip_Data {
         $ordered = array_values(array_filter($submitted, static fn($id) => in_array($id, $allowed, true)));
         foreach ($allowed as $id) if (!in_array($id, $ordered, true)) $ordered[] = $id;
         update_user_meta(get_current_user_id(), self::META_KEY, $ordered);
+        self::clear_route(get_current_user_id());
         wp_send_json_success(['ids' => $ordered, 'count' => count($ordered)]);
+    }
+
+    public static function ajax_save_route(): void {
+        check_ajax_referer('tng_trip_data', 'nonce');
+        if (!is_user_logged_in()) wp_send_json_error(['code' => 'login_required'], 401);
+        $raw = isset($_POST['route']) ? json_decode(wp_unslash((string) $_POST['route']), true) : null;
+        if (!is_array($raw)) wp_send_json_error(['code' => 'invalid_route'], 400);
+
+        $saved = self::ids(get_current_user_id());
+        $ids = isset($raw['ids']) && is_array($raw['ids']) ? array_values(array_map('absint', $raw['ids'])) : [];
+        if ($ids !== $saved) wp_send_json_error(['code' => 'stale_route'], 409);
+
+        $legs = [];
+        if (!empty($raw['legs']) && is_array($raw['legs'])) {
+            foreach (array_slice($raw['legs'], 0, 99) as $leg) {
+                if (!is_array($leg)) continue;
+                $from = absint($leg['from'] ?? 0); $to = absint($leg['to'] ?? 0);
+                if (!$from || !$to || !in_array($from, $saved, true) || !in_array($to, $saved, true)) continue;
+                $legs[] = [
+                    'from' => $from,
+                    'to' => $to,
+                    'distance_m' => max(0, (int) round((float) ($leg['distance_m'] ?? 0))),
+                    'duration_s' => max(0, (int) round((float) ($leg['duration_s'] ?? 0))),
+                ];
+            }
+        }
+
+        $data = [
+            'ids' => $ids,
+            'distance_m' => max(0, (int) round((float) ($raw['distance_m'] ?? 0))),
+            'duration_s' => max(0, (int) round((float) ($raw['duration_s'] ?? 0))),
+            'legs' => $legs,
+            'provider' => sanitize_key((string) ($raw['provider'] ?? 'road')),
+            'updated_at' => time(),
+        ];
+        update_user_meta(get_current_user_id(), self::ROUTE_META_KEY, $data);
+        wp_send_json_success($data);
     }
 
     public static function posts(int $user_id = 0): array {
