@@ -42,3 +42,6 @@ TNG_Gameplay_UI_Milestone::boot();
 
 // Gameplay owns its dock while the native runtime is open.
 require_once TNG_OS_PATH . 'tn-game-gameplay-dock-context.php';
+
+// Trip Mode live distance and arrival-readiness guidance.
+require_once TNG_OS_PATH . 'tn-game-active-trip-proximity.php';
