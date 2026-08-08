@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TN Game Map UI
  * Description: Native TN Game discovery map screen for the app router.
- * Version: 0.8.0
+ * Version: 0.9.0
  * Author: The TN Game
  */
 if (!defined('ABSPATH')) exit;
@@ -40,10 +40,12 @@ final class TNG_Map_UI {
         wp_enqueue_style('tng-leaflet','https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',[],'1.9.4');
         wp_enqueue_style('tng-leaflet-markercluster','https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css',['tng-leaflet'],'1.5.3');
         wp_enqueue_style('tng-leaflet-markercluster-default','https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css',['tng-leaflet-markercluster'],'1.5.3');
-        wp_enqueue_style('tng-map-ui',TNG_OS_URL.'assets/css/map-ui.css',['tng-ui-kit','tng-leaflet-markercluster-default'],'0.8.0');
+        wp_enqueue_style('tng-map-ui',TNG_OS_URL.'assets/css/map-ui.css',['tng-ui-kit','tng-leaflet-markercluster-default'],'0.9.0');
+        wp_enqueue_style('tng-map-mobile-final',TNG_OS_URL.'assets/css/map-mobile-final.css',['tng-map-ui'],'0.9.0');
         wp_enqueue_script('tng-leaflet','https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',[],'1.9.4',true);
         wp_enqueue_script('tng-leaflet-markercluster','https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js',['tng-leaflet'],'1.5.3',true);
-        wp_enqueue_script('tng-map-ui-live',TNG_OS_URL.'assets/js/map-ui.js',['tng-leaflet-markercluster','tng-trip-data'],'0.8.0',true);
+        wp_enqueue_script('tng-map-ui-live',TNG_OS_URL.'assets/js/map-ui.js',['tng-leaflet-markercluster','tng-trip-data'],'0.9.0',true);
+        wp_enqueue_script('tng-map-mobile-final',TNG_OS_URL.'assets/js/map-mobile-final.js',['tng-map-ui-live'],'0.9.0',true);
         $center=$items?[(float)$items[0]['lat'],(float)$items[0]['lng']]:[35.2600,-85.7500];wp_localize_script('tng-map-ui-live','TNG_DISCOVERY_MAP',['items'=>$items,'center'=>$center,'zoom'=>10]);
     }
     private static function cards(array $items): string {
