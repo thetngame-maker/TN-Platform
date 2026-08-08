@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TN Game Map UI
  * Description: Native TN Game discovery map screen for the app router.
- * Version: 0.5.0
+ * Version: 0.6.0
  * Author: The TN Game
  */
 if (!defined('ABSPATH')) exit;
@@ -36,10 +36,10 @@ final class TNG_Map_UI {
         wp_enqueue_style('tng-leaflet','https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',[],'1.9.4');
         wp_enqueue_style('tng-leaflet-markercluster','https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css',['tng-leaflet'],'1.5.3');
         wp_enqueue_style('tng-leaflet-markercluster-default','https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css',['tng-leaflet-markercluster'],'1.5.3');
-        wp_enqueue_style('tng-map-ui',TNG_OS_URL.'assets/css/map-ui.css',['tng-ui-kit','tng-leaflet-markercluster-default'],'0.6.0');
+        wp_enqueue_style('tng-map-ui',TNG_OS_URL.'assets/css/map-ui.css',['tng-ui-kit','tng-leaflet-markercluster-default'],'0.7.0');
         wp_enqueue_script('tng-leaflet','https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',[],'1.9.4',true);
         wp_enqueue_script('tng-leaflet-markercluster','https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js',['tng-leaflet'],'1.5.3',true);
-        wp_enqueue_script('tng-map-ui-live',TNG_OS_URL.'assets/js/map-ui.js',['tng-leaflet-markercluster','tng-trip-data'],'0.5.0',true);
+        wp_enqueue_script('tng-map-ui-live',TNG_OS_URL.'assets/js/map-ui.js',['tng-leaflet-markercluster','tng-trip-data'],'0.6.0',true);
         $center=$items?[(float)$items[0]['lat'],(float)$items[0]['lng']]:[35.2600,-85.7500];wp_localize_script('tng-map-ui-live','TNG_DISCOVERY_MAP',['items'=>$items,'center'=>$center,'zoom'=>10]);
     }
     private static function cards(array $items): string {
@@ -52,6 +52,12 @@ final class TNG_Map_UI {
             <section class="tng-map-filterbar" aria-label="Map filters"><button class="is-active" data-tng-map-filter="all" type="button">All <span><?php echo count($items); ?></span></button><button data-tng-map-filter="trail" type="button">🥾 Trails <span><?php echo $counts['trail']; ?></span></button><button data-tng-map-filter="game" type="button">🎮 Games <span><?php echo $counts['game']; ?></span></button><button data-tng-map-filter="sight" type="button">📍 Sights <span><?php echo $counts['sight']; ?></span></button><button data-tng-map-filter="food" type="button">🍽️ Food <span><?php echo $counts['food']; ?></span></button></section>
             <section class="tng-map-nearest" data-tng-nearest hidden aria-live="polite"></section>
             <section class="tng-map-layout"><div class="tng-map-canvas-wrap"><div id="tng-discovery-map" class="tng-map-canvas" aria-label="Interactive Tennessee discovery map"></div><div class="tng-map-live-status"><span class="tng-map-live-dot"></span><strong>Live discovery map</strong><small data-tng-map-count><?php echo count($items); ?> places on map</small></div></div><aside class="tng-map-panel"><div class="tng-map-panel__heading"><div><span class="tng-eyebrow">Around Tennessee</span><h2>Discoveries</h2></div><a href="<?php echo esc_url(home_url('/search/')); ?>">Search all</a></div><p class="tng-map-panel__intro" data-tng-panel-intro>Move the map to discover what is in view. Use your location to sort by distance.</p><?php echo $cards; ?></aside></section>
+            <div class="tng-map-sheet-backdrop" data-tng-map-sheet-close hidden></div>
+            <section class="tng-map-sheet" data-tng-map-sheet role="dialog" aria-modal="true" aria-hidden="true" aria-label="Discovery details">
+                <div class="tng-map-sheet__handle" data-tng-map-sheet-handle><span></span></div>
+                <button class="tng-map-sheet__close" type="button" data-tng-map-sheet-close aria-label="Close discovery details">×</button>
+                <div class="tng-map-sheet__content" data-tng-map-sheet-content></div>
+            </section>
         </main><?php return(string)ob_get_clean(); }
 }
 TNG_Map_UI::boot();
