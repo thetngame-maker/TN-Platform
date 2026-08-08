@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TN Game Active Trip UI
  * Description: Live itinerary and stop progress for saved TN Game trips.
- * Version: 0.2.0
+ * Version: 0.3.0
  * Author: The TN Game
  */
 if (!defined('ABSPATH')) exit;
@@ -12,6 +12,15 @@ final class TNG_Active_Trip_UI {
 
     public static function boot(): void {
         add_action('wp_ajax_tng_trip_stop_status', [self::class, 'ajax_status']);
+        add_action('wp_enqueue_scripts', [self::class, 'assets'], 90);
+    }
+
+    public static function assets(): void {
+        if (!class_exists('TNG_OS\\Platform\\App_Router')) return;
+        $route = TNG_OS\Platform\App_Router::current_route();
+        if (!in_array($route, ['active-trip','trip-mode'], true)) return;
+        wp_enqueue_style('tng-active-trip-leaflet', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css', [], '1.9.4');
+        wp_enqueue_script('tng-active-trip-leaflet', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', [], '1.9.4', true);
     }
 
     private static function completed_ids(int $user_id = 0): array {
@@ -103,10 +112,17 @@ final class TNG_Active_Trip_UI {
                 <section class="tng-active-trip-empty"><h2>Your route needs a few stops.</h2><p>Save places, arrange them, then return here to begin the day.</p><a class="tng-ui-button" href="<?php echo esc_url(home_url('/explore/')); ?>">Find places</a></section>
             <?php else: ?>
                 <section class="tng-active-trip-progress-card"><div><span class="tng-eyebrow">Today’s progress</span><h2 data-tng-trip-next-heading><?php echo esc_html($done===$total?'You finished every stop.':($next?'Next: '.get_the_title($next):'Keep exploring')); ?></h2><?php if(!empty($route['distance_m'])&&!empty($route['duration_s'])): ?><p class="tng-active-trip-road-summary">Road itinerary: <?php echo esc_html(self::format_miles((int)$route['distance_m']).' · '.self::format_time((int)$route['duration_s'])); ?></p><?php endif; ?></div><div class="tng-ui-progress"><span data-tng-trip-progress-bar style="width:<?php echo esc_attr((string)$percent); ?>%"></span></div></section>
+
+                <section class="tng-active-trip-map-card" aria-labelledby="tng-active-trip-map-title">
+                    <div class="tng-active-trip-map-heading"><div><span class="tng-eyebrow">Live route</span><h2 id="tng-active-trip-map-title">Your trip on the map</h2><p data-tng-active-map-status><?php echo $next?'Current leg highlighted to '.esc_html(get_the_title($next)):'Every stop is complete.'; ?></p></div><a href="<?php echo esc_url(home_url('/trip-builder/')); ?>">Edit route</a></div>
+                    <div id="tng-active-trip-map" class="tng-active-trip-map" aria-label="Map of the active trip route"></div>
+                    <div class="tng-active-trip-map-footer"><span class="tng-active-trip-map-key"><i></i> Current leg</span><button type="button" data-tng-fit-active-route>Fit route</button></div>
+                </section>
+
                 <div class="tng-active-trip-layout">
                     <section class="tng-active-trip-route"><div class="tng-section__heading"><div><span class="tng-eyebrow">Your itinerary</span><h2>Stops for today</h2></div><a href="<?php echo esc_url(home_url('/trip-builder/')); ?>">Edit route</a></div><ol class="tng-active-trip-list">
                         <?php foreach($posts as $index=>$post): $is_done=in_array($post->ID,$completed,true);$image=get_the_post_thumbnail_url($post->ID,'medium');$coords=self::coordinates((int)$post->ID);$leg=$legs[(int)$post->ID]??null;$directions=self::directions((int)$post->ID); ?>
-                        <li class="tng-active-trip-stop<?php echo $is_done?' is-complete':''; ?>" data-trip-stop="<?php echo esc_attr((string)$post->ID); ?>" data-directions="<?php echo esc_url($directions); ?>"<?php if($coords): ?> data-lat="<?php echo esc_attr((string)$coords[0]); ?>" data-lng="<?php echo esc_attr((string)$coords[1]); ?>"<?php endif; ?>>
+                        <li class="tng-active-trip-stop<?php echo $is_done?' is-complete':''; ?>" data-trip-stop="<?php echo esc_attr((string)$post->ID); ?>" data-trip-order="<?php echo esc_attr((string)($index+1)); ?>" data-directions="<?php echo esc_url($directions); ?>"<?php if($coords): ?> data-lat="<?php echo esc_attr((string)$coords[0]); ?>" data-lng="<?php echo esc_attr((string)$coords[1]); ?>"<?php endif; ?>>
                             <span class="tng-active-trip-stop__number"><?php echo $is_done?'✓':esc_html((string)($index+1)); ?></span><span class="tng-active-trip-stop__media"<?php echo $image?' style="background-image:url('.esc_url($image).')"':''; ?>></span>
                             <div class="tng-active-trip-stop__copy"><small><?php echo esc_html(get_post_type_object(get_post_type($post->ID))->labels->singular_name??'Stop'); ?></small><h3><?php echo esc_html(get_the_title($post)); ?></h3><?php if($leg): ?><span class="tng-active-trip-leg">🚗 <?php echo esc_html(self::format_miles((int)$leg['distance_m']).' · '.self::format_time((int)$leg['duration_s'])); ?></span><?php elseif($index===0): ?><span class="tng-active-trip-leg">Start here</span><?php endif; ?><a href="<?php echo esc_url(get_permalink($post)); ?>">View details</a></div>
                             <div class="tng-active-trip-stop__actions"><a href="<?php echo esc_url($directions); ?>" target="_blank" rel="noopener">Directions</a><?php if(!$is_done): ?><button type="button" class="tng-trip-arrive" data-trip-arrive<?php echo !$coords?' disabled':''; ?>>I’m here</button><?php endif; ?><button type="button" data-trip-complete data-post-id="<?php echo esc_attr((string)$post->ID); ?>" aria-pressed="<?php echo $is_done?'true':'false'; ?>"<?php echo (!$is_done&&$coords)?' disabled':''; ?>><?php echo $is_done?'Undo':'Complete stop'; ?></button></div>
