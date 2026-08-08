@@ -35,10 +35,7 @@ final class TNG_Social_Discovery {
     }
 
     public static function admin_menu(): void {
-        add_submenu_page(
-            'tng-content-studio', 'Discovery Inbox', 'Discovery Inbox', 'edit_posts',
-            'tng-social-discovery', [__CLASS__, 'inbox']
-        );
+        add_submenu_page('tng-content-studio', 'Discovery Inbox', 'Discovery Inbox', 'edit_posts', 'tng-social-discovery', [__CLASS__, 'inbox']);
     }
 
     private static function action_url(string $action, array $args = []): string {
@@ -85,11 +82,20 @@ final class TNG_Social_Discovery {
         update_post_meta($watch_id, '_tng_watch_last_run', current_time('mysql'));
 
         if ($platform === 'reddit' || $platform === 'all' || $platform === '') {
-            $added = self::discover_reddit($watch_id, $value, $type);
-            update_post_meta($watch_id, '_tng_watch_last_results', $added);
-            return ['added' => $added, 'message' => $added ? 'Recent Reddit matches were added to the Inbox.' : 'No new Reddit matches were found. Platform search links are still available for manual review.'];
+            $result = self::discover_reddit($watch_id, $value, $type);
+            update_post_meta($watch_id, '_tng_watch_last_results', (int) $result['added']);
+            update_post_meta($watch_id, '_tng_watch_last_fetched', (int) $result['fetched']);
+            update_post_meta($watch_id, '_tng_watch_last_duplicates', (int) $result['duplicates']);
+            update_post_meta($watch_id, '_tng_watch_source_status', (string) $result['status']);
+            update_post_meta($watch_id, '_tng_watch_source_http', (int) $result['http_code']);
+            update_post_meta($watch_id, '_tng_watch_source_error', (string) $result['error']);
+            update_post_meta($watch_id, '_tng_watch_source_ms', (int) $result['elapsed_ms']);
+            update_post_meta($watch_id, '_tng_watch_last_query', (string) $result['query']);
+            return ['added' => $result['added'], 'message' => $result['message']];
         }
+
         update_post_meta($watch_id, '_tng_watch_last_results', 0);
+        update_post_meta($watch_id, '_tng_watch_source_status', 'manual');
         return ['added' => 0, 'message' => 'This platform currently uses review-first platform search. Open the Watchlist search link and add promising post URLs to the Inbox.'];
     }
 
@@ -99,29 +105,73 @@ final class TNG_Social_Discovery {
         return $value;
     }
 
-    private static function discover_reddit(int $watch_id, string $value, string $type): int {
+    private static function discover_reddit(int $watch_id, string $value, string $type): array {
+        $started = microtime(true);
         $query = self::reddit_query($value, $type);
-        $url = add_query_arg(['q' => $query, 'sort' => 'new', 'limit' => 25, 'raw_json' => 1], 'https://www.reddit.com/search.json');
-        $response = wp_remote_get($url, [
-            'timeout' => 12,
-            'headers' => ['User-Agent' => 'TNGameSocialIntelligence/0.2 (+https://thetngame.com)'],
-        ]);
-        if (is_wp_error($response) || wp_remote_retrieve_response_code($response) !== 200) return 0;
-        $body = json_decode((string) wp_remote_retrieve_body($response), true);
-        $children = $body['data']['children'] ?? [];
-        if (!is_array($children)) return 0;
-        $added = 0;
-        foreach ($children as $child) {
-            $d = $child['data'] ?? [];
-            if (!is_array($d) || empty($d['permalink'])) continue;
+        $attempts = [
+            ['sort' => 'new', 'limit' => 50],
+            ['sort' => 'relevance', 'limit' => 50],
+        ];
+        $records = [];
+        $http_code = 0;
+        $error = '';
+        $status = 'ok';
+
+        foreach ($attempts as $attempt) {
+            $url = add_query_arg([
+                'q' => $query, 'sort' => $attempt['sort'], 'limit' => $attempt['limit'],
+                'restrict_sr' => 0, 'include_over_18' => 'off', 'raw_json' => 1,
+            ], 'https://www.reddit.com/search.json');
+            $response = wp_remote_get($url, [
+                'timeout' => 15,
+                'redirection' => 3,
+                'headers' => [
+                    'User-Agent' => 'TNGameSocialIntelligence/0.3 (+https://thetngame.com)',
+                    'Accept' => 'application/json',
+                ],
+            ]);
+            if (is_wp_error($response)) {
+                $status = 'error';
+                $error = $response->get_error_message();
+                continue;
+            }
+            $http_code = wp_remote_retrieve_response_code($response);
+            if ($http_code !== 200) {
+                $status = $http_code === 403 || $http_code === 429 ? 'blocked' : 'http_error';
+                $error = 'Reddit returned HTTP ' . $http_code . '.';
+                continue;
+            }
+            $body = json_decode((string) wp_remote_retrieve_body($response), true);
+            if (!is_array($body)) {
+                $status = 'invalid_response';
+                $error = 'Reddit returned an unreadable response.';
+                continue;
+            }
+            $children = $body['data']['children'] ?? [];
+            if (!is_array($children)) continue;
+            foreach ($children as $child) {
+                $d = $child['data'] ?? [];
+                if (!is_array($d) || empty($d['permalink'])) continue;
+                $key = (string) ($d['name'] ?? $d['permalink']);
+                $records[$key] = $d;
+            }
+            if ($records) break;
+        }
+
+        $added = 0; $duplicates = 0;
+        foreach ($records as $d) {
             $source = 'https://www.reddit.com' . $d['permalink'];
             $title = sanitize_text_field((string) ($d['title'] ?? 'Reddit discovery'));
             $creator = sanitize_text_field((string) ($d['author'] ?? ''));
             $excerpt = sanitize_textarea_field(wp_strip_all_tags((string) ($d['selftext'] ?? '')));
-            $score = absint($d['score'] ?? 0);
+            $reddit_score = absint($d['score'] ?? 0);
             $comments = absint($d['num_comments'] ?? 0);
-            $published = !empty($d['created_utc']) ? gmdate('Y-m-d H:i:s', (int) $d['created_utc']) : '';
-            if (self::candidate_exists($source)) continue;
+            $published_ts = (int) ($d['created_utc'] ?? 0);
+            $published = $published_ts ? gmdate('Y-m-d H:i:s', $published_ts) : '';
+            $subreddit = sanitize_text_field((string) ($d['subreddit_name_prefixed'] ?? $d['subreddit'] ?? ''));
+            if (self::candidate_exists($source)) { $duplicates++; continue; }
+
+            $signals = self::score_candidate($value, $type, $title, $excerpt, $creator, $subreddit, $reddit_score, $comments, $published_ts);
             $id = wp_insert_post([
                 'post_type' => self::CANDIDATE, 'post_status' => 'publish',
                 'post_title' => $title ?: 'Reddit discovery', 'post_content' => mb_substr($excerpt, 0, 3000),
@@ -131,22 +181,70 @@ final class TNG_Social_Discovery {
             update_post_meta($id, '_tng_candidate_creator', $creator ? 'u/' . $creator : '');
             update_post_meta($id, '_tng_candidate_platform', 'reddit');
             update_post_meta($id, '_tng_candidate_watch_id', $watch_id);
-            update_post_meta($id, '_tng_candidate_score', $score);
+            update_post_meta($id, '_tng_candidate_score', $reddit_score);
             update_post_meta($id, '_tng_candidate_comments', $comments);
             update_post_meta($id, '_tng_candidate_published', $published);
+            update_post_meta($id, '_tng_candidate_subreddit', $subreddit);
+            update_post_meta($id, '_tng_candidate_relevance', $signals['relevance']);
+            update_post_meta($id, '_tng_candidate_engagement', $signals['engagement']);
+            update_post_meta($id, '_tng_candidate_freshness', $signals['freshness']);
+            update_post_meta($id, '_tng_candidate_trend_score', $signals['opportunity']);
             update_post_meta($id, '_tng_candidate_status', 'new');
             $added++;
         }
-        return $added;
+
+        $fetched = count($records);
+        $elapsed = (int) round((microtime(true) - $started) * 1000);
+        if ($status === 'ok' && !$fetched) $status = 'zero_results';
+        if ($added) {
+            $message = sprintf('%d Reddit candidate%s added from %d fetched result%s.', $added, $added === 1 ? '' : 's', $fetched, $fetched === 1 ? '' : 's');
+        } elseif ($status === 'blocked') {
+            $message = 'Reddit discovery is being blocked from this server (HTTP ' . $http_code . '). Use Search ↗ while we connect another approved discovery source.';
+        } elseif ($status === 'error' || $status === 'http_error' || $status === 'invalid_response') {
+            $message = 'Reddit discovery could not complete: ' . ($error ?: 'unknown source error');
+        } elseif ($duplicates && $fetched) {
+            $message = sprintf('Reddit returned %d result%s, but all useful URLs were already in your Inbox or Inspiration library.', $fetched, $fetched === 1 ? '' : 's');
+        } else {
+            $message = 'Reddit responded successfully but returned no matches for this watch. Try a broader watch phrase or use Search ↗.';
+        }
+
+        return [
+            'added' => $added, 'fetched' => $fetched, 'duplicates' => $duplicates,
+            'status' => $status, 'http_code' => $http_code, 'error' => $error,
+            'elapsed_ms' => $elapsed, 'query' => $query, 'message' => $message,
+        ];
+    }
+
+    private static function score_candidate(string $watch_value, string $type, string $title, string $excerpt, string $creator, string $subreddit, int $score, int $comments, int $published_ts): array {
+        $needle = strtolower(ltrim(trim($watch_value), '#@'));
+        $haystack = strtolower(trim($title . ' ' . $excerpt . ' ' . $creator . ' ' . $subreddit));
+        $tokens = array_values(array_filter(preg_split('/[^a-z0-9]+/i', $needle) ?: [], static fn($t) => strlen($t) >= 3));
+        $matched = 0;
+        foreach ($tokens as $token) if (str_contains($haystack, strtolower($token))) $matched++;
+        $relevance = $tokens ? (int) round(($matched / count($tokens)) * 78) : 35;
+        if ($needle && str_contains(strtolower($title), $needle)) $relevance += 18;
+        if ($type === 'account' && $needle && str_contains(strtolower($creator), $needle)) $relevance = 100;
+        $relevance = min(100, max(0, $relevance));
+
+        $engagement_raw = max(0, $score) + ($comments * 2.5);
+        $engagement = $engagement_raw > 0 ? (int) round(min(100, log10($engagement_raw + 1) * 31)) : 0;
+
+        $age_hours = $published_ts ? max(0, (time() - $published_ts) / HOUR_IN_SECONDS) : 9999;
+        if ($age_hours <= 24) $freshness = 100;
+        elseif ($age_hours <= 72) $freshness = 88;
+        elseif ($age_hours <= 168) $freshness = 72;
+        elseif ($age_hours <= 336) $freshness = 55;
+        elseif ($age_hours <= 720) $freshness = 38;
+        else $freshness = 18;
+
+        $opportunity = (int) round(($relevance * .50) + ($engagement * .30) + ($freshness * .20));
+        return ['relevance' => $relevance, 'engagement' => $engagement, 'freshness' => $freshness, 'opportunity' => min(100, max(0, $opportunity))];
     }
 
     private static function candidate_exists(string $url): bool {
         $found = get_posts([
             'post_type' => [self::CANDIDATE, self::ITEM], 'post_status' => 'any', 'numberposts' => 1, 'fields' => 'ids',
-            'meta_query' => ['relation' => 'OR',
-                ['key' => '_tng_candidate_source_url', 'value' => $url],
-                ['key' => '_tng_source_url', 'value' => $url],
-            ],
+            'meta_query' => ['relation' => 'OR', ['key' => '_tng_candidate_source_url', 'value' => $url], ['key' => '_tng_source_url', 'value' => $url]],
         ]);
         return !empty($found);
     }
@@ -163,6 +261,7 @@ final class TNG_Social_Discovery {
             update_post_meta($id, '_tng_candidate_source_url', $source);
             update_post_meta($id, '_tng_candidate_platform', $platform);
             update_post_meta($id, '_tng_candidate_status', 'new');
+            update_post_meta($id, '_tng_candidate_trend_score', 0);
         }
         self::redirect_notice($id ? 1 : 0, $id ? 'Post added to the Discovery Inbox.' : 'Could not add the post.');
     }
@@ -184,6 +283,9 @@ final class TNG_Social_Discovery {
             update_post_meta($inspiration_id, '_tng_creator_handle', $creator);
             update_post_meta($inspiration_id, '_tng_plan_status', 'inspiration');
             update_post_meta($inspiration_id, '_tng_permission_status', 'not_needed');
+            update_post_meta($inspiration_id, '_tng_source_opportunity_score', (int) get_post_meta($id, '_tng_candidate_trend_score', true));
+            update_post_meta($inspiration_id, '_tng_source_relevance', (int) get_post_meta($id, '_tng_candidate_relevance', true));
+            update_post_meta($inspiration_id, '_tng_source_engagement', (int) get_post_meta($id, '_tng_candidate_engagement', true));
             if ($platform) wp_set_object_terms($inspiration_id, [ucfirst($platform)], 'tng_social_platform', true);
             wp_delete_post($id, true);
             wp_safe_redirect(get_edit_post_link($inspiration_id, 'url'));
@@ -224,8 +326,6 @@ final class TNG_Social_Discovery {
         $value = trim((string) get_post_meta($watch_id, '_tng_watch_value', true));
         if (!$value) $value = get_the_title($watch_id);
         $platform = (string) get_post_meta($watch_id, '_tng_watch_platform', true);
-        $clean = ltrim($value, '#@');
-        $encoded = rawurlencode($clean);
         switch ($platform) {
             case 'instagram': return 'https://www.instagram.com/explore/search/keyword/?q=' . rawurlencode($value);
             case 'facebook': return 'https://www.facebook.com/search/posts/?q=' . rawurlencode($value);
@@ -237,19 +337,42 @@ final class TNG_Social_Discovery {
         }
     }
 
+    private static function status_label(string $status): array {
+        return match ($status) {
+            'ok' => ['Healthy', 'good'],
+            'zero_results' => ['Healthy · 0 matches', 'neutral'],
+            'blocked' => ['Blocked', 'bad'],
+            'error', 'http_error', 'invalid_response' => ['Source error', 'bad'],
+            'manual' => ['Manual search', 'neutral'],
+            default => ['Not tested', 'neutral'],
+        };
+    }
+
     public static function inbox(): void {
         if (!current_user_can('edit_posts')) return;
-        $candidates = get_posts([
-            'post_type' => self::CANDIDATE, 'post_status' => 'publish', 'numberposts' => 100,
-            'orderby' => 'date', 'order' => 'DESC',
-        ]);
-        $watches = get_posts([
-            'post_type' => self::WATCH, 'post_status' => ['publish','draft','private'], 'numberposts' => 50,
-            'orderby' => 'modified', 'order' => 'DESC',
-        ]);
+        $candidates = get_posts(['post_type' => self::CANDIDATE, 'post_status' => 'publish', 'numberposts' => 100, 'orderby' => 'date', 'order' => 'DESC']);
+        usort($candidates, static fn($a, $b) => ((int) get_post_meta($b->ID, '_tng_candidate_trend_score', true)) <=> ((int) get_post_meta($a->ID, '_tng_candidate_trend_score', true)));
+        $watches = get_posts(['post_type' => self::WATCH, 'post_status' => ['publish','draft','private'], 'numberposts' => 50, 'orderby' => 'modified', 'order' => 'DESC']);
         $notice = isset($_GET['tng_notice']) ? sanitize_text_field(wp_unslash($_GET['tng_notice'])) : '';
-        echo '<div class="wrap tng-sd-wrap"><div class="tng-sd-hero"><div><p class="eyebrow">SOCIAL INTELLIGENCE</p><h1>Discovery Inbox</h1><p>Review public social signals before they become permanent inspiration. Save what is useful; dismiss the rest.</p></div><a class="button button-primary" href="' . esc_url(self::action_url('tng_social_run_all')) . '">Run all active watches</a></div>';
+
+        echo '<div class="wrap tng-sd-wrap"><div class="tng-sd-hero"><div><p class="eyebrow">SOCIAL INTELLIGENCE</p><h1>Discovery Inbox</h1><p>Review public social signals before they become permanent inspiration. The strongest opportunities rise to the top automatically.</p></div><a class="button button-primary" href="' . esc_url(self::action_url('tng_social_run_all')) . '">Run all active watches</a></div>';
         if ($notice) echo '<div class="notice notice-success is-dismissible"><p>' . esc_html(rawurldecode($notice)) . '</p></div>';
+
+        echo '<section class="tng-sd-panel tng-sd-health"><div class="tng-sd-head"><div><p class="eyebrow">SOURCE HEALTH</p><h2>Discovery diagnostics</h2></div><span class="description">Last run for each watch</span></div><div class="tng-sd-health-grid">';
+        if (!$watches) echo '<div class="tng-sd-empty">No watch diagnostics yet.</div>';
+        foreach ($watches as $watch) {
+            $status = (string) get_post_meta($watch->ID, '_tng_watch_source_status', true);
+            [$label, $tone] = self::status_label($status);
+            $http = (int) get_post_meta($watch->ID, '_tng_watch_source_http', true);
+            $fetched = (int) get_post_meta($watch->ID, '_tng_watch_last_fetched', true);
+            $new = (int) get_post_meta($watch->ID, '_tng_watch_last_results', true);
+            $dupes = (int) get_post_meta($watch->ID, '_tng_watch_last_duplicates', true);
+            $ms = (int) get_post_meta($watch->ID, '_tng_watch_source_ms', true);
+            $err = (string) get_post_meta($watch->ID, '_tng_watch_source_error', true);
+            echo '<div class="tng-sd-health-card"><div class="tng-sd-health-title"><strong>' . esc_html(get_the_title($watch)) . '</strong><span class="tng-sd-status ' . esc_attr($tone) . '">' . esc_html($label) . '</span></div><div class="tng-sd-health-metrics"><span><b>' . number_format_i18n($fetched) . '</b> fetched</span><span><b>' . number_format_i18n($new) . '</b> new</span><span><b>' . number_format_i18n($dupes) . '</b> duplicates</span></div><p class="tng-sd-meta">' . ($http ? 'HTTP ' . esc_html((string) $http) . ' · ' : '') . ($ms ? esc_html((string) $ms) . ' ms' : 'Not run yet') . ($err ? ' · ' . esc_html($err) : '') . '</p></div>';
+        }
+        echo '</div></section>';
+
         echo '<div class="tng-sd-grid"><section class="tng-sd-panel"><div class="tng-sd-head"><div><p class="eyebrow">WATCHLIST</p><h2>Run discovery</h2></div><a href="' . esc_url(admin_url('post-new.php?post_type=' . self::WATCH)) . '">+ Add watch</a></div>';
         if (!$watches) echo '<div class="tng-sd-empty">Add a hashtag, account, location, or topic to start watching.</div>';
         foreach ($watches as $watch) {
@@ -265,7 +388,7 @@ final class TNG_Social_Discovery {
         wp_nonce_field(self::ACTION_NONCE);
         echo '<input type="url" name="source_url" required placeholder="Paste Instagram, Facebook, TikTok, YouTube, Reddit… URL"><input type="text" name="candidate_title" placeholder="Short label (optional)"><button class="button button-primary">Add to Inbox</button></form><p class="description">Use this while reviewing platform-native searches. We save the link and your notes—not copied media.</p></section></div>';
 
-        echo '<section class="tng-sd-panel tng-sd-inbox"><div class="tng-sd-head"><div><p class="eyebrow">REVIEW QUEUE</p><h2>' . number_format_i18n(count($candidates)) . ' candidates</h2></div></div>';
+        echo '<section class="tng-sd-panel tng-sd-inbox"><div class="tng-sd-head"><div><p class="eyebrow">RANKED REVIEW QUEUE</p><h2>' . number_format_i18n(count($candidates)) . ' candidates</h2></div><span class="description">Opportunity score = relevance + engagement + freshness</span></div>';
         if (!$candidates) echo '<div class="tng-sd-empty">Your Inbox is clear. Run an active watch or paste a public post URL above.</div>';
         foreach ($candidates as $candidate) {
             $source = (string) get_post_meta($candidate->ID, '_tng_candidate_source_url', true);
@@ -275,7 +398,14 @@ final class TNG_Social_Discovery {
             $comments = (int) get_post_meta($candidate->ID, '_tng_candidate_comments', true);
             $watch_id = (int) get_post_meta($candidate->ID, '_tng_candidate_watch_id', true);
             $watch_name = $watch_id ? get_the_title($watch_id) : '';
-            echo '<article class="tng-sd-candidate"><div class="tng-sd-badge">' . esc_html(strtoupper($platform ?: 'WEB')) . '</div><div class="tng-sd-body"><h3>' . esc_html($candidate->post_title) . '</h3><p class="tng-sd-meta">' . esc_html($creator ?: 'Public post') . ($watch_name ? ' · from ' . esc_html($watch_name) : '') . (($score || $comments) ? ' · ' . number_format_i18n($score) . ' score · ' . number_format_i18n($comments) . ' comments' : '') . '</p>';
+            $opportunity = (int) get_post_meta($candidate->ID, '_tng_candidate_trend_score', true);
+            $relevance = (int) get_post_meta($candidate->ID, '_tng_candidate_relevance', true);
+            $engagement = (int) get_post_meta($candidate->ID, '_tng_candidate_engagement', true);
+            $freshness = (int) get_post_meta($candidate->ID, '_tng_candidate_freshness', true);
+            $subreddit = (string) get_post_meta($candidate->ID, '_tng_candidate_subreddit', true);
+            $tone = $opportunity >= 75 ? 'hot' : ($opportunity >= 50 ? 'warm' : 'cool');
+            echo '<article class="tng-sd-candidate"><div><div class="tng-sd-badge">' . esc_html(strtoupper($platform ?: 'WEB')) . '</div><div class="tng-sd-opportunity ' . esc_attr($tone) . '"><strong>' . number_format_i18n($opportunity) . '</strong><span>OPPORTUNITY</span></div></div><div class="tng-sd-body"><h3>' . esc_html($candidate->post_title) . '</h3><p class="tng-sd-meta">' . esc_html($creator ?: 'Public post') . ($subreddit ? ' · ' . esc_html($subreddit) : '') . ($watch_name ? ' · from ' . esc_html($watch_name) : '') . (($score || $comments) ? ' · ' . number_format_i18n($score) . ' score · ' . number_format_i18n($comments) . ' comments' : '') . '</p>';
+            echo '<div class="tng-sd-signal-row"><span>Relevance <b>' . number_format_i18n($relevance) . '</b></span><span>Engagement <b>' . number_format_i18n($engagement) . '</b></span><span>Freshness <b>' . number_format_i18n($freshness) . '</b></span></div>';
             if ($candidate->post_content) echo '<p>' . esc_html(wp_trim_words($candidate->post_content, 34)) . '</p>';
             echo '<div class="tng-sd-actions"><a class="button" href="' . esc_url($source) . '" target="_blank" rel="noopener">View source ↗</a><a class="button button-primary" href="' . esc_url(self::action_url('tng_social_save_candidate', ['candidate_id' => $candidate->ID])) . '">Save to Inspiration</a><a class="button" href="' . esc_url(self::action_url('tng_social_dismiss_candidate', ['candidate_id' => $candidate->ID])) . '">Dismiss</a></div></div></article>';
         }
@@ -284,9 +414,9 @@ final class TNG_Social_Discovery {
 
     public static function admin_assets(string $hook): void {
         if (strpos($hook, 'tng-social-discovery') === false) return;
-        wp_register_style('tng-social-discovery-admin', false, [], '0.2.0');
+        wp_register_style('tng-social-discovery-admin', false, [], '0.3.0');
         wp_enqueue_style('tng-social-discovery-admin');
-        wp_add_inline_style('tng-social-discovery-admin', '.tng-sd-wrap{max-width:1280px}.tng-sd-hero{margin:20px 0;background:linear-gradient(135deg,#0b422b,#17633d);color:#fff;padding:30px 34px;border-radius:22px;display:flex;justify-content:space-between;align-items:center;gap:20px}.tng-sd-hero h1{color:#fff;font-size:38px;margin:4px 0 8px}.tng-sd-hero p{max-width:760px}.tng-sd-wrap .eyebrow{font-size:11px;font-weight:800;letter-spacing:.12em;color:#f26322;margin:0 0 6px}.tng-sd-hero .eyebrow{color:#ff9b63}.tng-sd-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:18px;margin:18px 0}.tng-sd-panel{background:#fff;border:1px solid #dfe7e1;border-radius:18px;padding:22px}.tng-sd-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:14px}.tng-sd-head h2{margin:0;font-size:23px;color:#132c21}.tng-sd-watch{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 2px;border-top:1px solid #edf1ee}.tng-sd-watch strong,.tng-sd-watch span{display:block}.tng-sd-watch span,.tng-sd-meta{font-size:12px;color:#728078;margin-top:3px}.tng-sd-actions{display:flex;gap:8px;flex-wrap:wrap}.tng-sd-form{display:grid;gap:10px}.tng-sd-form input{width:100%}.tng-sd-inbox{margin-bottom:30px}.tng-sd-candidate{position:relative;display:grid;grid-template-columns:88px 1fr;gap:18px;padding:18px 2px;border-top:1px solid #edf1ee}.tng-sd-badge{background:#edf6ef;color:#27633e;border-radius:12px;height:58px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;letter-spacing:.08em}.tng-sd-body h3{font-size:19px;margin:0 0 4px}.tng-sd-body>p{max-width:880px}.tng-sd-empty{padding:24px;border:1px dashed #cad8cf;border-radius:14px;color:#64756b;background:#f8faf8}@media(max-width:900px){.tng-sd-hero{align-items:flex-start;flex-direction:column}.tng-sd-grid{grid-template-columns:1fr}.tng-sd-candidate{grid-template-columns:1fr}.tng-sd-badge{width:90px}}');
+        wp_add_inline_style('tng-social-discovery-admin', '.tng-sd-wrap{max-width:1280px}.tng-sd-hero{margin:20px 0;background:linear-gradient(135deg,#0b422b,#17633d);color:#fff;padding:30px 34px;border-radius:22px;display:flex;justify-content:space-between;align-items:center;gap:20px}.tng-sd-hero h1{color:#fff;font-size:38px;margin:4px 0 8px}.tng-sd-hero p{max-width:760px}.tng-sd-wrap .eyebrow{font-size:11px;font-weight:800;letter-spacing:.12em;color:#f26322;margin:0 0 6px}.tng-sd-hero .eyebrow{color:#ff9b63}.tng-sd-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:18px;margin:18px 0}.tng-sd-panel{background:#fff;border:1px solid #dfe7e1;border-radius:18px;padding:22px}.tng-sd-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:14px}.tng-sd-head h2{margin:0;font-size:23px;color:#132c21}.tng-sd-watch{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 2px;border-top:1px solid #edf1ee}.tng-sd-watch strong,.tng-sd-watch span{display:block}.tng-sd-watch span,.tng-sd-meta{font-size:12px;color:#728078;margin-top:3px}.tng-sd-actions{display:flex;gap:8px;flex-wrap:wrap}.tng-sd-form{display:grid;gap:10px}.tng-sd-form input{width:100%}.tng-sd-inbox{margin-bottom:30px}.tng-sd-candidate{position:relative;display:grid;grid-template-columns:100px 1fr;gap:18px;padding:18px 2px;border-top:1px solid #edf1ee}.tng-sd-badge{background:#edf6ef;color:#27633e;border-radius:12px;height:42px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;letter-spacing:.08em}.tng-sd-opportunity{margin-top:8px;border-radius:12px;padding:10px;text-align:center;background:#f3f5f3}.tng-sd-opportunity strong,.tng-sd-opportunity span{display:block}.tng-sd-opportunity strong{font-size:24px;color:#173b2b}.tng-sd-opportunity span{font-size:8px;font-weight:800;letter-spacing:.08em;color:#708078}.tng-sd-opportunity.hot{background:#fff0e8}.tng-sd-opportunity.hot strong{color:#d94e0f}.tng-sd-opportunity.warm{background:#fff8df}.tng-sd-body h3{font-size:19px;margin:0 0 4px}.tng-sd-body>p{max-width:880px}.tng-sd-signal-row{display:flex;gap:8px;flex-wrap:wrap;margin:9px 0}.tng-sd-signal-row span{background:#f4f7f5;border-radius:999px;padding:5px 9px;font-size:11px;color:#5f7067}.tng-sd-health{margin:18px 0}.tng-sd-health-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.tng-sd-health-card{border:1px solid #e4ebe6;border-radius:14px;padding:14px}.tng-sd-health-title{display:flex;justify-content:space-between;gap:10px;align-items:center}.tng-sd-status{font-size:10px;font-weight:800;border-radius:999px;padding:4px 7px;background:#f2f4f2}.tng-sd-status.good{background:#e5f5e9;color:#24623b}.tng-sd-status.bad{background:#ffebe6;color:#a53a1a}.tng-sd-health-metrics{display:flex;gap:14px;margin-top:12px;color:#67766e;font-size:11px}.tng-sd-health-metrics b{display:block;font-size:18px;color:#193b2c}.tng-sd-empty{padding:24px;border:1px dashed #cad8cf;border-radius:14px;color:#64756b;background:#f8faf8}@media(max-width:900px){.tng-sd-hero{align-items:flex-start;flex-direction:column}.tng-sd-grid,.tng-sd-health-grid{grid-template-columns:1fr}.tng-sd-candidate{grid-template-columns:1fr}.tng-sd-badge,.tng-sd-opportunity{width:90px}}');
     }
 }
 
