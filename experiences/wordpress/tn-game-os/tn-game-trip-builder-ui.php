@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TN Game Trip Builder UI
  * Description: Native route builder for saved TN Game places.
- * Version: 0.3.1
+ * Version: 0.3.2
  * Author: The TN Game
  */
 if (!defined('ABSPATH')) exit;
@@ -15,6 +15,7 @@ final class TNG_Trip_Builder_UI {
     public static function assets(): void {
         if (!class_exists('TNG_OS\\Platform\\App_Router') || TNG_OS\Platform\App_Router::current_route() !== 'trip-builder') return;
         wp_enqueue_style('tng-trip-builder-leaflet', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css', [], '1.9.4');
+        wp_enqueue_style('tng-trip-builder-map', TNG_OS_URL . 'assets/css/trip-builder-map.css', ['tng-trip-builder-leaflet'], '0.3.2');
         wp_enqueue_script('tng-trip-builder-leaflet', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', [], '1.9.4', true);
     }
 
