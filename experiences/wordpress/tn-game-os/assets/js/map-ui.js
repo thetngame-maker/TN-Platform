@@ -35,6 +35,7 @@
   const itemById = new Map(cfg.items.map(item => [String(item.id), item]));
   const resultsEl = document.querySelector('[data-tng-map-results]');
   const panelIntro = document.querySelector('[data-tng-panel-intro]');
+  const nearestEl = document.querySelector('[data-tng-nearest]');
   let activeFilter = 'all';
   let userMarker = null;
   let userLatLng = null;
@@ -50,14 +51,6 @@
     iconSize: [44, 44], iconAnchor: [22, 40], popupAnchor: [0, -36]
   });
 
-  const popup = item => {
-    const image = item.image ? `<span class="tng-map-popup__media" style="background-image:url('${esc(item.image)}')"></span>` : '';
-    const action = item.kind === 'game' ? 'View game' : 'Explore';
-    const distance = userLatLng ? `<b>${formatDistance(distanceMiles(userLatLng.lat, userLatLng.lng, Number(item.lat), Number(item.lng)))}</b>` : '';
-    return `<article class="tng-map-popup">${image}<div><small>${esc(item.label)}</small><strong>${esc(item.title)}</strong>${distance}${item.subtitle ? `<p>${esc(item.subtitle)}</p>` : ''}<a href="${esc(item.url)}">${action} →</a></div></article>`;
-  };
-
-  const showItem = item => activeFilter === 'all' || item.kind === activeFilter;
   const distanceMiles = (lat1, lng1, lat2, lng2) => {
     const toRad = deg => deg * Math.PI / 180;
     const r = 3958.8;
@@ -67,6 +60,61 @@
     return 2 * r * Math.asin(Math.sqrt(a));
   };
   const formatDistance = miles => miles < 0.1 ? 'Nearby' : miles < 10 ? `${miles.toFixed(1)} mi` : `${Math.round(miles)} mi`;
+  const directionsUrl = item => {
+    const destination = `${Number(item.lat)},${Number(item.lng)}`;
+    const apple = /iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent || '');
+    return apple
+      ? `https://maps.apple.com/?daddr=${encodeURIComponent(destination)}&dirflg=d`
+      : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`;
+  };
+
+  const popup = item => {
+    const image = item.image ? `<span class="tng-map-popup__media" style="background-image:url('${esc(item.image)}')"></span>` : '';
+    const distance = userLatLng ? `<b>${formatDistance(distanceMiles(userLatLng.lat, userLatLng.lng, Number(item.lat), Number(item.lng)))}</b>` : '';
+    const actionLabel = item.actionLabel || (item.kind === 'game' ? 'Play game' : 'View');
+    const actionUrl = item.actionUrl || item.url;
+    return `<article class="tng-map-popup">${image}<div><small>${esc(item.label)}</small><strong>${esc(item.title)}</strong>${distance}${item.subtitle ? `<p>${esc(item.subtitle)}</p>` : ''}<span class="tng-map-popup__actions"><a class="is-primary" href="${esc(actionUrl)}">${esc(actionLabel)}</a><button type="button" data-tng-directions data-lat="${esc(item.lat)}" data-lng="${esc(item.lng)}">Directions</button><button type="button" data-tng-trip-toggle data-post-id="${esc(item.id)}">＋ Add to trip</button></span></div></article>`;
+  };
+
+  const showItem = item => activeFilter === 'all' || item.kind === activeFilter;
+
+  const focusItem = id => {
+    const item = itemById.get(String(id));
+    if (!item) return;
+    if (activeFilter !== 'all' && activeFilter !== item.kind) {
+      activeFilter = item.kind;
+      document.querySelectorAll('[data-tng-map-filter]').forEach(b => b.classList.toggle('is-active', b.getAttribute('data-tng-map-filter') === activeFilter));
+      renderMarkers();
+    }
+    const marker = markers.get(String(id));
+    if (!marker) return;
+    const openMarker = () => {
+      map.setView(marker.getLatLng(), Math.max(map.getZoom(), 14), { animate: true });
+      marker.openPopup();
+      activateResult(id);
+    };
+    if (typeof markerLayer.zoomToShowLayer === 'function') markerLayer.zoomToShowLayer(marker, openMarker);
+    else openMarker();
+  };
+
+  const renderNearest = () => {
+    if (!nearestEl || !userLatLng) return;
+    const kinds = [
+      ['trail', '🥾', 'Nearest trail'],
+      ['game', '🎮', 'Nearest game'],
+      ['sight', '📍', 'Nearest sight']
+    ];
+    const cards = kinds.map(([kind, icon, label]) => {
+      const choices = cfg.items.filter(item => item.kind === kind && Number.isFinite(Number(item.lat)) && Number.isFinite(Number(item.lng)));
+      if (!choices.length) return '';
+      choices.sort((a, b) => distanceMiles(userLatLng.lat, userLatLng.lng, Number(a.lat), Number(a.lng)) - distanceMiles(userLatLng.lat, userLatLng.lng, Number(b.lat), Number(b.lng)));
+      const item = choices[0];
+      const distance = formatDistance(distanceMiles(userLatLng.lat, userLatLng.lng, Number(item.lat), Number(item.lng)));
+      return `<button type="button" class="tng-map-nearest__item" data-tng-nearest-id="${esc(item.id)}"><span>${icon}</span><small>${label}</small><strong>${esc(item.title)}</strong><b>${distance}</b></button>`;
+    }).filter(Boolean).join('');
+    nearestEl.innerHTML = cards;
+    nearestEl.hidden = !cards;
+  };
 
   const renderMarkers = ({ fit = false } = {}) => {
     markerLayer.clearLayers();
@@ -75,7 +123,7 @@
     cfg.items.forEach(item => {
       if (!showItem(item) || !Number.isFinite(Number(item.lat)) || !Number.isFinite(Number(item.lng))) return;
       const marker = L.marker([Number(item.lat), Number(item.lng)], { icon: markerIcon(item), keyboard: true })
-        .bindPopup(() => popup(item), { className: 'tng-discovery-popup', maxWidth: 300 });
+        .bindPopup(() => popup(item), { className: 'tng-discovery-popup', maxWidth: 320 });
       marker.on('click', () => activateResult(item.id));
       markerLayer.addLayer(marker);
       markers.set(String(item.id), marker);
@@ -145,18 +193,9 @@
   document.querySelectorAll('[data-tng-map-result]').forEach(node => {
     resultNodes.set(node.getAttribute('data-tng-map-result'), node);
     node.addEventListener('click', event => {
-      if (event.target.closest('a[data-tng-open-details]')) return;
+      if (event.target.closest('a,button')) return;
       event.preventDefault();
-      const id = node.getAttribute('data-tng-map-result');
-      const marker = markers.get(id);
-      if (!marker) return;
-      const openMarker = () => {
-        map.setView(marker.getLatLng(), Math.max(map.getZoom(), 14), { animate: true });
-        marker.openPopup();
-        activateResult(id);
-      };
-      if (typeof markerLayer.zoomToShowLayer === 'function') markerLayer.zoomToShowLayer(marker, openMarker);
-      else openMarker();
+      focusItem(node.getAttribute('data-tng-map-result'));
     });
   });
 
@@ -167,6 +206,24 @@
       renderMarkers({ fit: true });
     });
   });
+
+  document.addEventListener('click', event => {
+    const directionButton = event.target.closest('[data-tng-directions]');
+    if (directionButton) {
+      event.preventDefault();
+      event.stopPropagation();
+      const lat = Number(directionButton.getAttribute('data-lat'));
+      const lng = Number(directionButton.getAttribute('data-lng'));
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+      window.open(directionsUrl({ lat, lng }), '_blank', 'noopener');
+      return;
+    }
+    const nearestButton = event.target.closest('[data-tng-nearest-id]');
+    if (nearestButton) {
+      event.preventDefault();
+      focusItem(nearestButton.getAttribute('data-tng-nearest-id'));
+    }
+  }, true);
 
   map.on('moveend zoomend', updateLiveResults);
 
@@ -184,6 +241,7 @@
       map.setView(latlng, 13, { animate: true });
       locate.classList.remove('is-loading');
       locate.innerHTML = '<span>⌖</span> Near me';
+      renderNearest();
       setTimeout(updateLiveResults, 250);
     }, () => {
       locate.classList.remove('is-loading');
