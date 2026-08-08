@@ -1,6 +1,13 @@
 (() => {
   const cfg = window.TNGActiveTrip || {};
   const stops = () => [...document.querySelectorAll('[data-trip-stop]')];
+  const mapEl = document.getElementById('tng-active-trip-map');
+  let tripMap = null;
+  let markerLayer = null;
+  let fullRouteLine = null;
+  let currentLegLine = null;
+  let mapRequest = null;
+  let legRequest = null;
 
   const updateSummary = (done, total) => {
     document.querySelectorAll('[data-tng-trip-progress]').forEach(el => { el.textContent = `${done}/${total}`; });
@@ -15,7 +22,117 @@
     return 2 * earth * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   };
 
+  const mappedStops = () => stops().map((stop, index) => ({
+    el: stop,
+    id: Number(stop.dataset.tripStop || 0),
+    order: Number(stop.dataset.tripOrder || index + 1),
+    title: stop.querySelector('h3')?.textContent?.trim() || `Stop ${index + 1}`,
+    lat: Number(stop.dataset.lat),
+    lng: Number(stop.dataset.lng),
+    complete: stop.classList.contains('is-complete')
+  })).filter(stop => Number.isFinite(stop.lat) && Number.isFinite(stop.lng));
+
   const firstIncomplete = () => stops().find(stop => !stop.classList.contains('is-complete')) || null;
+
+  const routeIcon = stop => L.divIcon({
+    className: 'tng-active-map-marker-wrap',
+    html: `<span class="tng-active-map-marker${stop.complete ? ' is-complete' : ''}"><i>${stop.complete ? '✓' : stop.order}</i></span>`,
+    iconSize: [40, 40],
+    iconAnchor: [20, 34],
+    popupAnchor: [0, -30]
+  });
+
+  const initMap = () => {
+    if (!mapEl || !window.L || tripMap) return;
+    tripMap = L.map(mapEl, {zoomControl:false, scrollWheelZoom:true, attributionControl:true}).setView([35.2, -85.7], 10);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19, attribution:'&copy; OpenStreetMap contributors'}).addTo(tripMap);
+    L.control.zoom({position:'topright'}).addTo(tripMap);
+    markerLayer = L.layerGroup().addTo(tripMap);
+    window.setTimeout(() => tripMap.invalidateSize(), 100);
+  };
+
+  const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+
+  const fetchRoadGeometry = async points => {
+    if (points.length < 2) return null;
+    const coords = points.map(point => `${point.lng},${point.lat}`).join(';');
+    const response = await fetch(`https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson&steps=false`, {mode:'cors'});
+    if (!response.ok) throw new Error('route_failed');
+    const json = await response.json();
+    if (json.code !== 'Ok' || !json.routes?.[0]?.geometry?.coordinates) throw new Error('route_failed');
+    return json.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+  };
+
+  const drawTripMap = async () => {
+    if (!mapEl || !window.L) return;
+    initMap();
+    if (!tripMap || !markerLayer) return;
+    markerLayer.clearLayers();
+    if (fullRouteLine) { fullRouteLine.remove(); fullRouteLine = null; }
+    if (currentLegLine) { currentLegLine.remove(); currentLegLine = null; }
+
+    const mapped = mappedStops();
+    mapped.forEach(stop => {
+      const marker = L.marker([stop.lat, stop.lng], {icon:routeIcon(stop), keyboard:true})
+        .bindPopup(`<strong>${stop.order}. ${escapeHtml(stop.title)}</strong>${stop.complete ? '<br><small>Completed</small>' : ''}`)
+        .on('click', () => stop.el.scrollIntoView({behavior:'smooth', block:'center'}));
+      markerLayer.addLayer(marker);
+    });
+
+    if (!mapped.length) return;
+    const bounds = L.latLngBounds(mapped.map(stop => [stop.lat, stop.lng]));
+    tripMap.fitBounds(bounds, {padding:[42,42], maxZoom:13});
+
+    if (mapRequest) mapRequest.abort?.();
+    const controller = new AbortController();
+    mapRequest = controller;
+    try {
+      const geometry = await fetchRoadGeometry(mapped);
+      if (controller.signal.aborted || !geometry) return;
+      fullRouteLine = L.polyline(geometry, {color:'#355f4a', weight:5, opacity:.42, lineCap:'round', lineJoin:'round'}).addTo(tripMap);
+    } catch (error) {
+      if (controller.signal.aborted) return;
+      fullRouteLine = L.polyline(mapped.map(stop => [stop.lat, stop.lng]), {color:'#355f4a', weight:4, opacity:.35, dashArray:'8 8'}).addTo(tripMap);
+    }
+
+    await drawCurrentLeg();
+  };
+
+  const drawCurrentLeg = async () => {
+    if (!tripMap) return;
+    if (currentLegLine) { currentLegLine.remove(); currentLegLine = null; }
+    const all = mappedStops();
+    const currentEl = firstIncomplete();
+    const status = document.querySelector('[data-tng-active-map-status]');
+    if (!currentEl) {
+      if (status) status.textContent = 'Every stop is complete.';
+      return;
+    }
+    const currentIndex = stops().indexOf(currentEl);
+    const current = all.find(stop => stop.el === currentEl);
+    if (!current) return;
+    if (status) status.textContent = `Current leg highlighted to ${current.title}`;
+
+    const previousEl = currentIndex > 0 ? stops()[currentIndex - 1] : null;
+    const previous = previousEl ? all.find(stop => stop.el === previousEl) : null;
+    if (!previous) {
+      tripMap.panTo([current.lat, current.lng], {animate:true});
+      return;
+    }
+
+    if (legRequest) legRequest.abort?.();
+    const controller = new AbortController();
+    legRequest = controller;
+    try {
+      const geometry = await fetchRoadGeometry([previous, current]);
+      if (controller.signal.aborted || !geometry) return;
+      currentLegLine = L.polyline(geometry, {color:'#ef6022', weight:7, opacity:.96, lineCap:'round', lineJoin:'round'}).addTo(tripMap);
+      tripMap.fitBounds(currentLegLine.getBounds(), {padding:[55,55], maxZoom:13});
+    } catch (error) {
+      if (controller.signal.aborted) return;
+      currentLegLine = L.polyline([[previous.lat,previous.lng],[current.lat,current.lng]], {color:'#ef6022', weight:6, opacity:.9, dashArray:'10 7'}).addTo(tripMap);
+    }
+  };
 
   const syncCurrentStop = () => {
     const current = firstIncomplete();
@@ -33,6 +150,7 @@
     const heading = document.querySelector('[data-tng-trip-next-heading]');
     if (!current) {
       if (heading) heading.textContent = 'You finished every stop.';
+      drawTripMap();
       return;
     }
     const title = current.querySelector('h3')?.textContent?.trim() || 'Next stop';
@@ -47,7 +165,15 @@
     const nextLeg = document.querySelector('[data-tng-next-leg]');
     const leg = current.querySelector('.tng-active-trip-leg');
     if (nextLeg && leg) nextLeg.textContent = leg.textContent.trim();
+    drawTripMap();
   };
+
+  document.addEventListener('click', event => {
+    const fit = event.target.closest('[data-tng-fit-active-route]');
+    if (!fit || !tripMap) return;
+    const mapped = mappedStops();
+    if (mapped.length) tripMap.fitBounds(L.latLngBounds(mapped.map(stop => [stop.lat, stop.lng])), {padding:[42,42], maxZoom:13});
+  });
 
   document.addEventListener('click', event => {
     const arrive = event.target.closest('[data-trip-arrive]');
@@ -127,14 +253,13 @@
     } catch (error) {
       window.alert('The stop could not be updated. Please try again.');
     } finally {
-      if (!button.getAttribute('aria-pressed') || button.getAttribute('aria-pressed') !== 'true') {
-        button.disabled = true;
-      } else {
-        button.disabled = false;
-      }
+      if (!button.getAttribute('aria-pressed') || button.getAttribute('aria-pressed') !== 'true') button.disabled = true;
+      else button.disabled = false;
       delete button.dataset.loading;
     }
   });
 
+  initMap();
   syncCurrentStop();
+  window.addEventListener('resize', () => tripMap && window.setTimeout(() => tripMap.invalidateSize(), 80));
 })();
