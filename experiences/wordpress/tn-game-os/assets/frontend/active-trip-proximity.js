@@ -9,7 +9,8 @@
   let autoArrivalTimer = null;
 
   const stops = () => [...document.querySelectorAll('[data-trip-stop]')];
-  const currentStop = () => stops().find(stop => stop.classList.contains('is-current') && !stop.classList.contains('is-complete')) || stops().find(stop => !stop.classList.contains('is-complete')) || null;
+  const eligible = stop => stop && !stop.classList.contains('is-complete') && !stop.classList.contains('is-skipped');
+  const currentStop = () => stops().find(stop => stop.classList.contains('is-current') && eligible(stop)) || stops().find(eligible) || null;
 
   const distanceMeters = (lat1, lng1, lat2, lng2) => {
     const toRad = value => value * Math.PI / 180;
@@ -68,7 +69,7 @@
       const inline = stop.querySelector('[data-trip-proximity-inline]');
       stop.classList.remove('is-nearby', 'is-approaching');
       if (inline) inline.hidden = true;
-      if (arrive && !stop.classList.contains('is-arrived') && !stop.classList.contains('is-complete')) {
+      if (arrive && eligible(stop) && !stop.classList.contains('is-arrived')) {
         if (stop === currentStop()) {
           arrive.disabled = false;
           arrive.textContent = 'I’m here';
@@ -78,7 +79,7 @@
   };
 
   const scheduleAutoArrival = (stop, arrive, source) => {
-    if (!stop || !arrive || stop.classList.contains('is-arrived') || stop.classList.contains('is-complete')) return;
+    if (!eligible(stop) || !arrive || stop.classList.contains('is-arrived')) return;
     const stopId = Number(stop.dataset.tripStop || 0);
     if (nearStopId !== stopId) {
       nearStopId = stopId;
@@ -91,7 +92,7 @@
     autoArrivalTimer = window.setTimeout(() => {
       autoArrivalTimer = null;
       const active = currentStop();
-      if (active !== stop || stop.classList.contains('is-arrived') || stop.classList.contains('is-complete')) return;
+      if (active !== stop || !eligible(stop) || stop.classList.contains('is-arrived')) return;
       if (arrive.disabled || arrive.dataset.loading === '1') return;
       arrive.click();
       window.setTimeout(() => {
@@ -112,9 +113,11 @@
 
     if (!stop || !stop.dataset.lat || !stop.dataset.lng) {
       clearAutoArrival();
-      if (distanceEl) distanceEl.textContent = 'Trip complete';
-      if (statusEl) statusEl.textContent = 'Every stop on this itinerary is complete.';
+      const skipped = stops().filter(node => node.classList.contains('is-skipped')).length;
+      if (distanceEl) distanceEl.textContent = skipped ? 'Trip finished' : 'Trip complete';
+      if (statusEl) statusEl.textContent = skipped ? `No active stops remain. ${skipped} stop${skipped === 1 ? ' was' : 's were'} skipped.` : 'Every stop on this itinerary is complete.';
       if (dot) dot.dataset.state = 'arrived';
+      if (start) start.textContent = source === 'simulated' ? 'Developer GPS active' : 'Live location active';
       return;
     }
 
@@ -206,7 +209,7 @@
   };
 
   const useSimulatedStop = (stop, outside = false) => {
-    if (!stop?.dataset.lat || !stop?.dataset.lng) return;
+    if (!eligible(stop) || !stop?.dataset.lat || !stop?.dataset.lng) return;
     clearAutoArrival();
     const offset = outside ? (radius + 125) / 111320 : 0;
     simulated = {lat:Number(stop.dataset.lat) + offset, lng:Number(stop.dataset.lng), accuracy:0};
@@ -249,7 +252,7 @@
   }, true);
 
   document.addEventListener('click', event => {
-    if (!event.target.closest('[data-trip-complete]')) return;
+    if (!event.target.closest('[data-trip-complete],[data-trip-skip]')) return;
     const oldSimulated = simulated ? {...simulated} : null;
     window.setTimeout(() => {
       resetButtons();
