@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TN Game Trip Data
  * Description: Persistent saved places and trip actions for The TN Game app.
- * Version: 0.3.0
+ * Version: 0.4.0
  * Author: The TN Game
  */
 if (!defined('ABSPATH')) exit;
@@ -10,17 +10,20 @@ if (!defined('ABSPATH')) exit;
 final class TNG_Trip_Data {
     private const META_KEY = 'tng_saved_trip_items';
     private const ROUTE_META_KEY = 'tng_saved_trip_route';
+    private const COMPLETED_META_KEY = 'tng_active_trip_completed';
+    private const SKIPPED_META_KEY = 'tng_active_trip_skipped';
 
     public static function boot(): void {
         add_action('wp_ajax_tng_toggle_saved', [self::class, 'ajax_toggle']);
         add_action('wp_ajax_tng_reorder_saved', [self::class, 'ajax_reorder']);
         add_action('wp_ajax_tng_save_trip_route', [self::class, 'ajax_save_route']);
+        add_action('wp_ajax_tng_reset_trip', [self::class, 'ajax_reset_trip']);
         add_action('wp_enqueue_scripts', [self::class, 'assets'], 110);
     }
 
     public static function assets(): void {
         if (is_admin()) return;
-        wp_enqueue_script('tng-trip-data', TNG_OS_URL . 'assets/js/trip-data.js', [], '0.3.0', true);
+        wp_enqueue_script('tng-trip-data', TNG_OS_URL . 'assets/js/trip-data.js', [], '0.4.0', true);
         wp_localize_script('tng-trip-data', 'TNGTripData', [
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('tng_trip_data'),
@@ -28,6 +31,7 @@ final class TNG_Trip_Data {
             'loginUrl' => wp_login_url((is_ssl() ? 'https://' : 'http://') . ($_SERVER['HTTP_HOST'] ?? '') . ($_SERVER['REQUEST_URI'] ?? '/')),
             'savedIds' => is_user_logged_in() ? self::ids(get_current_user_id()) : [],
             'savedUrl' => home_url('/saved/'),
+            'exploreUrl' => home_url('/explore/'),
         ]);
     }
 
@@ -52,14 +56,33 @@ final class TNG_Trip_Data {
         delete_user_meta($user_id, self::ROUTE_META_KEY);
     }
 
+    private static function clear_stop_progress(int $user_id, int $post_id): void {
+        $completed = get_user_meta($user_id, self::COMPLETED_META_KEY, true);
+        $completed = is_array($completed) ? array_values(array_unique(array_map('absint', $completed))) : [];
+        if (in_array($post_id, $completed, true)) {
+            $completed = array_values(array_diff($completed, [$post_id]));
+            if ($completed) update_user_meta($user_id, self::COMPLETED_META_KEY, $completed);
+            else delete_user_meta($user_id, self::COMPLETED_META_KEY);
+        }
+
+        $skipped = get_user_meta($user_id, self::SKIPPED_META_KEY, true);
+        $skipped = is_array($skipped) ? $skipped : [];
+        if (array_key_exists($post_id, $skipped) || array_key_exists((string) $post_id, $skipped)) {
+            unset($skipped[$post_id], $skipped[(string) $post_id]);
+            if ($skipped) update_user_meta($user_id, self::SKIPPED_META_KEY, $skipped);
+            else delete_user_meta($user_id, self::SKIPPED_META_KEY);
+        }
+    }
+
     public static function toggle(int $post_id, int $user_id): array {
         $ids = self::ids($user_id);
         $saved = in_array($post_id, $ids, true);
         if ($saved) $ids = array_values(array_diff($ids, [$post_id]));
         else { array_unshift($ids, $post_id); $ids = array_slice(array_values(array_unique($ids)), 0, 100); }
         update_user_meta($user_id, self::META_KEY, $ids);
+        self::clear_stop_progress($user_id, $post_id);
         self::clear_route($user_id);
-        return ['postId' => $post_id, 'saved' => !$saved, 'count' => count($ids), 'ids' => $ids];
+        return ['postId' => $post_id, 'saved' => !$saved, 'count' => count($ids), 'ids' => $ids, 'progressReset' => true];
     }
 
     public static function ajax_toggle(): void {
@@ -117,6 +140,21 @@ final class TNG_Trip_Data {
         ];
         update_user_meta(get_current_user_id(), self::ROUTE_META_KEY, $data);
         wp_send_json_success($data);
+    }
+
+    public static function reset(int $user_id): array {
+        $previous = self::ids($user_id);
+        delete_user_meta($user_id, self::META_KEY);
+        delete_user_meta($user_id, self::ROUTE_META_KEY);
+        delete_user_meta($user_id, self::COMPLETED_META_KEY);
+        delete_user_meta($user_id, self::SKIPPED_META_KEY);
+        return ['reset' => true, 'previousCount' => count($previous), 'count' => 0, 'ids' => []];
+    }
+
+    public static function ajax_reset_trip(): void {
+        check_ajax_referer('tng_trip_data', 'nonce');
+        if (!is_user_logged_in()) wp_send_json_error(['code' => 'login_required'], 401);
+        wp_send_json_success(self::reset(get_current_user_id()));
     }
 
     public static function posts(int $user_id = 0): array {
