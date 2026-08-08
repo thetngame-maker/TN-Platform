@@ -3,7 +3,7 @@
  * Plugin Name: TN Game App Router
  * Plugin URI: https://thetngame.com
  * Description: Native TN Game routes and full-page app shell for the platform.
- * Version: 3.7.4
+ * Version: 3.7.5
  * Author: The TN Game
  * Text Domain: tn-game-app-router
  */
@@ -19,7 +19,7 @@ add_action('wp_enqueue_scripts',static function():void{
     if(!class_exists('TNG_OS\\Platform\\App_Router')||!\TNG_OS\Platform\App_Router::is_app_request())return;
     wp_enqueue_style('tng-platform-ui',TNG_OS_URL.'assets/css/platform-ui.css',[],'2.2.0');
     wp_enqueue_style('tng-platform-ui-refinements',TNG_OS_URL.'assets/css/platform-ui-refinements.css',['tng-platform-ui'],'2.2.0');
-    wp_enqueue_style('tng-app-router',TNG_OS_URL.'assets/css/app-router.css',['tng-platform-ui'],'3.7.4');
+    wp_enqueue_style('tng-app-router',TNG_OS_URL.'assets/css/app-router.css',['tng-platform-ui'],'3.7.5');
     wp_enqueue_style('tng-ui-kit',TNG_OS_URL.'assets/css/ui-kit.css',['tng-platform-ui','tng-app-router'],'2.7.0');
     $route=\TNG_OS\Platform\App_Router::current_route();
     if($route==='play')wp_enqueue_style('tng-play-ui',TNG_OS_URL.'assets/css/play-ui.css',['tng-ui-kit'],'0.3.4');
@@ -29,7 +29,7 @@ add_action('wp_enqueue_scripts',static function():void{
     if($route==='map')wp_enqueue_style('tng-map-ui',TNG_OS_URL.'assets/css/map-ui.css',['tng-ui-kit'],'0.3.4');
     if(in_array($route,['trips','saved','trip-builder','active-trip','trip-mode','past-trips'],true))wp_enqueue_style('tng-trips-ui',TNG_OS_URL.'assets/css/trips-ui.css',['tng-ui-kit'],'0.3.0');
     if(in_array($route,['saved','trip-builder','active-trip','trip-mode','past-trips'],true))wp_enqueue_style('tng-trip-builder-ui',TNG_OS_URL.'assets/css/trip-builder-ui.css',['tng-trips-ui'],'0.3.0');
-    if(in_array($route,['active-trip','trip-mode'],true))wp_enqueue_style('tng-active-trip-ui',TNG_OS_URL.'assets/css/active-trip-ui.css',['tng-trip-builder-ui'],'0.2.0');
+    if(in_array($route,['active-trip','trip-mode'],true))wp_enqueue_style('tng-active-trip-ui',TNG_OS_URL.'assets/css/active-trip-ui.css',['tng-trip-builder-ui','tng-active-trip-leaflet'],'0.3.0');
     if($route==='past-trips')wp_enqueue_style('tng-past-trips-ui',TNG_OS_URL.'assets/css/past-trips-ui.css',['tng-trip-builder-ui'],'0.1.1');
     if($route==='profile')wp_enqueue_style('tng-profile-ui',TNG_OS_URL.'assets/css/profile-ui.css',['tng-ui-kit'],'0.2.4');
     if($route==='profile-settings')wp_enqueue_style('tng-settings-ui',TNG_OS_URL.'assets/css/settings-ui.css',['tng-ui-kit'],'0.1.4');
@@ -42,7 +42,7 @@ add_action('wp_enqueue_scripts',static function():void{
     wp_enqueue_script('tng-platform-ui',TNG_OS_URL.'assets/js/platform-ui.js',[],'2.2.0',true);
     if($route==='game-play')wp_enqueue_script('tng-game-runtime-ui',TNG_OS_URL.'assets/js/game-runtime-ui.js',[],'0.2.0',true);
     if($route==='trip-builder')wp_enqueue_script('tng-trip-builder',TNG_OS_URL.'assets/js/trip-builder.js',['tng-trip-data','tng-trip-builder-leaflet'],'0.5.0',true);
-    if(in_array($route,['active-trip','trip-mode'],true))wp_enqueue_script('tng-active-trip',TNG_OS_URL.'assets/js/active-trip.js',['tng-trip-data'],'0.2.0',true);
+    if(in_array($route,['active-trip','trip-mode'],true))wp_enqueue_script('tng-active-trip',TNG_OS_URL.'assets/js/active-trip.js',['tng-trip-data','tng-active-trip-leaflet'],'0.3.0',true);
 },100);
 add_action('wp_footer', static function (): void {
     if (is_admin()) return;
