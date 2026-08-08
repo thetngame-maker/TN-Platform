@@ -3,6 +3,8 @@
   const el = document.getElementById('tng-discovery-map');
   if (!el || !window.L || !Array.isArray(cfg.items)) return;
 
+  const mobileQuery = window.matchMedia('(max-width: 700px)');
+  const isMobile = () => mobileQuery.matches;
   const defaultCenter = Array.isArray(cfg.center) ? cfg.center : [35.2, -85.7];
   const map = L.map(el, { zoomControl: false, scrollWheelZoom: true }).setView(defaultCenter, Number(cfg.zoom || 10));
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -36,10 +38,17 @@
   const resultsEl = document.querySelector('[data-tng-map-results]');
   const panelIntro = document.querySelector('[data-tng-panel-intro]');
   const nearestEl = document.querySelector('[data-tng-nearest]');
+  const sheet = document.querySelector('[data-tng-map-sheet]');
+  const sheetContent = document.querySelector('[data-tng-map-sheet-content]');
+  const sheetBackdrop = document.querySelector('.tng-map-sheet-backdrop');
+  const sheetHandle = document.querySelector('[data-tng-map-sheet-handle]');
   let activeFilter = 'all';
   let userMarker = null;
   let userLatLng = null;
   let initialFitDone = false;
+  let activeSheetId = '';
+  let touchStartY = 0;
+  let touchDeltaY = 0;
 
   const icons = {
     trail: '🥾', game: '🎮', sight: '📍', food: '🍽️', event: '🎵', destination: '🗺️', place: '•'
@@ -68,15 +77,64 @@
       : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`;
   };
 
+  const itemDistance = item => userLatLng
+    ? formatDistance(distanceMiles(userLatLng.lat, userLatLng.lng, Number(item.lat), Number(item.lng)))
+    : '';
+
   const popup = item => {
     const image = item.image ? `<span class="tng-map-popup__media" style="background-image:url('${esc(item.image)}')"></span>` : '';
-    const distance = userLatLng ? `<b>${formatDistance(distanceMiles(userLatLng.lat, userLatLng.lng, Number(item.lat), Number(item.lng)))}</b>` : '';
+    const distance = itemDistance(item) ? `<b>${esc(itemDistance(item))}</b>` : '';
     const actionLabel = item.actionLabel || (item.kind === 'game' ? 'Play game' : 'View');
     const actionUrl = item.actionUrl || item.url;
     return `<article class="tng-map-popup">${image}<div><small>${esc(item.label)}</small><strong>${esc(item.title)}</strong>${distance}${item.subtitle ? `<p>${esc(item.subtitle)}</p>` : ''}<span class="tng-map-popup__actions"><a class="is-primary" href="${esc(actionUrl)}">${esc(actionLabel)}</a><button type="button" data-tng-directions data-lat="${esc(item.lat)}" data-lng="${esc(item.lng)}">Directions</button><button type="button" data-tng-trip-toggle data-post-id="${esc(item.id)}">＋ Add to trip</button></span></div></article>`;
   };
 
+  const sheetMarkup = item => {
+    const image = item.image ? `<div class="tng-map-sheet__media" style="background-image:url('${esc(item.image)}')"></div>` : `<div class="tng-map-sheet__media is-placeholder"><span>${icons[item.kind] || '•'}</span></div>`;
+    const distance = itemDistance(item);
+    const actionLabel = item.actionLabel || (item.kind === 'game' ? 'Play game' : 'View');
+    const actionUrl = item.actionUrl || item.url;
+    return `${image}<div class="tng-map-sheet__body"><div class="tng-map-sheet__eyebrow"><span>${esc(item.label)}</span>${distance ? `<b>${esc(distance)} away</b>` : ''}</div><h2>${esc(item.title)}</h2>${item.subtitle ? `<p>${esc(item.subtitle)}</p>` : ''}<div class="tng-map-sheet__actions"><a class="is-primary" href="${esc(actionUrl)}">${esc(actionLabel)}</a><button type="button" data-tng-directions data-lat="${esc(item.lat)}" data-lng="${esc(item.lng)}">↗ Directions</button><button type="button" data-tng-trip-toggle data-post-id="${esc(item.id)}">＋ Add to trip</button></div></div>`;
+  };
+
+  const openMobileSheet = item => {
+    if (!isMobile() || !sheet || !sheetContent) return;
+    activeSheetId = String(item.id);
+    sheetContent.innerHTML = sheetMarkup(item);
+    sheet.classList.add('is-open');
+    sheet.setAttribute('aria-hidden', 'false');
+    sheet.style.transform = '';
+    if (sheetBackdrop) {
+      sheetBackdrop.hidden = false;
+      requestAnimationFrame(() => sheetBackdrop.classList.add('is-open'));
+    }
+    document.body.classList.add('tng-map-sheet-open');
+  };
+
+  const closeMobileSheet = () => {
+    if (!sheet) return;
+    activeSheetId = '';
+    sheet.classList.remove('is-open');
+    sheet.setAttribute('aria-hidden', 'true');
+    sheet.style.transform = '';
+    if (sheetBackdrop) {
+      sheetBackdrop.classList.remove('is-open');
+      window.setTimeout(() => { if (!sheetBackdrop.classList.contains('is-open')) sheetBackdrop.hidden = true; }, 220);
+    }
+    document.body.classList.remove('tng-map-sheet-open');
+  };
+
   const showItem = item => activeFilter === 'all' || item.kind === activeFilter;
+
+  const activateResult = id => {
+    document.querySelectorAll('.tng-map-result.is-active').forEach(n => n.classList.remove('is-active'));
+    const row = resultNodes.get(String(id));
+    if (row) {
+      row.hidden = false;
+      row.classList.add('is-active');
+      if (!isMobile()) row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  };
 
   const focusItem = id => {
     const item = itemById.get(String(id));
@@ -89,9 +147,14 @@
     const marker = markers.get(String(id));
     if (!marker) return;
     const openMarker = () => {
-      map.setView(marker.getLatLng(), Math.max(map.getZoom(), 14), { animate: true });
-      marker.openPopup();
+      map.setView(marker.getLatLng(), Math.max(map.getZoom(), isMobile() ? 15 : 14), { animate: true });
       activateResult(id);
+      if (isMobile()) {
+        map.closePopup();
+        openMobileSheet(item);
+      } else {
+        marker.openPopup();
+      }
     };
     if (typeof markerLayer.zoomToShowLayer === 'function') markerLayer.zoomToShowLayer(marker, openMarker);
     else openMarker();
@@ -122,9 +185,12 @@
     const bounds = [];
     cfg.items.forEach(item => {
       if (!showItem(item) || !Number.isFinite(Number(item.lat)) || !Number.isFinite(Number(item.lng))) return;
-      const marker = L.marker([Number(item.lat), Number(item.lng)], { icon: markerIcon(item), keyboard: true })
-        .bindPopup(() => popup(item), { className: 'tng-discovery-popup', maxWidth: 320 });
-      marker.on('click', () => activateResult(item.id));
+      const marker = L.marker([Number(item.lat), Number(item.lng)], { icon: markerIcon(item), keyboard: true });
+      if (!isMobile()) marker.bindPopup(() => popup(item), { className: 'tng-discovery-popup', maxWidth: 320 });
+      marker.on('click', () => {
+        activateResult(item.id);
+        if (isMobile()) openMobileSheet(item);
+      });
       markerLayer.addLayer(marker);
       markers.set(String(item.id), marker);
       bounds.push([Number(item.lat), Number(item.lng)]);
@@ -134,16 +200,6 @@
       initialFitDone = true;
     }
     updateLiveResults();
-  };
-
-  const activateResult = id => {
-    document.querySelectorAll('.tng-map-result.is-active').forEach(n => n.classList.remove('is-active'));
-    const row = resultNodes.get(String(id));
-    if (row) {
-      row.hidden = false;
-      row.classList.add('is-active');
-      row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
   };
 
   const updateLiveResults = () => {
@@ -188,6 +244,11 @@
     if (panelIntro) panelIntro.textContent = userLatLng
       ? 'Showing discoveries in this map view, sorted by distance from you.'
       : 'Showing discoveries currently visible on the map. Move or zoom to explore another area.';
+
+    if (activeSheetId && userLatLng) {
+      const activeItem = itemById.get(activeSheetId);
+      if (activeItem && sheetContent && sheet?.classList.contains('is-open')) sheetContent.innerHTML = sheetMarkup(activeItem);
+    }
   };
 
   document.querySelectorAll('[data-tng-map-result]').forEach(node => {
@@ -201,6 +262,7 @@
 
   document.querySelectorAll('[data-tng-map-filter]').forEach(button => {
     button.addEventListener('click', () => {
+      closeMobileSheet();
       activeFilter = button.getAttribute('data-tng-map-filter') || 'all';
       document.querySelectorAll('[data-tng-map-filter]').forEach(b => b.classList.toggle('is-active', b === button));
       renderMarkers({ fit: true });
@@ -208,6 +270,12 @@
   });
 
   document.addEventListener('click', event => {
+    const closeButton = event.target.closest('[data-tng-map-sheet-close]');
+    if (closeButton) {
+      event.preventDefault();
+      closeMobileSheet();
+      return;
+    }
     const directionButton = event.target.closest('[data-tng-directions]');
     if (directionButton) {
       event.preventDefault();
@@ -224,6 +292,32 @@
       focusItem(nearestButton.getAttribute('data-tng-nearest-id'));
     }
   }, true);
+
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && sheet?.classList.contains('is-open')) closeMobileSheet();
+  });
+
+  if (sheetHandle && sheet) {
+    sheetHandle.addEventListener('touchstart', event => {
+      if (!sheet.classList.contains('is-open')) return;
+      touchStartY = event.touches[0]?.clientY || 0;
+      touchDeltaY = 0;
+      sheet.classList.add('is-dragging');
+    }, { passive: true });
+    sheetHandle.addEventListener('touchmove', event => {
+      if (!sheet.classList.contains('is-dragging')) return;
+      const currentY = event.touches[0]?.clientY || touchStartY;
+      touchDeltaY = Math.max(0, currentY - touchStartY);
+      sheet.style.transform = `translateY(${touchDeltaY}px)`;
+    }, { passive: true });
+    sheetHandle.addEventListener('touchend', () => {
+      sheet.classList.remove('is-dragging');
+      if (touchDeltaY > 80) closeMobileSheet();
+      else sheet.style.transform = '';
+      touchStartY = 0;
+      touchDeltaY = 0;
+    }, { passive: true });
+  }
 
   map.on('moveend zoomend', updateLiveResults);
 
@@ -247,6 +341,12 @@
       locate.classList.remove('is-loading');
       locate.innerHTML = '<span>⌖</span> Try location again';
     }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
+  });
+
+  mobileQuery.addEventListener?.('change', () => {
+    closeMobileSheet();
+    renderMarkers();
+    setTimeout(() => map.invalidateSize(), 80);
   });
 
   renderMarkers();
