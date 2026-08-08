@@ -21,7 +21,7 @@
 
   const routeIcon = number => L.divIcon({
     className: 'tng-builder-map-marker-wrap',
-    html: `<span class="tng-builder-map-marker">${number}</span>`,
+    html: `<span class="tng-builder-map-marker"><i>${number}</i></span>`,
     iconSize: [40, 40],
     iconAnchor: [20, 34],
     popupAnchor: [0, -30]
@@ -46,8 +46,9 @@
     const mapped = orderedStops().filter(stop => stop.lat !== null && stop.lng !== null);
     const points = [];
     mapped.forEach(stop => {
+      const safeTitle = String(stop.title).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
       const marker = L.marker([stop.lat, stop.lng], { icon: routeIcon(stop.order), keyboard: true })
-        .bindPopup(`<strong>${stop.order}. ${String(stop.title).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}</strong>`)
+        .bindPopup(`<strong>${stop.order}. ${safeTitle}</strong>`)
         .on('click', () => stop.el.scrollIntoView({ behavior: 'smooth', block: 'center' }));
       mapLayer.addLayer(marker);
       points.push([stop.lat, stop.lng]);
