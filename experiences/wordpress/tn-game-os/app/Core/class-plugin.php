@@ -50,16 +50,33 @@ final class Plugin {
             'app/Modules/Sources/class-provider-registry.php',
             'app/Modules/Sources/Providers/class-google-places-provider.php',
             'app/Modules/Sources/class-content-sources.php',
+            'app/Modules/Gameplay/class-gameplay-event-service.php',
             'app/Modules/Frontend/class-food-service.php',
             'app/Modules/Frontend/class-recommendations.php',
             'app/Modules/Frontend/class-smart-recommendations.php',
             'app/Modules/Frontend/class-discovery-search.php',
+            'app/Modules/Frontend/class-world-engine.php',
+            'app/Modules/Frontend/class-quest-runtime.php',
+            'app/Modules/Frontend/class-quest-finale.php',
+            'app/Modules/Frontend/class-quest-memory.php',
+            'app/Modules/Frontend/class-explorer-identity.php',
+            'app/Modules/Frontend/class-explorer-journal.php',
+            'app/Modules/Frontend/class-daily-missions.php',
+            'app/Modules/Frontend/class-adventure-rewards.php',
+            'app/Modules/Frontend/class-weekly-expedition.php',
+            'app/Modules/Frontend/class-explorer-leaderboard.php',
+            'app/Modules/Frontend/class-community-expedition.php',
+            'app/Modules/Frontend/class-explorer-challenges.php',
+            'app/Modules/Frontend/class-explorer-friends.php',
             'app/Modules/Concerts/class-concert-trip-pages.php',
             'app/Modules/Concerts/class-concert-intelligence.php',
             'app/Modules/Studio/class-review-studio.php',
             'app/Modules/Studio/class-tn-studio.php',
             'app/Modules/Admin/class-runtime-audit.php',
             'app/Modules/Admin/class-service-tag-manager.php',
+            'app/Modules/Admin/class-explorer-test-lab.php',
+            'app/Modules/Admin/class-test-player-friends.php',
+            'app/Modules/Admin/class-gameplay-control-center.php',
             'app/Modules/Admin/class-admin.php',
         ] as $file) require_once TNG_OS_PATH . $file;
 
@@ -79,17 +96,47 @@ final class Plugin {
             \TNG_OS\Modules\Entities\Recommendation_Engine::class,
             \TNG_OS\Modules\Entities\Recommendation_Studio::class,
             \TNG_OS\Modules\Sources\Content_Sources::class,
+            \TNG_OS\Modules\Gameplay\Gameplay_Event_Service::class,
             \TNG_OS\Modules\Frontend\Food_Service::class,
             \TNG_OS\Modules\Frontend\Recommendations::class,
             \TNG_OS\Modules\Frontend\Smart_Recommendations::class,
             \TNG_OS\Modules\Frontend\Discovery_Search::class,
+            \TNG_OS\Modules\Frontend\World_Engine::class,
+            \TNG_OS\Modules\Frontend\Quest_Runtime::class,
+            \TNG_OS\Modules\Frontend\Quest_Finale::class,
+            \TNG_OS\Modules\Frontend\Quest_Memory::class,
+            \TNG_OS\Modules\Frontend\Explorer_Identity::class,
+            \TNG_OS\Modules\Frontend\Explorer_Journal::class,
+            \TNG_OS\Modules\Frontend\Daily_Missions::class,
+            \TNG_OS\Modules\Frontend\Adventure_Rewards::class,
+            \TNG_OS\Modules\Frontend\Weekly_Expedition::class,
+            \TNG_OS\Modules\Frontend\Explorer_Leaderboard::class,
+            \TNG_OS\Modules\Frontend\Community_Expedition::class,
+            \TNG_OS\Modules\Frontend\Explorer_Challenges::class,
+            \TNG_OS\Modules\Frontend\Explorer_Friends::class,
             \TNG_OS\Modules\Concerts\Concert_Trip_Pages::class,
             \TNG_OS\Modules\Concerts\Concert_Intelligence::class,
             \TNG_OS\Modules\Studio\Review_Studio::class,
             \TNG_OS\Modules\Studio\TN_Studio::class,
             \TNG_OS\Modules\Admin\Runtime_Audit::class,
             \TNG_OS\Modules\Admin\Service_Tag_Manager::class,
+            \TNG_OS\Modules\Admin\Explorer_Test_Lab::class,
+            \TNG_OS\Modules\Admin\Test_Player_Friends::class,
+            \TNG_OS\Modules\Admin\Gameplay_Control_Center::class,
             \TNG_OS\Modules\Admin\Admin::class,
+        ];
+
+        $feature_modules = [
+            'quest_finale' => 'quest_finale',
+            'quest_memory' => 'quest_memory',
+            'explorer_journal' => 'explorer_journal',
+            'daily_missions' => 'daily_missions',
+            'adventure_rewards' => 'adventure_rewards',
+            'weekly_expedition' => 'weekly_expedition',
+            'explorer_leaderboard' => 'explorer_leaderboard',
+            'community_expedition' => 'community_expedition',
+            'explorer_challenges' => 'explorer_challenges',
+            'explorer_friends' => 'explorer_friends',
         ];
 
         $seen_classes = [];
@@ -98,6 +145,7 @@ final class Plugin {
             $seen_classes[$class] = true;
             $module = new $class();
             $module_id = $module->id();
+            if (isset($feature_modules[$module_id]) && !\TNG_OS\Modules\Admin\Gameplay_Control_Center::enabled($feature_modules[$module_id])) continue;
             if (isset($this->modules[$module_id])) continue;
             $this->modules[$module_id] = $module;
         }
