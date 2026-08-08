@@ -8,9 +8,12 @@
   const routeTimeEl = document.querySelector('[data-tng-route-time]');
   let dragged = null;
   let saveTimer = null;
+  let routeTimer = null;
   let tripMap = null;
   let mapLayer = null;
   let routeLine = null;
+  let routeRequest = null;
+  let routeSeq = 0;
 
   const validCoord = value => Number.isFinite(Number(value));
   const orderedStops = () => [...list.children].map((item, index) => ({
@@ -31,12 +34,11 @@
     return 2 * earth * Math.asin(Math.sqrt(x));
   };
 
-  // Road mileage is intentionally presented as an estimate. Rural roads rarely follow a straight line.
   const estimatedRoadMiles = (a, b) => haversineMiles(a, b) * 1.18;
   const formatMiles = miles => miles < 0.1 ? '<0.1 mi' : miles < 10 ? `${miles.toFixed(1)} mi` : `${Math.round(miles)} mi`;
   const formatMinutes = minutes => {
-    const rounded = Math.max(0, Math.round(minutes / 5) * 5);
-    if (rounded < 60) return `${Math.max(5, rounded)} min`;
+    const rounded = Math.max(0, Math.round(minutes));
+    if (rounded < 60) return `${Math.max(1, rounded)} min`;
     const hours = Math.floor(rounded / 60);
     const mins = rounded % 60;
     return mins ? `${hours} hr ${mins} min` : `${hours} hr`;
@@ -59,30 +61,99 @@
     window.setTimeout(() => tripMap.invalidateSize(), 100);
   };
 
-  const updateRouteIntelligence = () => {
+  const setLegText = (stop, text) => {
+    const leg = stop.el.querySelector('[data-tng-leg-distance]');
+    if (leg) leg.textContent = text;
+  };
+
+  const applyEstimatedIntelligence = () => {
     const stops = orderedStops();
     const mapped = stops.filter(stop => stop.lat !== null && stop.lng !== null);
     let totalMiles = 0;
     let totalMinutes = 0;
     let previousMapped = null;
-
     stops.forEach(stop => {
-      const leg = stop.el.querySelector('[data-tng-leg-distance]');
       if (stop.lat === null || stop.lng === null) return;
       if (!previousMapped) {
-        if (leg) leg.textContent = 'Start here';
+        setLegText(stop, 'Start here');
         previousMapped = stop;
         return;
       }
       const miles = estimatedRoadMiles(previousMapped, stop);
       totalMiles += miles;
       totalMinutes += (miles / 32) * 60 + 4;
-      if (leg) leg.textContent = `≈ ${formatMiles(miles)} from previous stop`;
+      setLegText(stop, `≈ ${formatMiles(miles)} from previous stop`);
       previousMapped = stop;
     });
-
     if (routeDistanceEl) routeDistanceEl.textContent = mapped.length > 1 ? `≈ ${formatMiles(totalMiles)}` : 'Add another stop';
     if (routeTimeEl) routeTimeEl.textContent = mapped.length > 1 ? `≈ ${formatMinutes(totalMinutes)}` : 'Add another stop';
+  };
+
+  const saveRoadRoute = async (mapped, route) => {
+    if (!route || !Array.isArray(route.legs) || mapped.length < 2) return;
+    const payload = {
+      ids: orderedStops().map(stop => stop.id),
+      distance_m: route.distance || 0,
+      duration_s: route.duration || 0,
+      provider: 'osrm',
+      legs: route.legs.map((leg, index) => ({
+        from: mapped[index]?.id || 0,
+        to: mapped[index + 1]?.id || 0,
+        distance_m: leg.distance || 0,
+        duration_s: leg.duration || 0
+      }))
+    };
+    try {
+      const body = new URLSearchParams({ action: 'tng_save_trip_route', nonce: TNGTripData.nonce, route: JSON.stringify(payload) });
+      await fetch(TNGTripData.ajaxUrl, { method: 'POST', credentials: 'same-origin', headers: {'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'}, body });
+    } catch (error) {}
+  };
+
+  const requestRoadRoute = (mapped) => {
+    clearTimeout(routeTimer);
+    if (mapped.length < 2) return;
+    routeTimer = window.setTimeout(async () => {
+      const seq = ++routeSeq;
+      if (routeRequest) routeRequest.abort();
+      routeRequest = new AbortController();
+      const coords = mapped.map(stop => `${stop.lng},${stop.lat}`).join(';');
+      const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson&steps=false`;
+      if (status) status.textContent = 'Calculating road route…';
+      try {
+        const response = await fetch(url, { signal: routeRequest.signal, mode: 'cors' });
+        if (!response.ok) throw new Error('routing_failed');
+        const json = await response.json();
+        const route = json && json.code === 'Ok' && json.routes && json.routes[0] ? json.routes[0] : null;
+        if (!route || seq !== routeSeq) throw new Error('routing_failed');
+
+        if (routeLine) { routeLine.remove(); routeLine = null; }
+        const roadPoints = Array.isArray(route.geometry?.coordinates)
+          ? route.geometry.coordinates.map(point => [Number(point[1]), Number(point[0])]).filter(point => Number.isFinite(point[0]) && Number.isFinite(point[1]))
+          : [];
+        if (roadPoints.length > 1) {
+          routeLine = L.polyline(roadPoints, { color: '#ef6022', weight: 6, opacity: 0.9, lineCap: 'round', lineJoin: 'round' }).addTo(tripMap);
+          tripMap.fitBounds(routeLine.getBounds(), { padding: [48, 48], maxZoom: 13 });
+        }
+
+        if (routeDistanceEl) routeDistanceEl.textContent = formatMiles((route.distance || 0) / 1609.344);
+        if (routeTimeEl) routeTimeEl.textContent = formatMinutes((route.duration || 0) / 60);
+        mapped.forEach((stop, index) => {
+          if (index === 0) return setLegText(stop, 'Start here');
+          const leg = route.legs?.[index - 1];
+          if (!leg) return;
+          const miles = (leg.distance || 0) / 1609.344;
+          const mins = (leg.duration || 0) / 60;
+          setLegText(stop, `${formatMiles(miles)} · ${formatMinutes(mins)} from previous stop`);
+        });
+        if (status) status.textContent = 'Road route ready';
+        window.setTimeout(() => { if (status && status.textContent === 'Road route ready') status.textContent = 'Saved'; }, 1500);
+        saveRoadRoute(mapped, route);
+      } catch (error) {
+        if (error?.name === 'AbortError') return;
+        if (status) status.textContent = 'Using planning estimate';
+        applyEstimatedIntelligence();
+      }
+    }, 220);
   };
 
   const drawMap = () => {
@@ -104,13 +175,14 @@
     });
 
     if (points.length > 1) {
-      routeLine = L.polyline(points, { color: '#ef6022', weight: 5, opacity: 0.82, dashArray: '10 8', lineCap: 'round', lineJoin: 'round' }).addTo(tripMap);
+      routeLine = L.polyline(points, { color: '#ef6022', weight: 4, opacity: 0.55, dashArray: '10 8', lineCap: 'round', lineJoin: 'round' }).addTo(tripMap);
     }
     if (points.length) tripMap.fitBounds(L.latLngBounds(points), { padding: [48, 48], maxZoom: 13 });
 
     const mapCount = document.querySelector('[data-tng-builder-map-count]');
     if (mapCount) mapCount.textContent = String(mapped.length);
-    updateRouteIntelligence();
+    applyEstimatedIntelligence();
+    requestRoadRoute(mapped);
   };
 
   const renumber = () => {
@@ -136,6 +208,7 @@
         if (!json.success) throw new Error('save_failed');
         if (status) status.textContent = 'Saved';
         document.dispatchEvent(new CustomEvent('tng:trip-order-updated', { detail: { ids: json.data.ids || ids.map(Number) } }));
+        drawMap();
       } catch (error) {
         if (status) status.textContent = 'Could not save';
       }
@@ -170,7 +243,6 @@
     renumber();
     save();
     if (status) status.textContent = unmapped.length ? 'Optimized · unmapped stops kept last' : 'Route optimized';
-    window.setTimeout(() => { if (status && status.textContent.startsWith('Route optimized')) status.textContent = 'Saved'; }, 1800);
   };
 
   if (optimizeButton) optimizeButton.addEventListener('click', optimizeRoute);
