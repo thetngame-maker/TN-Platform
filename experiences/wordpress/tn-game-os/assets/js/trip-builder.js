@@ -3,6 +3,9 @@
   if (!list || !window.TNGTripData) return;
   const status = document.querySelector('[data-tng-builder-status]');
   const mapEl = document.getElementById('tng-trip-builder-map');
+  const optimizeButton = document.querySelector('[data-tng-optimize-route]');
+  const routeDistanceEl = document.querySelector('[data-tng-route-distance]');
+  const routeTimeEl = document.querySelector('[data-tng-route-time]');
   let dragged = null;
   let saveTimer = null;
   let tripMap = null;
@@ -19,6 +22,26 @@
     order: index + 1
   }));
 
+  const haversineMiles = (a, b) => {
+    const toRad = value => value * Math.PI / 180;
+    const earth = 3958.8;
+    const dLat = toRad(b.lat - a.lat);
+    const dLng = toRad(b.lng - a.lng);
+    const x = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+    return 2 * earth * Math.asin(Math.sqrt(x));
+  };
+
+  // Road mileage is intentionally presented as an estimate. Rural roads rarely follow a straight line.
+  const estimatedRoadMiles = (a, b) => haversineMiles(a, b) * 1.18;
+  const formatMiles = miles => miles < 0.1 ? '<0.1 mi' : miles < 10 ? `${miles.toFixed(1)} mi` : `${Math.round(miles)} mi`;
+  const formatMinutes = minutes => {
+    const rounded = Math.max(0, Math.round(minutes / 5) * 5);
+    if (rounded < 60) return `${Math.max(5, rounded)} min`;
+    const hours = Math.floor(rounded / 60);
+    const mins = rounded % 60;
+    return mins ? `${hours} hr ${mins} min` : `${hours} hr`;
+  };
+
   const routeIcon = number => L.divIcon({
     className: 'tng-builder-map-marker-wrap',
     html: `<span class="tng-builder-map-marker"><i>${number}</i></span>`,
@@ -34,6 +57,32 @@
     L.control.zoom({ position: 'topright' }).addTo(tripMap);
     mapLayer = L.layerGroup().addTo(tripMap);
     window.setTimeout(() => tripMap.invalidateSize(), 100);
+  };
+
+  const updateRouteIntelligence = () => {
+    const stops = orderedStops();
+    const mapped = stops.filter(stop => stop.lat !== null && stop.lng !== null);
+    let totalMiles = 0;
+    let totalMinutes = 0;
+    let previousMapped = null;
+
+    stops.forEach(stop => {
+      const leg = stop.el.querySelector('[data-tng-leg-distance]');
+      if (stop.lat === null || stop.lng === null) return;
+      if (!previousMapped) {
+        if (leg) leg.textContent = 'Start here';
+        previousMapped = stop;
+        return;
+      }
+      const miles = estimatedRoadMiles(previousMapped, stop);
+      totalMiles += miles;
+      totalMinutes += (miles / 32) * 60 + 4;
+      if (leg) leg.textContent = `≈ ${formatMiles(miles)} from previous stop`;
+      previousMapped = stop;
+    });
+
+    if (routeDistanceEl) routeDistanceEl.textContent = mapped.length > 1 ? `≈ ${formatMiles(totalMiles)}` : 'Add another stop';
+    if (routeTimeEl) routeTimeEl.textContent = mapped.length > 1 ? `≈ ${formatMinutes(totalMinutes)}` : 'Add another stop';
   };
 
   const drawMap = () => {
@@ -61,6 +110,7 @@
 
     const mapCount = document.querySelector('[data-tng-builder-map-count]');
     if (mapCount) mapCount.textContent = String(mapped.length);
+    updateRouteIntelligence();
   };
 
   const renumber = () => {
@@ -91,6 +141,39 @@
       }
     }, 250);
   };
+
+  const optimizeRoute = () => {
+    const all = orderedStops();
+    const mapped = all.filter(stop => stop.lat !== null && stop.lng !== null);
+    if (mapped.length < 3) return;
+
+    const first = mapped[0];
+    const remaining = mapped.slice(1);
+    const optimized = [first];
+    let current = first;
+    while (remaining.length) {
+      let nearestIndex = 0;
+      let nearestDistance = Infinity;
+      remaining.forEach((candidate, index) => {
+        const distance = haversineMiles(current, candidate);
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          nearestIndex = index;
+        }
+      });
+      current = remaining.splice(nearestIndex, 1)[0];
+      optimized.push(current);
+    }
+
+    const unmapped = all.filter(stop => stop.lat === null || stop.lng === null);
+    [...optimized, ...unmapped].forEach(stop => list.appendChild(stop.el));
+    renumber();
+    save();
+    if (status) status.textContent = unmapped.length ? 'Optimized · unmapped stops kept last' : 'Route optimized';
+    window.setTimeout(() => { if (status && status.textContent.startsWith('Route optimized')) status.textContent = 'Saved'; }, 1800);
+  };
+
+  if (optimizeButton) optimizeButton.addEventListener('click', optimizeRoute);
 
   list.addEventListener('click', (event) => {
     const button = event.target.closest('[data-move]');
