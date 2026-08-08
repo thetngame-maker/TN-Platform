@@ -4,6 +4,9 @@
   let watchId = null;
   let simulated = null;
   let lastPosition = null;
+  let nearHits = 0;
+  let nearStopId = 0;
+  let autoArrivalTimer = null;
 
   const stops = () => [...document.querySelectorAll('[data-trip-stop]')];
   const currentStop = () => stops().find(stop => stop.classList.contains('is-current') && !stop.classList.contains('is-complete')) || stops().find(stop => !stop.classList.contains('is-complete')) || null;
@@ -51,7 +54,15 @@
     });
   };
 
+  const clearAutoArrival = () => {
+    nearHits = 0;
+    nearStopId = 0;
+    if (autoArrivalTimer) window.clearTimeout(autoArrivalTimer);
+    autoArrivalTimer = null;
+  };
+
   const resetButtons = () => {
+    clearAutoArrival();
     stops().forEach(stop => {
       const arrive = stop.querySelector('[data-trip-arrive]');
       const inline = stop.querySelector('[data-trip-proximity-inline]');
@@ -66,6 +77,30 @@
     });
   };
 
+  const scheduleAutoArrival = (stop, arrive, source) => {
+    if (!stop || !arrive || stop.classList.contains('is-arrived') || stop.classList.contains('is-complete')) return;
+    const stopId = Number(stop.dataset.tripStop || 0);
+    if (nearStopId !== stopId) {
+      nearStopId = stopId;
+      nearHits = 0;
+    }
+    nearHits += source === 'simulated' ? 2 : 1;
+    if (nearHits < 2 || autoArrivalTimer) return;
+
+    arrive.textContent = 'Arrival detected…';
+    autoArrivalTimer = window.setTimeout(() => {
+      autoArrivalTimer = null;
+      const active = currentStop();
+      if (active !== stop || stop.classList.contains('is-arrived') || stop.classList.contains('is-complete')) return;
+      if (arrive.disabled || arrive.dataset.loading === '1') return;
+      arrive.click();
+      window.setTimeout(() => {
+        if (simulated) update(simulated.lat, simulated.lng, simulated.accuracy || 0, 'simulated');
+        else if (lastPosition) update(lastPosition.lat, lastPosition.lng, lastPosition.accuracy || 0, 'gps');
+      }, 350);
+    }, source === 'simulated' ? 80 : 650);
+  };
+
   const update = (lat, lng, accuracy = 0, source = 'gps') => {
     ensureUi();
     const stop = currentStop();
@@ -76,8 +111,10 @@
     const start = card?.querySelector('[data-trip-proximity-start]');
 
     if (!stop || !stop.dataset.lat || !stop.dataset.lng) {
-      if (distanceEl) distanceEl.textContent = 'No active mapped stop';
-      if (statusEl) statusEl.textContent = 'Complete or undo a stop to continue testing proximity.';
+      clearAutoArrival();
+      if (distanceEl) distanceEl.textContent = 'Trip complete';
+      if (statusEl) statusEl.textContent = 'Every stop on this itinerary is complete.';
+      if (dot) dot.dataset.state = 'arrived';
       return;
     }
 
@@ -98,39 +135,51 @@
 
     let state = 'far';
     let status = `Keep heading toward ${stop.querySelector('h3')?.textContent?.trim() || 'the next stop'}.`;
-    if (distance <= allowed) {
-      state = 'near';
-      status = 'You’re within arrival range. Confirm that you’re here.';
+
+    if (stop.classList.contains('is-arrived')) {
+      clearAutoArrival();
+      state = 'arrived';
+      status = 'You’ve arrived. Complete this stop when you’re ready to continue.';
       stop.classList.add('is-nearby');
       stop.classList.remove('is-approaching');
-      if (arrive && !stop.classList.contains('is-arrived')) {
+    } else if (distance <= allowed) {
+      state = 'near';
+      status = 'Arrival detected. Trip Mode is confirming this stop automatically.';
+      stop.classList.add('is-nearby');
+      stop.classList.remove('is-approaching');
+      if (arrive) {
         arrive.disabled = false;
         arrive.textContent = 'Confirm arrival';
+        scheduleAutoArrival(stop, arrive, source);
       }
     } else if (distance <= 1609.344) {
+      clearAutoArrival();
       state = 'approaching';
-      status = 'You’re getting close. Arrival confirmation will unlock inside the check-in radius.';
+      status = 'You’re getting close. Arrival will unlock automatically inside the check-in radius.';
       stop.classList.add('is-approaching');
       stop.classList.remove('is-nearby');
-      if (arrive && !stop.classList.contains('is-arrived')) {
+      if (arrive) {
         arrive.disabled = true;
         arrive.textContent = 'Get closer to arrive';
       }
     } else {
+      clearAutoArrival();
       stop.classList.remove('is-nearby', 'is-approaching');
-      if (arrive && !stop.classList.contains('is-arrived')) {
+      if (arrive) {
         arrive.disabled = true;
         arrive.textContent = 'Get closer to arrive';
       }
     }
 
-    if (distanceEl) distanceEl.textContent = formatDistance(distance);
+    if (distanceEl) distanceEl.textContent = state === 'arrived' ? 'Arrived' : formatDistance(distance);
     if (statusEl) statusEl.textContent = status + (source === 'simulated' ? ' Developer GPS is active.' : '');
     if (dot) dot.dataset.state = state;
     if (start) start.textContent = source === 'simulated' ? 'Developer GPS active' : 'Live location active';
     if (inline) {
       inline.hidden = false;
-      inline.textContent = `${formatDistance(distance)} · ${state === 'near' ? 'ready to check in' : state === 'approaching' ? 'approaching' : 'on the way'}`;
+      inline.textContent = state === 'arrived'
+        ? 'Arrived · ready to complete'
+        : `${formatDistance(distance)} · ${state === 'near' ? 'arrival detected' : state === 'approaching' ? 'approaching' : 'on the way'}`;
     }
 
     document.dispatchEvent(new CustomEvent('tng:trip-proximity-update', {detail:{distance, allowed, state, source, stopId:Number(stop.dataset.tripStop || 0)}}));
@@ -138,6 +187,7 @@
 
   const startWatch = () => {
     simulated = null;
+    clearAutoArrival();
     if (!navigator.geolocation) {
       window.alert('Live location is not available in this browser.');
       return;
@@ -157,6 +207,7 @@
 
   const useSimulatedStop = (stop, outside = false) => {
     if (!stop?.dataset.lat || !stop?.dataset.lng) return;
+    clearAutoArrival();
     const offset = outside ? (radius + 125) / 111320 : 0;
     simulated = {lat:Number(stop.dataset.lat) + offset, lng:Number(stop.dataset.lng), accuracy:0};
     update(simulated.lat, simulated.lng, 0, 'simulated');
@@ -191,6 +242,7 @@
     }
     if (event.target.closest('[data-trip-dev-clear]')) {
       simulated = null;
+      clearAutoArrival();
       resetButtons();
       if (lastPosition) update(lastPosition.lat, lastPosition.lng, lastPosition.accuracy, 'gps');
     }
@@ -198,11 +250,17 @@
 
   document.addEventListener('click', event => {
     if (!event.target.closest('[data-trip-complete]')) return;
+    const oldSimulated = simulated ? {...simulated} : null;
     window.setTimeout(() => {
       resetButtons();
-      if (simulated) {
-        const stop = currentStop();
-        if (stop) useSimulatedStop(stop, false);
+      const next = currentStop();
+      if (!next) {
+        update(0, 0, 0, oldSimulated ? 'simulated' : 'gps');
+        return;
+      }
+      if (oldSimulated) {
+        simulated = oldSimulated;
+        update(simulated.lat, simulated.lng, simulated.accuracy || 0, 'simulated');
       } else if (lastPosition) {
         update(lastPosition.lat, lastPosition.lng, lastPosition.accuracy, 'gps');
       }
@@ -221,5 +279,8 @@
   new MutationObserver(() => ensureUi()).observe(document.documentElement, {childList:true, subtree:true});
   ensureUi();
   permissionBootstrap();
-  window.addEventListener('beforeunload', () => { if (watchId !== null && navigator.geolocation) navigator.geolocation.clearWatch(watchId); });
+  window.addEventListener('beforeunload', () => {
+    clearAutoArrival();
+    if (watchId !== null && navigator.geolocation) navigator.geolocation.clearWatch(watchId);
+  });
 })();
