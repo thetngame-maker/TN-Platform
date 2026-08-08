@@ -8,6 +8,7 @@
   let currentLegLine = null;
   let mapRequest = null;
   let legRequest = null;
+  let developerLocation = null;
 
   const updateSummary = (done, total) => {
     document.querySelectorAll('[data-tng-trip-progress]').forEach(el => { el.textContent = `${done}/${total}`; });
@@ -151,6 +152,7 @@
     if (!current) {
       if (heading) heading.textContent = 'You finished every stop.';
       drawTripMap();
+      syncDeveloperPanel();
       return;
     }
     const title = current.querySelector('h3')?.textContent?.trim() || 'Next stop';
@@ -166,6 +168,35 @@
     const leg = current.querySelector('.tng-active-trip-leg');
     if (nextLeg && leg) nextLeg.textContent = leg.textContent.trim();
     drawTripMap();
+    syncDeveloperPanel();
+  };
+
+  const markArrived = (stop, arrive) => {
+    stop.classList.add('is-arrived');
+    arrive.textContent = 'Arrived ✓';
+    arrive.disabled = true;
+    const complete = stop.querySelector('[data-trip-complete]');
+    if (complete) {
+      complete.disabled = false;
+      complete.focus({preventScroll:true});
+    }
+    syncDeveloperPanel();
+  };
+
+  const validateArrivalPosition = (stop, arrive, latitude, longitude, accuracy = 0, simulated = false) => {
+    const lat = Number(stop.dataset.lat), lng = Number(stop.dataset.lng);
+    const distance = distanceMeters(Number(latitude), Number(longitude), lat, lng);
+    const radius = Number(cfg.arrivalRadius || 300);
+    const allowed = radius + Math.min(Math.max(Number(accuracy || 0), 0), 150);
+    if (distance <= allowed) {
+      markArrived(stop, arrive);
+      if (simulated) arrive.title = 'Developer simulated arrival';
+      return true;
+    }
+    arrive.textContent = 'I’m here';
+    arrive.disabled = false;
+    window.alert(`You are about ${Math.round(distance)} m from this stop. Get within ${radius} m to confirm arrival.${simulated ? ' (Developer simulation)' : ''}`);
+    return false;
   };
 
   document.addEventListener('click', event => {
@@ -187,32 +218,26 @@
       window.alert('This stop does not have a usable GPS location yet.');
       return;
     }
+
+    arrive.dataset.loading = '1';
+    arrive.disabled = true;
+    arrive.textContent = developerLocation ? 'Checking simulated location…' : 'Checking location…';
+
+    if (developerLocation) {
+      validateArrivalPosition(stop, arrive, developerLocation.lat, developerLocation.lng, 0, true);
+      delete arrive.dataset.loading;
+      return;
+    }
+
     if (!navigator.geolocation) {
+      arrive.textContent = 'I’m here';
+      arrive.disabled = false;
+      delete arrive.dataset.loading;
       window.alert('Location is not available in this browser.');
       return;
     }
-    arrive.dataset.loading = '1';
-    arrive.disabled = true;
-    arrive.textContent = 'Checking location…';
     navigator.geolocation.getCurrentPosition(position => {
-      const accuracy = Number(position.coords.accuracy || 0);
-      const distance = distanceMeters(position.coords.latitude, position.coords.longitude, lat, lng);
-      const radius = Number(cfg.arrivalRadius || 300);
-      const allowed = radius + Math.min(Math.max(accuracy, 0), 150);
-      if (distance <= allowed) {
-        stop.classList.add('is-arrived');
-        arrive.textContent = 'Arrived ✓';
-        arrive.disabled = true;
-        const complete = stop.querySelector('[data-trip-complete]');
-        if (complete) {
-          complete.disabled = false;
-          complete.focus({preventScroll:true});
-        }
-      } else {
-        arrive.textContent = 'I’m here';
-        arrive.disabled = false;
-        window.alert(`You are about ${Math.round(distance)} m from this stop. Get within ${radius} m to confirm arrival.`);
-      }
+      validateArrivalPosition(stop, arrive, position.coords.latitude, position.coords.longitude, Number(position.coords.accuracy || 0), false);
       delete arrive.dataset.loading;
     }, error => {
       arrive.textContent = 'I’m here';
@@ -245,6 +270,7 @@
       const number = stop?.querySelector('.tng-active-trip-stop__number');
       if (number) number.textContent = json.data.complete ? '✓' : String(Array.from(stop.parentElement.children).indexOf(stop) + 1);
       updateSummary(json.data.done, json.data.total);
+      developerLocation = null;
       syncCurrentStop();
       if (json.data.complete) {
         const next = firstIncomplete();
@@ -259,7 +285,123 @@
     }
   });
 
+  let devPanel = null;
+  const developerAdminVisible = () => {
+    if (!document.body.classList.contains('admin-bar')) return false;
+    const bar = document.getElementById('wpadminbar');
+    return !!bar && /TN Developer/i.test(bar.textContent || '');
+  };
+
+  const selectedDeveloperStop = () => {
+    const select = devPanel?.querySelector('[data-trip-dev-select]');
+    return select ? stops()[Number(select.value || 0)] || null : null;
+  };
+
+  const syncDeveloperPanel = () => {
+    if (!devPanel) return;
+    const select = devPanel.querySelector('[data-trip-dev-select]');
+    const current = firstIncomplete();
+    const currentIndex = current ? stops().indexOf(current) : -1;
+    if (select) {
+      const previousValue = select.value;
+      select.innerHTML = '';
+      stops().forEach((stop, index) => {
+        const option = document.createElement('option');
+        option.value = String(index);
+        const title = stop.querySelector('h3')?.textContent?.trim() || `Stop ${index + 1}`;
+        const state = stop.classList.contains('is-complete') ? 'Completed' : (stop === current ? 'Active stop' : 'Future stop');
+        option.textContent = `${index + 1}. ${title} — ${state}`;
+        select.appendChild(option);
+      });
+      select.value = previousValue && Number(previousValue) < stops().length ? previousValue : String(Math.max(0, currentIndex));
+    }
+    const status = devPanel.querySelector('[data-trip-dev-status]');
+    if (status) {
+      if (!current) status.innerHTML = '<strong>Trip complete.</strong> Undo a completed stop to test the route again.';
+      else {
+        const title = current.querySelector('h3')?.textContent?.trim() || 'Current stop';
+        const sim = developerLocation ? `<br>Simulated GPS: ${developerLocation.mode === 'outside' ? 'outside radius' : 'at stop'}` : '';
+        status.innerHTML = `<strong>Active:</strong> ${escapeHtml(title)}${sim}`;
+      }
+    }
+    const quick = devPanel.querySelector('[data-trip-dev-current]');
+    if (quick) quick.disabled = !current || !current.dataset.lat || !current.dataset.lng;
+    const complete = devPanel.querySelector('[data-trip-dev-complete]');
+    if (complete) {
+      const button = current?.querySelector('[data-trip-complete]');
+      complete.disabled = !button || button.disabled;
+      complete.textContent = current?.classList.contains('is-arrived') ? 'Complete current stop' : 'Complete current stop (arrive first)';
+    }
+  };
+
+  const renderDeveloperPanel = () => {
+    if (!developerAdminVisible() || devPanel) return;
+    const shell = document.createElement('div');
+    shell.className = 'tng-trip-dev-shell is-collapsed';
+    shell.innerHTML = `
+      <button class="tng-trip-dev-pill" type="button" data-trip-dev-toggle><span>🧪</span><span><strong>Trip Developer</strong><small>GPS + progression testing</small></span><b>⌃</b></button>
+      <aside class="tng-trip-dev-panel" aria-label="Trip Mode developer tools">
+        <div class="tng-trip-dev-head"><div><small>Developer mode</small><h3>Trip simulator</h3></div><button type="button" data-trip-dev-close>×</button></div>
+        <label class="tng-trip-dev-label">Test stop<select data-trip-dev-select></select></label>
+        <div class="tng-trip-dev-grid"><button type="button" data-trip-dev-at>📍 Simulate at stop</button><button type="button" data-trip-dev-outside>🧪 Outside radius</button></div>
+        <div class="tng-trip-dev-grid"><button type="button" data-trip-dev-focus>View selected stop</button><button type="button" data-trip-dev-clear>Use real GPS</button></div>
+        <button class="tng-trip-dev-primary" type="button" data-trip-dev-current>Simulate current + run “I’m here”</button>
+        <button class="tng-trip-dev-complete" type="button" data-trip-dev-complete>Complete current stop</button>
+        <div class="tng-trip-dev-status" data-trip-dev-status></div>
+        <small class="tng-trip-dev-note">Admin testing only. Arrival still runs through the normal radius validation, and completion uses the normal Trip Mode save endpoint.</small>
+      </aside>`;
+    document.body.appendChild(shell);
+    devPanel = shell;
+    const setCollapsed = collapsed => {
+      shell.classList.toggle('is-collapsed', collapsed);
+      try { localStorage.setItem('tng_trip_dev_collapsed', collapsed ? '1' : '0'); } catch (e) {}
+    };
+    let collapsed = true;
+    try { collapsed = localStorage.getItem('tng_trip_dev_collapsed') !== '0'; } catch (e) {}
+    setCollapsed(collapsed);
+    shell.querySelector('[data-trip-dev-toggle]')?.addEventListener('click', () => setCollapsed(!shell.classList.contains('is-collapsed')));
+    shell.querySelector('[data-trip-dev-close]')?.addEventListener('click', () => setCollapsed(true));
+    shell.querySelector('[data-trip-dev-select]')?.addEventListener('change', syncDeveloperPanel);
+    shell.querySelector('[data-trip-dev-focus]')?.addEventListener('click', () => {
+      const stop = selectedDeveloperStop();
+      if (!stop) return;
+      stop.scrollIntoView({behavior:'smooth', block:'center'});
+      if (tripMap && stop.dataset.lat && stop.dataset.lng) tripMap.setView([Number(stop.dataset.lat), Number(stop.dataset.lng)], 14, {animate:true});
+    });
+    shell.querySelector('[data-trip-dev-at]')?.addEventListener('click', () => {
+      const stop = selectedDeveloperStop();
+      if (!stop || !stop.dataset.lat || !stop.dataset.lng) return window.alert('This stop does not have usable coordinates.');
+      developerLocation = {lat:Number(stop.dataset.lat), lng:Number(stop.dataset.lng), mode:'inside', id:Number(stop.dataset.tripStop || 0)};
+      if (tripMap) tripMap.setView([developerLocation.lat, developerLocation.lng], 15, {animate:true});
+      syncDeveloperPanel();
+    });
+    shell.querySelector('[data-trip-dev-outside]')?.addEventListener('click', () => {
+      const stop = selectedDeveloperStop();
+      if (!stop || !stop.dataset.lat || !stop.dataset.lng) return window.alert('This stop does not have usable coordinates.');
+      const offsetMeters = Number(cfg.arrivalRadius || 300) + 125;
+      developerLocation = {lat:Number(stop.dataset.lat) + offsetMeters / 111320, lng:Number(stop.dataset.lng), mode:'outside', id:Number(stop.dataset.tripStop || 0)};
+      if (tripMap) tripMap.setView([developerLocation.lat, developerLocation.lng], 15, {animate:true});
+      syncDeveloperPanel();
+    });
+    shell.querySelector('[data-trip-dev-clear]')?.addEventListener('click', () => { developerLocation = null; syncDeveloperPanel(); });
+    shell.querySelector('[data-trip-dev-current]')?.addEventListener('click', () => {
+      const current = firstIncomplete();
+      if (!current || !current.dataset.lat || !current.dataset.lng) return;
+      developerLocation = {lat:Number(current.dataset.lat), lng:Number(current.dataset.lng), mode:'inside', id:Number(current.dataset.tripStop || 0)};
+      const arrive = current.querySelector('[data-trip-arrive]');
+      if (arrive && !arrive.disabled) arrive.click();
+      else if (current.classList.contains('is-arrived')) syncDeveloperPanel();
+    });
+    shell.querySelector('[data-trip-dev-complete]')?.addEventListener('click', () => {
+      const current = firstIncomplete();
+      const button = current?.querySelector('[data-trip-complete]');
+      if (button && !button.disabled) button.click();
+    });
+    syncDeveloperPanel();
+  };
+
   initMap();
   syncCurrentStop();
+  renderDeveloperPanel();
   window.addEventListener('resize', () => tripMap && window.setTimeout(() => tripMap.invalidateSize(), 80));
 })();
