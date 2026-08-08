@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TN Game Trip Builder UI
  * Description: Native route builder for saved TN Game places.
- * Version: 0.3.2
+ * Version: 0.4.0
  * Author: The TN Game
  */
 if (!defined('ABSPATH')) exit;
@@ -15,7 +15,7 @@ final class TNG_Trip_Builder_UI {
     public static function assets(): void {
         if (!class_exists('TNG_OS\\Platform\\App_Router') || TNG_OS\Platform\App_Router::current_route() !== 'trip-builder') return;
         wp_enqueue_style('tng-trip-builder-leaflet', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css', [], '1.9.4');
-        wp_enqueue_style('tng-trip-builder-map', TNG_OS_URL . 'assets/css/trip-builder-map.css', ['tng-trip-builder-leaflet'], '0.3.2');
+        wp_enqueue_style('tng-trip-builder-map', TNG_OS_URL . 'assets/css/trip-builder-map.css', ['tng-trip-builder-leaflet'], '0.4.0');
         wp_enqueue_script('tng-trip-builder-leaflet', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', [], '1.9.4', true);
     }
 
@@ -96,7 +96,10 @@ final class TNG_Trip_Builder_UI {
                 <section class="tng-builder-map-card" aria-labelledby="tng-builder-map-title">
                     <div class="tng-builder-map-heading">
                         <div><span class="tng-eyebrow">Visual itinerary</span><h2 id="tng-builder-map-title">Your route on the map</h2><p>Stop numbers follow the same order as your itinerary below.</p></div>
-                        <div class="tng-builder-map-meta"><strong data-tng-builder-map-count><?php echo esc_html((string) $mapped); ?></strong><small>of <?php echo esc_html((string) count($posts)); ?> mapped</small></div>
+                        <div class="tng-builder-map-tools">
+                            <div class="tng-builder-map-meta"><strong data-tng-builder-map-count><?php echo esc_html((string) $mapped); ?></strong><small>of <?php echo esc_html((string) count($posts)); ?> mapped</small></div>
+                            <?php if ($mapped > 2): ?><button type="button" class="tng-builder-optimize" data-tng-optimize-route>⚡ Optimize route</button><?php endif; ?>
+                        </div>
                     </div>
                     <div id="tng-trip-builder-map" class="tng-builder-map" aria-label="Map of saved trip stops"></div>
                     <div class="tng-builder-map-note"><span>↕</span><p>Reorder a stop below and this route updates automatically.</p><a href="<?php echo esc_url(home_url('/map/')); ?>">Add stops from map</a></div>
@@ -110,7 +113,7 @@ final class TNG_Trip_Builder_UI {
                                 <li class="tng-builder-stop" draggable="true" data-post-id="<?php echo esc_attr((string)$post->ID); ?>"<?php if ($coords): ?> data-lat="<?php echo esc_attr((string)$coords[0]); ?>" data-lng="<?php echo esc_attr((string)$coords[1]); ?>"<?php endif; ?> data-title="<?php echo esc_attr(get_the_title($post)); ?>">
                                     <span class="tng-builder-stop__number"><?php echo esc_html((string)($index + 1)); ?></span>
                                     <span class="tng-builder-stop__media"<?php echo $image ? ' style="background-image:url(' . esc_url($image) . ')"' : ''; ?>></span>
-                                    <div class="tng-builder-stop__copy"><small><?php echo esc_html(get_post_type_object(get_post_type($post->ID))->labels->singular_name ?? 'Place'); ?></small><h3><a href="<?php echo esc_url(get_permalink($post)); ?>"><?php echo esc_html(get_the_title($post)); ?></a></h3><?php if (!$coords): ?><span class="tng-builder-stop__map-warning">Location needed for map</span><?php endif; ?></div>
+                                    <div class="tng-builder-stop__copy"><small><?php echo esc_html(get_post_type_object(get_post_type($post->ID))->labels->singular_name ?? 'Place'); ?></small><h3><a href="<?php echo esc_url(get_permalink($post)); ?>"><?php echo esc_html(get_the_title($post)); ?></a></h3><?php if (!$coords): ?><span class="tng-builder-stop__map-warning">Location needed for map</span><?php else: ?><span class="tng-builder-stop__leg" data-tng-leg-distance><?php echo $index === 0 ? 'Start here' : 'Calculating…'; ?></span><?php endif; ?></div>
                                     <div class="tng-builder-stop__actions"><button type="button" data-move="up" aria-label="Move up">↑</button><button type="button" data-move="down" aria-label="Move down">↓</button><button type="button" class="is-remove" data-tng-trip-toggle data-post-id="<?php echo esc_attr((string)$post->ID); ?>" aria-label="Remove stop">×</button></div>
                                 </li>
                             <?php endforeach; ?>
@@ -119,8 +122,13 @@ final class TNG_Trip_Builder_UI {
 
                     <aside class="tng-builder-summary">
                         <span class="tng-eyebrow">Trip summary</span><h2>Your Tennessee day</h2>
-                        <dl><div><dt>Stops</dt><dd data-tng-builder-count><?php echo esc_html((string)count($posts)); ?></dd></div><div><dt>Suggested time</dt><dd><?php echo esc_html((string) max(2, count($posts) * 2)); ?>–<?php echo esc_html((string) max(4, count($posts) * 3)); ?> hr</dd></div></dl>
-                        <p>Trip Mode keeps the route, directions, and completion status together while you explore.</p>
+                        <dl>
+                            <div><dt>Stops</dt><dd data-tng-builder-count><?php echo esc_html((string)count($posts)); ?></dd></div>
+                            <div><dt>Route distance</dt><dd data-tng-route-distance>Calculating…</dd></div>
+                            <div><dt>Travel time</dt><dd data-tng-route-time>Calculating…</dd></div>
+                            <div><dt>Adventure time</dt><dd><?php echo esc_html((string) max(2, count($posts) * 2)); ?>–<?php echo esc_html((string) max(4, count($posts) * 3)); ?> hr</dd></div>
+                        </dl>
+                        <p class="tng-builder-summary__estimate">Distance and travel time are planning estimates based on stop locations. Trip Mode can hand each leg off to your navigation app.</p>
                         <a class="tng-ui-button" href="<?php echo esc_url(home_url('/active-trip/')); ?>">Start trip mode</a>
                         <a class="tng-ui-button tng-ui-button--secondary" href="<?php echo esc_url(home_url('/map/')); ?>">Add more from map</a>
                     </aside>
