@@ -95,7 +95,6 @@ final class Trip_Completion_Rewards implements Module_Interface {
         array_unshift($recaps, $recap);
         update_user_meta($user_id, self::META_RECAPS, array_slice($recaps, 0, 100));
 
-        // Stable extension points for the existing Explorer ledger, journal, XP and notification systems.
         do_action('tng_os_trip_completed', $user_id, $recap);
         do_action('tng_os_journal_event', $user_id, [
             'event' => 'trip_completed',
@@ -131,13 +130,14 @@ final class Trip_Completion_Rewards implements Module_Interface {
           const cfg=<?php echo wp_json_encode($config); ?>,TRIP='tng_my_trip_v1';
           const modal=document.querySelector('[data-tng-trip-recap]');if(!modal)return;
           let recap=null;
-          const trip=()=>{try{const x=JSON.parse(localStorage.getItem(TRIP)||'[]');return Array.isArray(x)?x:[]}catch(e){return[]}};
+          const legacyTrip=()=>{try{const x=JSON.parse(localStorage.getItem(TRIP)||'[]');return Array.isArray(x)?x:[]}catch(e){return[]}};
           const esc=s=>{const d=document.createElement('div');d.textContent=String(s||'');return d.innerHTML};
           const duration=m=>m>=60?(Math.round(m/6)/10)+' hr':m+' min';
-          function localRecap(){const stops=trip().map(x=>({id:Number(x.id)||0,title:String(x.title||'Trip stop'),minutes:Number(x.minutes)||60}));return{title:'My Tennessee adventure',stops,stop_count:stops.length,minutes:stops.reduce((n,x)=>n+x.minutes,0),streak:0,badge:''};}
+          function activeTripStops(){return[...document.querySelectorAll('[data-trip-stop].is-complete')].map((node,i)=>({id:Number(node.dataset.tripStop)||0,title:node.querySelector('h3')?.textContent?.trim()||('Stop '+(i+1)),minutes:Number(node.dataset.minutes)||60}));}
+          function localRecap(){const live=activeTripStops();const fallback=legacyTrip().map(x=>({id:Number(x.id)||0,title:String(x.title||'Trip stop'),minutes:Number(x.minutes)||60}));const stops=live.length?live:fallback;return{title:'My Tennessee adventure',stops,stop_count:stops.length,minutes:stops.reduce((n,x)=>n+x.minutes,0),streak:0,badge:''};}
           async function save(r){if(!cfg.loggedIn)return r;try{const res=await fetch(cfg.endpoint,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-WP-Nonce':cfg.nonce},body:JSON.stringify({title:r.title,stops:r.stops})});if(!res.ok)throw new Error('save');const data=await res.json();return data.recap||r;}catch(e){r.saveFailed=true;return r;}}
           function show(r){recap=r;modal.querySelector('.tng-tcr-stats').innerHTML='<div class="tng-tcr-stat"><strong>'+r.stop_count+'</strong><span>Stops explored</span></div><div class="tng-tcr-stat"><strong>'+duration(r.minutes||0)+'</strong><span>Adventure time</span></div><div class="tng-tcr-stat"><strong>'+(r.streak||1)+'</strong><span>Day streak</span></div>';const b=modal.querySelector('.tng-tcr-badge');if(r.badge){b.hidden=false;b.innerHTML='<div class="tng-tcr-badge-icon">★</div><div><small>Explorer badge unlocked</small><strong>'+esc(r.badge)+'</strong></div>';}else b.hidden=true;modal.querySelector('.tng-tcr-stops').innerHTML='<h3 style="margin:0 0 6px;color:#17213f">Your adventure</h3>'+r.stops.map((x,i)=>'<div class="tng-tcr-stop"><div class="tng-tcr-stop-num">'+(i+1)+'</div><div><strong>'+esc(x.title)+'</strong><div style="font-size:12px;color:#667085">Completed stop</div></div></div>').join('');modal.querySelector('.tng-tcr-note').textContent=r.saveFailed?'Your recap is available on this device, but could not be synced to your account.':cfg.loggedIn?'Saved to your Explorer story and travel-day streak.':'Sign in to save this recap to your Explorer story.';modal.classList.add('is-open');}
-          async function completed(){const r=await save(localRecap());show(r);}
+          async function completed(){const local=localRecap();if(!local.stops.length)return;const r=await save(local);show(r);}
           async function share(){if(!recap)return;const text='I completed '+recap.stop_count+' stops on '+recap.title+': '+recap.stops.map(x=>x.title).join(', ')+'.';if(navigator.share){try{await navigator.share({title:'My TN Game adventure',text,url:location.origin});return}catch(e){}}try{await navigator.clipboard.writeText(text+' '+location.origin);modal.querySelector('.tng-tcr-note').textContent='Trip recap copied to your clipboard.';}catch(e){}}
           const close=()=>modal.classList.remove('is-open');window.addEventListener('tng:trip-completed',completed);modal.querySelector('.tng-tcr-close').onclick=close;modal.querySelector('[data-tcr-done]').onclick=close;modal.querySelector('[data-tcr-share]').onclick=share;modal.onclick=e=>{if(e.target===modal)close();};
         })();
