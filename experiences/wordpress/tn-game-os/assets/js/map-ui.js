@@ -60,6 +60,20 @@
     iconSize: [44, 44], iconAnchor: [22, 40], popupAnchor: [0, -36]
   });
 
+  const hideLegacyXpOverlay = () => {
+    const protectedNode = node => node.closest('.tng-app-nav,.tng-trip-dock,.tng-map-sheet,.tng-map-screen');
+    document.querySelectorAll('body *').forEach(node => {
+      if (!(node instanceof HTMLElement) || protectedNode(node)) return;
+      const text = (node.textContent || '').replace(/\s+/g, ' ').trim();
+      if (!/\b[\d,]+\s*XP\b/i.test(text) || text.length > 80) return;
+      const style = window.getComputedStyle(node);
+      if (!['fixed', 'sticky'].includes(style.position)) return;
+      const rect = node.getBoundingClientRect();
+      if (rect.width < 180 || rect.height < 20 || rect.height > 130 || rect.bottom < window.innerHeight * 0.65) return;
+      node.classList.add('tng-map-legacy-xp-hidden');
+    });
+  };
+
   const distanceMiles = (lat1, lng1, lat2, lng2) => {
     const toRad = deg => deg * Math.PI / 180;
     const r = 3958.8;
@@ -92,9 +106,10 @@
   const sheetMarkup = item => {
     const image = item.image ? `<div class="tng-map-sheet__media" style="background-image:url('${esc(item.image)}')"></div>` : `<div class="tng-map-sheet__media is-placeholder"><span>${icons[item.kind] || '•'}</span></div>`;
     const distance = itemDistance(item);
-    const actionLabel = item.actionLabel || (item.kind === 'game' ? 'Play game' : 'View');
+    const actionLabel = item.actionLabel || (item.kind === 'game' ? 'Play game' : item.kind === 'trail' ? 'View trail' : 'View');
     const actionUrl = item.actionUrl || item.url;
-    return `${image}<div class="tng-map-sheet__body"><div class="tng-map-sheet__eyebrow"><span>${esc(item.label)}</span>${distance ? `<b>${esc(distance)} away</b>` : ''}</div><h2>${esc(item.title)}</h2>${item.subtitle ? `<p>${esc(item.subtitle)}</p>` : ''}<div class="tng-map-sheet__actions"><a class="is-primary" href="${esc(actionUrl)}">${esc(actionLabel)}</a><button type="button" data-tng-directions data-lat="${esc(item.lat)}" data-lng="${esc(item.lng)}">↗ Directions</button><button type="button" data-tng-trip-toggle data-post-id="${esc(item.id)}">＋ Add to trip</button></div></div>`;
+    const kindChip = `<span class="tng-map-sheet__chip">${icons[item.kind] || '•'} ${esc(item.label)}</span>`;
+    return `<div class="tng-map-sheet__overview">${image}<div class="tng-map-sheet__body"><div class="tng-map-sheet__eyebrow"><span>${esc(item.label)}</span>${distance ? `<b>${esc(distance)}</b>` : ''}</div><h2>${esc(item.title)}</h2>${item.subtitle ? `<p>${esc(item.subtitle)}</p>` : ''}<div class="tng-map-sheet__chips">${kindChip}${distance ? `<span class="tng-map-sheet__chip is-distance">⌖ ${esc(distance)} away</span>` : ''}</div></div></div><div class="tng-map-sheet__actions"><a class="is-primary" href="${esc(actionUrl)}">${esc(actionLabel)}</a><button type="button" data-tng-directions data-lat="${esc(item.lat)}" data-lng="${esc(item.lng)}">↗ Directions</button><button type="button" data-tng-trip-toggle data-post-id="${esc(item.id)}">＋ Add to trip</button></div>`;
   };
 
   const openMobileSheet = item => {
@@ -109,6 +124,7 @@
       requestAnimationFrame(() => sheetBackdrop.classList.add('is-open'));
     }
     document.body.classList.add('tng-map-sheet-open');
+    hideLegacyXpOverlay();
   };
 
   const closeMobileSheet = () => {
@@ -349,6 +365,9 @@
     setTimeout(() => map.invalidateSize(), 80);
   });
 
+  hideLegacyXpOverlay();
+  window.setTimeout(hideLegacyXpOverlay, 350);
+  window.setTimeout(hideLegacyXpOverlay, 1200);
   renderMarkers();
   setTimeout(() => { map.invalidateSize(); updateLiveResults(); }, 180);
 })();
