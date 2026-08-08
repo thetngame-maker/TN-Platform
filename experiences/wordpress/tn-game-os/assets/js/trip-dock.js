@@ -43,44 +43,59 @@
     const progress = dock.querySelector('.tng-trip-dock__progress i');
     const primary = dock.querySelector('.tng-trip-dock__actions .is-primary');
 
+    const setText = (node, value) => {
+      if (node && node.textContent !== value) node.textContent = value;
+    };
+
     if (perfect) {
-      if (eyebrow) eyebrow.textContent = 'Trip complete';
-      if (title) title.textContent = 'Your Tennessee day is complete';
-      if (status) status.textContent = `${completed.length} of ${total} stops completed`;
-      if (primary) primary.textContent = 'View recap';
+      setText(eyebrow, 'Trip complete');
+      setText(title, 'Your Tennessee day is complete');
+      setText(status, `${completed.length} of ${total} stops completed`);
+      setText(primary, 'View recap');
     } else if (finishedWithSkips) {
-      if (eyebrow) eyebrow.textContent = 'Trip finished';
-      if (title) title.textContent = 'Your Tennessee day is finished';
-      if (status) status.textContent = `${completed.length} completed · ${skipped.length} skipped`;
-      if (primary) primary.textContent = 'Review trip';
+      setText(eyebrow, 'Trip finished');
+      setText(title, 'Your Tennessee day is finished');
+      setText(status, `${completed.length} completed · ${skipped.length} skipped`);
+      setText(primary, 'Review trip');
     } else {
       const nextTitle = next?.querySelector('h3')?.textContent?.trim() || 'Your Tennessee day';
       const bits = [`${completed.length} completed`];
       if (skipped.length) bits.push(`${skipped.length} skipped`);
       if (remaining) bits.push(`${remaining} remaining`);
-      if (eyebrow) eyebrow.textContent = 'Active trip';
-      if (title) title.textContent = `Next: ${nextTitle}`;
-      if (status) status.textContent = bits.join(' · ');
-      if (primary) primary.textContent = 'Trip mode';
+      setText(eyebrow, 'Active trip');
+      setText(title, `Next: ${nextTitle}`);
+      setText(status, bits.join(' · '));
+      setText(primary, 'Trip mode');
     }
 
-    if (progress) progress.style.width = `${total ? Math.round((resolved / total) * 100) : 0}%`;
-    dock.dataset.tripResolved = String(resolved);
-    dock.dataset.tripTotal = String(total);
+    const width = `${total ? Math.round((resolved / total) * 100) : 0}%`;
+    if (progress && progress.style.width !== width) progress.style.width = width;
+    if (dock.dataset.tripResolved !== String(resolved)) dock.dataset.tripResolved = String(resolved);
+    if (dock.dataset.tripTotal !== String(total)) dock.dataset.tripTotal = String(total);
   };
 
+  let syncQueued = false;
+  const queueDockSync = () => {
+    if (syncQueued) return;
+    syncQueued = true;
+    window.requestAnimationFrame(() => {
+      syncQueued = false;
+      syncDockFromTripMode();
+    });
+  };
+
+  // Legacy UI cleanup is deliberately bounded. A document-wide MutationObserver here
+  // can become expensive on map/trip screens and can recurse when the dock updates.
   hideLegacyTripUi();
   syncDockFromTripMode();
+  window.setTimeout(hideLegacyTripUi, 500);
+  window.setTimeout(hideLegacyTripUi, 1800);
 
-  const observer = new MutationObserver(() => {
-    hideLegacyTripUi();
-    syncDockFromTripMode();
-  });
-  observer.observe(document.documentElement, { childList: true, subtree: true });
-
+  // Only watch the itinerary itself. Dock mutations happen outside this element, so
+  // updating the dock cannot trigger its own observer again.
   const activeList = document.querySelector('.tng-active-trip-list');
   if (activeList) {
-    new MutationObserver(syncDockFromTripMode).observe(activeList, {
+    new MutationObserver(queueDockSync).observe(activeList, {
       attributes: true,
       attributeFilter: ['class'],
       subtree: true,
@@ -88,8 +103,5 @@
     });
   }
 
-  document.addEventListener('tng:trip-updated', syncDockFromTripMode);
-  document.addEventListener('tng:trip-proximity-update', syncDockFromTripMode);
-  window.setTimeout(() => { hideLegacyTripUi(); syncDockFromTripMode(); }, 500);
-  window.setTimeout(() => { hideLegacyTripUi(); syncDockFromTripMode(); }, 1800);
+  document.addEventListener('tng:trip-updated', queueDockSync);
 })();
