@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TN Game Map UI
  * Description: Native TN Game discovery map screen for the app router.
- * Version: 0.6.0
+ * Version: 0.8.0
  * Author: The TN Game
  */
 if (!defined('ABSPATH')) exit;
@@ -22,8 +22,12 @@ final class TNG_Map_UI {
     private static function searchable_text(int $id): string { $text=strtolower(get_the_title($id).' '.get_post_field('post_content',$id)); foreach(get_object_taxonomies(get_post_type($id)) as$tax){$terms=wp_get_post_terms($id,$tax,['fields'=>'names']);if(!is_wp_error($terms))$text.=' '.strtolower(implode(' ',$terms));} return$text; }
     private static function kind(int $id): string {
         $type=get_post_type($id); if(in_array($type,['tng_game','game'],true))return'game'; if(in_array($type,['top_sight','top-sights','top_sights'],true))return'sight'; if(in_array($type,['tng_destination','st_location'],true))return'destination'; if(class_exists('TNG_Games_UI')&&TNG_Games_UI::is_game($id))return'game';
-        $text=self::searchable_text($id); foreach(['start_date','event_date','date','st_start_date'] as$key)if(get_post_meta($id,$key,true)!=='')return'event';
-        if(preg_match('/concert|festival|show|event|live music|the caverns/',$text))return'event'; if(preg_match('/restaurant|food|cafe|coffee|burger|kitchen|grill|dining|barbecue|bbq/',$text))return'food'; if(preg_match('/trail|hike|hiking|loop|overlook|waterfall|falls|state park/',$text))return'trail'; return'place';
+        $text=self::searchable_text($id);
+        if(preg_match('/restaurant|food|cafe|coffee|burger|kitchen|grill|dining|barbecue|bbq|bakery/',$text))return'food';
+        if(preg_match('/trail|hike|hiking|loop|overlook|waterfall|falls|state park|ravens point|fiery gizzard/',$text))return'trail';
+        if(preg_match('/concert|festival|show|event|live music|the caverns/',$text))return'event';
+        foreach(['start_date','event_date','date','st_start_date'] as$key)if(get_post_meta($id,$key,true)!=='')return'event';
+        return'place';
     }
     private static function label(string $kind): string { return['trail'=>'Trail','game'=>'Game','sight'=>'Top Sight','food'=>'Food','event'=>'Event','destination'=>'Destination','place'=>'Place'][$kind]??'Place'; }
     private static function excerpt(int $id): string { $source=has_excerpt($id)?get_post_field('post_excerpt',$id):get_post_field('post_content',$id);$source=preg_replace('/\[[^\]]+\]/',' ',strip_shortcodes((string)$source));$source=preg_replace('/\s+/',' ',trim(wp_strip_all_tags((string)$source)));return wp_trim_words($source,12,'…'); }
@@ -36,10 +40,10 @@ final class TNG_Map_UI {
         wp_enqueue_style('tng-leaflet','https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',[],'1.9.4');
         wp_enqueue_style('tng-leaflet-markercluster','https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css',['tng-leaflet'],'1.5.3');
         wp_enqueue_style('tng-leaflet-markercluster-default','https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css',['tng-leaflet-markercluster'],'1.5.3');
-        wp_enqueue_style('tng-map-ui',TNG_OS_URL.'assets/css/map-ui.css',['tng-ui-kit','tng-leaflet-markercluster-default'],'0.7.0');
+        wp_enqueue_style('tng-map-ui',TNG_OS_URL.'assets/css/map-ui.css',['tng-ui-kit','tng-leaflet-markercluster-default'],'0.8.0');
         wp_enqueue_script('tng-leaflet','https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',[],'1.9.4',true);
         wp_enqueue_script('tng-leaflet-markercluster','https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js',['tng-leaflet'],'1.5.3',true);
-        wp_enqueue_script('tng-map-ui-live',TNG_OS_URL.'assets/js/map-ui.js',['tng-leaflet-markercluster','tng-trip-data'],'0.6.0',true);
+        wp_enqueue_script('tng-map-ui-live',TNG_OS_URL.'assets/js/map-ui.js',['tng-leaflet-markercluster','tng-trip-data'],'0.8.0',true);
         $center=$items?[(float)$items[0]['lat'],(float)$items[0]['lng']]:[35.2600,-85.7500];wp_localize_script('tng-map-ui-live','TNG_DISCOVERY_MAP',['items'=>$items,'center'=>$center,'zoom'=>10]);
     }
     private static function cards(array $items): string {
