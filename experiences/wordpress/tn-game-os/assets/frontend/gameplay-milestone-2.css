@@ -17,15 +17,15 @@
   bottom:18px;
   z-index:999996;
   display:grid;
-  grid-template-columns:46px minmax(0,1fr) 118px auto auto;
+  grid-template-columns:46px minmax(0,1fr) 104px auto auto auto;
   align-items:center;
-  gap:10px;
-  width:min(760px,calc(100% - 28px));
-  padding:11px 12px;
+  gap:8px;
+  width:min(790px,calc(100% - 40px));
+  padding:10px 11px;
   transform:translateX(-50%);
   border:1px solid #dfe6df;
-  border-radius:20px;
-  background:rgba(255,255,255,.96);
+  border-radius:19px;
+  background:rgba(255,255,255,.97);
   color:#13231a;
   box-shadow:0 18px 50px rgba(18,40,27,.16);
   backdrop-filter:blur(14px);
@@ -51,13 +51,14 @@
 .tng-game-dock__progress span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#f26722,#ff9a62);transition:width .35s ease}
 
 .tng-game-dock__checkpoint,
-.tng-game-dock__details{
+.tng-game-dock__details,
+.tng-game-dock .tng-game-session-pause{
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  min-height:40px;
-  padding:9px 12px;
-  border-radius:12px;
+  min-height:38px;
+  padding:8px 11px;
+  border-radius:11px;
   font:inherit;
   font-size:11px;
   font-weight:900;
@@ -65,9 +66,19 @@
   text-decoration:none!important;
   white-space:nowrap;
   cursor:pointer;
+  box-sizing:border-box;
 }
 .tng-game-dock__checkpoint{border:1px solid #dfe5df;background:#fff;color:#13231a}
 .tng-game-dock__details{border:0;background:#f26722;color:#fff!important}
+.tng-game-dock .tng-game-session-pause{margin:0;border:1px solid #dfe5df;background:#fff;color:#153e2e}
+.tng-game-dock .tng-game-session-pause.is-paused{border-color:#f26722;background:#f26722;color:#fff}
+
+/* Keep developer controls from visually stacking underneath the gameplay dock. */
+.tng-gameplay-ui-v1 [class*="developer-collapse"],
+.tng-gameplay-ui-v1 [data-tng-developer-collapse],
+.tng-gameplay-ui-v1 .tng-developer-collapse{
+  bottom:86px!important;
+}
 
 /* Treat the Leaflet popup as an in-game mission card. */
 .tng-game-runtime .leaflet-popup-content-wrapper{
@@ -148,226 +159,55 @@
 /* ---------------------------------------------------------
    Focused checkpoint interactions
    --------------------------------------------------------- */
-.tng-gameplay-ui-v1 .tng-runtime-list{
-  overflow:visible;
-}
-
-/* Future stops stay readable, but visually step back. */
-.tng-gameplay-ui-v1 .tng-runtime-stop:not(.is-next):not(.is-complete){
-  background:#f8faf7;
-  border-color:#e5eae4;
-  box-shadow:none;
-}
-.tng-gameplay-ui-v1 .tng-runtime-stop:not(.is-next):not(.is-complete) .tng-runtime-stop__copy{
-  opacity:.72;
-}
-
-/* The current checkpoint becomes the player's active mission. */
-.tng-gameplay-ui-v1 .tng-runtime-stop.is-next{
-  position:relative;
-  z-index:2;
-  overflow:hidden;
-  padding:22px;
-  border:2px solid #f26722;
-  border-radius:22px;
-  background:linear-gradient(135deg,#fffaf6 0%,#fff 64%);
-  box-shadow:0 16px 38px rgba(43,69,52,.11),0 5px 14px rgba(242,103,34,.08);
-}
-.tng-gameplay-ui-v1 .tng-runtime-stop.is-next::after{
-  content:"";
-  position:absolute;
-  top:-70px;
-  right:-64px;
-  width:180px;
-  height:180px;
-  border:28px solid rgba(242,103,34,.045);
-  border-radius:50%;
-  pointer-events:none;
-}
-.tng-gameplay-ui-v1 .tng-runtime-stop.is-next .tng-runtime-stop__number{
-  position:relative;
-  z-index:1;
-  background:#f26722;
-  color:#fff;
-  box-shadow:0 7px 18px rgba(242,103,34,.24);
-}
-.tng-gameplay-ui-v1 .tng-runtime-stop.is-next .tng-runtime-stop__copy{
-  position:relative;
-  z-index:1;
-}
-.tng-gameplay-ui-v1 .tng-runtime-stop.is-next .tng-runtime-stop__copy small{
-  color:#d94e0d;
-  font-weight:900;
-  letter-spacing:.06em;
-  text-transform:uppercase;
-}
-.tng-gameplay-ui-v1 .tng-runtime-stop.is-next .tng-runtime-stop__copy h3{
-  margin-top:5px;
-  color:#13231a;
-  font-size:24px;
-  line-height:1.14;
-}
-.tng-gameplay-ui-v1 .tng-runtime-stop.is-next .tng-runtime-stop__copy p{
-  max-width:620px;
-  margin-top:7px;
-  color:#66736b;
-  font-size:14px;
-  line-height:1.45;
-}
-
-/* The interaction area is a distinct action surface. */
-.tng-gameplay-ui-v1 .tng-runtime-stop.is-next .tng-runtime-action{
-  position:relative;
-  z-index:1;
-  min-width:290px;
-  padding:15px;
-  border:1px solid #eee4dc;
-  border-radius:17px;
-  background:rgba(255,255,255,.92);
-  box-shadow:0 8px 24px rgba(19,35,26,.06);
-}
-.tng-gameplay-ui-v1 .tng-runtime-stop.is-next .tng-runtime-action::before{
-  display:block;
-  margin-bottom:10px;
-  color:#4e5e54;
-  font-size:10px;
-  font-weight:900;
-  letter-spacing:.11em;
-  text-transform:uppercase;
-}
+.tng-gameplay-ui-v1 .tng-runtime-list{overflow:visible}
+.tng-gameplay-ui-v1 .tng-runtime-stop:not(.is-next):not(.is-complete){background:#f8faf7;border-color:#e5eae4;box-shadow:none}
+.tng-gameplay-ui-v1 .tng-runtime-stop:not(.is-next):not(.is-complete) .tng-runtime-stop__copy{opacity:.72}
+.tng-gameplay-ui-v1 .tng-runtime-stop.is-next{position:relative;z-index:2;overflow:hidden;padding:22px;border:2px solid #f26722;border-radius:22px;background:linear-gradient(135deg,#fffaf6 0%,#fff 64%);box-shadow:0 16px 38px rgba(43,69,52,.11),0 5px 14px rgba(242,103,34,.08)}
+.tng-gameplay-ui-v1 .tng-runtime-stop.is-next::after{content:"";position:absolute;top:-70px;right:-64px;width:180px;height:180px;border:28px solid rgba(242,103,34,.045);border-radius:50%;pointer-events:none}
+.tng-gameplay-ui-v1 .tng-runtime-stop.is-next .tng-runtime-stop__number{position:relative;z-index:1;background:#f26722;color:#fff;box-shadow:0 7px 18px rgba(242,103,34,.24)}
+.tng-gameplay-ui-v1 .tng-runtime-stop.is-next .tng-runtime-stop__copy{position:relative;z-index:1}
+.tng-gameplay-ui-v1 .tng-runtime-stop.is-next .tng-runtime-stop__copy small{color:#d94e0d;font-weight:900;letter-spacing:.06em;text-transform:uppercase}
+.tng-gameplay-ui-v1 .tng-runtime-stop.is-next .tng-runtime-stop__copy h3{margin-top:5px;color:#13231a;font-size:24px;line-height:1.14}
+.tng-gameplay-ui-v1 .tng-runtime-stop.is-next .tng-runtime-stop__copy p{max-width:620px;margin-top:7px;color:#66736b;font-size:14px;line-height:1.45}
+.tng-gameplay-ui-v1 .tng-runtime-stop.is-next .tng-runtime-action{position:relative;z-index:1;min-width:290px;padding:15px;border:1px solid #eee4dc;border-radius:17px;background:rgba(255,255,255,.92);box-shadow:0 8px 24px rgba(19,35,26,.06)}
+.tng-gameplay-ui-v1 .tng-runtime-stop.is-next .tng-runtime-action::before{display:block;margin-bottom:10px;color:#4e5e54;font-size:10px;font-weight:900;letter-spacing:.11em;text-transform:uppercase}
 .tng-gameplay-ui-v1 .tng-runtime-stop.is-next[data-checkpoint-type="gps"] .tng-runtime-action::before{content:"📍 Location check-in"}
 .tng-gameplay-ui-v1 .tng-runtime-stop.is-next[data-checkpoint-type="question"] .tng-runtime-action::before{content:"🧩 Solve the puzzle"}
 .tng-gameplay-ui-v1 .tng-runtime-stop.is-next[data-checkpoint-type="photo"] .tng-runtime-action::before{content:"📷 Photo challenge"}
 .tng-gameplay-ui-v1 .tng-runtime-stop.is-next[data-checkpoint-type="tap"] .tng-runtime-action::before{content:"✓ Check in"}
-
-.tng-gameplay-ui-v1 .tng-runtime-stop.is-next .tng-runtime-action form{
-  margin:0;
-}
-.tng-gameplay-ui-v1 .tng-runtime-stop.is-next .tng-runtime-action .tng-ui-button{
-  width:100%;
-  min-height:50px;
-  padding:13px 17px;
-  border-radius:14px;
-  background:#f26722;
-  color:#fff;
-  font-size:13px;
-  font-weight:900;
-  box-shadow:0 7px 16px rgba(242,103,34,.16);
-}
-.tng-gameplay-ui-v1 .tng-runtime-stop.is-next .tng-runtime-action .tng-ui-button:hover{
-  transform:translateY(-1px);
-  box-shadow:0 10px 22px rgba(242,103,34,.22);
-}
-
-/* Question checkpoint */
-.tng-gameplay-ui-v1 .tng-runtime-verify-form label{
-  display:block;
-  margin-bottom:10px;
-}
-.tng-gameplay-ui-v1 .tng-runtime-verify-form label>span{
-  display:block;
-  margin-bottom:6px;
-  color:#435048;
-  font-size:11px;
-  font-weight:800;
-}
-.tng-gameplay-ui-v1 .tng-runtime-verify-form input[type="text"]{
-  width:100%;
-  min-height:48px;
-  padding:11px 13px;
-  border:1px solid #d9e0d9;
-  border-radius:13px;
-  background:#f8faf7;
-  color:#13231a;
-  font:inherit;
-  font-size:15px;
-  outline:none;
-}
-.tng-gameplay-ui-v1 .tng-runtime-verify-form input[type="text"]:focus{
-  border-color:#f26722;
-  background:#fff;
-  box-shadow:0 0 0 3px rgba(242,103,34,.10);
-}
-
-/* GPS checkpoint */
-.tng-gameplay-ui-v1 .tng-runtime-gps-form{
-  display:grid;
-  gap:8px;
-}
-.tng-gameplay-ui-v1 .tng-runtime-location-status{
-  display:block;
-  color:#738078;
-  font-size:11px;
-  line-height:1.35;
-  text-align:center;
-}
-
-/* Photo checkpoint */
-.tng-gameplay-ui-v1 .tng-runtime-photo-input{
-  display:block;
-  margin-bottom:10px;
-  padding:14px;
-  border:1.5px dashed #cfd9cf;
-  border-radius:14px;
-  background:#f7faf6;
-}
-.tng-gameplay-ui-v1 .tng-runtime-photo-input>span{
-  display:block;
-  margin-bottom:8px;
-  color:#435048;
-  font-size:11px;
-  font-weight:900;
-}
-.tng-gameplay-ui-v1 .tng-runtime-photo-input input[type="file"]{
-  width:100%;
-  color:#68756d;
-  font-size:11px;
-}
-
-/* Completed stops read as earned progress, not another action. */
-.tng-gameplay-ui-v1 .tng-runtime-stop.is-complete{
-  border-color:#cce3d3;
-  background:linear-gradient(135deg,#edf8f0,#f7fbf8);
-}
-.tng-gameplay-ui-v1 .tng-runtime-stop.is-complete .tng-runtime-stop__number{
-  background:#4e8b65;
-  color:#fff;
-}
+.tng-gameplay-ui-v1 .tng-runtime-stop.is-next .tng-runtime-action form{margin:0}
+.tng-gameplay-ui-v1 .tng-runtime-stop.is-next .tng-runtime-action .tng-ui-button{width:100%;min-height:50px;padding:13px 17px;border-radius:14px;background:#f26722;color:#fff;font-size:13px;font-weight:900;box-shadow:0 7px 16px rgba(242,103,34,.16)}
+.tng-gameplay-ui-v1 .tng-runtime-stop.is-next .tng-runtime-action .tng-ui-button:hover{transform:translateY(-1px);box-shadow:0 10px 22px rgba(242,103,34,.22)}
+.tng-gameplay-ui-v1 .tng-runtime-verify-form label{display:block;margin-bottom:10px}
+.tng-gameplay-ui-v1 .tng-runtime-verify-form label>span{display:block;margin-bottom:6px;color:#435048;font-size:11px;font-weight:800}
+.tng-gameplay-ui-v1 .tng-runtime-verify-form input[type="text"]{width:100%;min-height:48px;padding:11px 13px;border:1px solid #d9e0d9;border-radius:13px;background:#f8faf7;color:#13231a;font:inherit;font-size:15px;outline:none}
+.tng-gameplay-ui-v1 .tng-runtime-verify-form input[type="text"]:focus{border-color:#f26722;background:#fff;box-shadow:0 0 0 3px rgba(242,103,34,.10)}
+.tng-gameplay-ui-v1 .tng-runtime-gps-form{display:grid;gap:8px}
+.tng-gameplay-ui-v1 .tng-runtime-location-status{display:block;color:#738078;font-size:11px;line-height:1.35;text-align:center}
+.tng-gameplay-ui-v1 .tng-runtime-photo-input{display:block;margin-bottom:10px;padding:14px;border:1.5px dashed #cfd9cf;border-radius:14px;background:#f7faf6}
+.tng-gameplay-ui-v1 .tng-runtime-photo-input>span{display:block;margin-bottom:8px;color:#435048;font-size:11px;font-weight:900}
+.tng-gameplay-ui-v1 .tng-runtime-photo-input input[type="file"]{width:100%;color:#68756d;font-size:11px}
+.tng-gameplay-ui-v1 .tng-runtime-stop.is-complete{border-color:#cce3d3;background:linear-gradient(135deg,#edf8f0,#f7fbf8)}
+.tng-gameplay-ui-v1 .tng-runtime-stop.is-complete .tng-runtime-stop__number{background:#4e8b65;color:#fff}
 
 @media(max-width:900px){
-  .tng-gameplay-ui-v1 .tng-runtime-stop.is-next{
-    display:grid;
-    grid-template-columns:auto minmax(0,1fr);
-    gap:12px;
-  }
-  .tng-gameplay-ui-v1 .tng-runtime-stop.is-next .tng-runtime-action{
-    grid-column:1/-1;
-    width:100%;
-    min-width:0;
-  }
+  .tng-game-dock{grid-template-columns:42px minmax(0,1fr) 88px auto auto;width:min(710px,calc(100% - 26px))}
+  .tng-game-dock__details{display:none}
+  .tng-gameplay-ui-v1 .tng-runtime-stop.is-next{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px}
+  .tng-gameplay-ui-v1 .tng-runtime-stop.is-next .tng-runtime-action{grid-column:1/-1;width:100%;min-width:0}
 }
 
 @media(max-width:700px){
-  .tng-game-dock{
-    bottom:10px;
-    grid-template-columns:42px minmax(0,1fr) auto;
-    gap:8px;
-    width:calc(100% - 20px);
-    padding:9px 10px;
-    border-radius:18px;
-  }
-  .tng-game-dock__icon{width:38px;height:38px;border-radius:12px}
-  .tng-game-dock__progress{grid-column:2/4;width:100%}
-  .tng-game-dock__checkpoint{grid-column:3;grid-row:1/3;min-height:42px;padding:8px 10px}
+  .tng-game-dock{bottom:10px;grid-template-columns:38px minmax(0,1fr) auto auto;gap:7px;width:calc(100% - 18px);padding:8px 9px;border-radius:17px}
+  .tng-game-dock__icon{width:36px;height:36px;border-radius:11px}
+  .tng-game-dock__progress{grid-column:2/5;width:100%}
+  .tng-game-dock__checkpoint{display:none}
+  .tng-game-dock .tng-game-session-pause{grid-column:3;grid-row:1/2;min-height:38px;padding:8px 10px}
   .tng-game-dock__details{display:none}
-  .tng-game-dock__title{font-size:13px}
-  .tng-game-dock__meta{font-size:9px}
+  .tng-game-dock__title{font-size:12px}
+  .tng-game-dock__meta{font-size:9px;max-width:100%}
   .tng-game-runtime .leaflet-popup-content{min-width:215px;padding:15px 16px 14px}
-
-  .tng-gameplay-ui-v1 .tng-runtime-stop.is-next{
-    padding:17px;
-    border-radius:19px;
-  }
+  .tng-gameplay-ui-v1 .tng-runtime-stop.is-next{padding:17px;border-radius:19px}
   .tng-gameplay-ui-v1 .tng-runtime-stop.is-next .tng-runtime-stop__copy h3{font-size:20px}
   .tng-gameplay-ui-v1 .tng-runtime-stop.is-next .tng-runtime-action{padding:12px;border-radius:15px}
   .tng-gameplay-ui-v1 .tng-runtime-stop.is-next .tng-runtime-action .tng-ui-button{min-height:52px;font-size:13px}
