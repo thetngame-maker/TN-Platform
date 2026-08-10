@@ -3,13 +3,13 @@
  * Plugin Name: TN Game OS
  * Plugin URI: https://thetngame.com
  * Description: Modular tourism operating system for Traveler listings, trails, food, maps, Explorer progression, reusable assets, destinations, and developer tools.
- * Version: 5.41.0
+ * Version: 5.42.0
  * Author: The TN Game
  * Text Domain: tn-game-os
  */
 if (!defined('ABSPATH')) exit;
 
-define('TNG_OS_VERSION', '5.41.0');
+define('TNG_OS_VERSION', '5.42.0');
 define('TNG_OS_FILE', __FILE__);
 define('TNG_OS_PATH', plugin_dir_path(__FILE__));
 define('TNG_OS_URL', plugin_dir_url(__FILE__));
@@ -58,6 +58,7 @@ require_once TNG_OS_PATH . 'tn-game-social-discovery.php';
 require_once TNG_OS_PATH . 'tn-game-social-pattern-intelligence.php';
 require_once TNG_OS_PATH . 'tn-game-content-idea-generator.php';
 require_once TNG_OS_PATH . 'tn-game-content-production.php';
+require_once TNG_OS_PATH . 'tn-game-instagram-browser.php';
 
 register_activation_hook(__FILE__, ['TNG_OS\\Core\\Plugin', 'activate']);
 register_deactivation_hook(__FILE__, ['TNG_OS\\Core\\Plugin', 'deactivate']);
