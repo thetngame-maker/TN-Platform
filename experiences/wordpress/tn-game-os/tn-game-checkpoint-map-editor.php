@@ -58,7 +58,7 @@ final class TNG_Checkpoint_Map_Editor {
  const boot=()=>{
   const el=document.getElementById('tng-admin-route-map'), rows=document.getElementById('tng-checkpoint-rows'), list=document.getElementById('tng-route-list');
   if(!el||!rows||!list||typeof L==='undefined'||el.dataset.ready==='1')return false;el.dataset.ready='1';
-  const map=L.map(el,{scrollWheelZoom:false});L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
+  const map=L.map(el,{scrollWheelZoom:false});window.TNG_ADMIN_ROUTE_MAP=map;L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
   const state={markers:[],routePts:[],routeLayer:null};
   const rowEls=()=>[...rows.querySelectorAll('.tng-cp-row')];
   const field=(row,key)=>row.querySelector(`[name$="[${key}]"]`);
