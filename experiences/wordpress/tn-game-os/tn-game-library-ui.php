@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TN Game Explorer Library UI
  * Description: Native Explorer Journal, Completed Adventures, and My Photos screens.
- * Version: 0.1.0
+ * Version: 0.1.1
  * Author: The TN Game
  */
 if (!defined('ABSPATH')) exit;
@@ -25,9 +25,20 @@ final class TNG_Library_UI {
 
     private static function completed_ids(int $user_id): array {
         if (!$user_id) return [];
-        foreach (['tng_completed_adventures','tng_completed_trails','completed_trails','tng_completed_posts'] as $key) {
+        $ids = [];
+        foreach (['_tng_completed_games','tng_completed_adventures','tng_completed_trails','completed_trails','tng_completed_posts'] as $key) {
             $value = get_user_meta($user_id, $key, true);
-            if (is_array($value) && $value) return array_values(array_unique(array_map('absint', $value)));
+            if (is_array($value)) $ids = array_merge($ids, array_map('absint', $value));
+            elseif (is_numeric($value) && get_post(absint($value))) $ids[] = absint($value);
+        }
+        return array_values(array_unique(array_filter($ids)));
+    }
+
+    private static function trip_recaps(int $user_id): array {
+        if (!$user_id) return [];
+        foreach (['_tng_trip_recaps','tng_trip_recaps'] as $key) {
+            $value = get_user_meta($user_id, $key, true);
+            if (is_array($value) && $value) return array_values(array_filter($value, 'is_array'));
         }
         return [];
     }
@@ -72,16 +83,21 @@ final class TNG_Library_UI {
         $user_id = get_current_user_id();
         $ids = self::completed_ids($user_id);
         $items = $ids ? get_posts(['post_type'=>'any','post_status'=>'publish','post__in'=>$ids,'orderby'=>'post__in','posts_per_page'=>50]) : [];
+        $recaps = self::trip_recaps($user_id);
+        $total = count($items) + count($recaps);
         ob_start(); ?>
         <main class="tng-library-screen tng-app-shell">
-            <section class="tng-library-hero"><div><span class="tng-eyebrow">Adventure history</span><h1>Completed Adventures</h1><p>Relive the trails, games, checkpoints, and places you have completed.</p></div><div class="tng-library-hero__badge"><span>🥾</span><strong><?php echo esc_html((string) count($items)); ?></strong><small>Completed</small></div></section>
+            <section class="tng-library-hero"><div><span class="tng-eyebrow">Adventure history</span><h1>Completed Adventures</h1><p>Relive the trails, games, checkpoints, and places you have completed.</p></div><div class="tng-library-hero__badge"><span>🥾</span><strong><?php echo esc_html((string) $total); ?></strong><small>Completed</small></div></section>
             <?php self::tabs('completed'); ?>
             <section class="tng-library-panel"><div class="tng-library-heading"><div><span class="tng-eyebrow">Your accomplishments</span><h2>Adventure history</h2></div><a href="<?php echo esc_url(home_url('/play/')); ?>">Start another</a></div>
                 <div class="tng-completed-grid">
-                    <?php foreach ($items as $item): $image=get_the_post_thumbnail_url($item->ID,'large'); ?>
-                        <a href="<?php echo esc_url(get_permalink($item->ID)); ?>" class="tng-completed-card"><span class="tng-completed-media"<?php echo $image?' style="background-image:url('.esc_url($image).')"':''; ?>><b>Completed</b></span><div><h3><?php echo esc_html(get_the_title($item)); ?></h3><p><?php echo esc_html(self::clean_excerpt((int)$item->ID,16)); ?></p><strong>View adventure →</strong></div></a>
+                    <?php foreach ($items as $item): $image=get_the_post_thumbnail_url($item->ID,'large'); $game_url=add_query_arg(['game'=>$item->ID],home_url('/game-play/')); ?>
+                        <a href="<?php echo esc_url($game_url); ?>" class="tng-completed-card"><span class="tng-completed-media"<?php echo $image?' style="background-image:url('.esc_url($image).')"':''; ?>><b>Completed</b></span><div><h3><?php echo esc_html(get_the_title($item)); ?></h3><p><?php echo esc_html(self::clean_excerpt((int)$item->ID,16)); ?></p><strong>Review adventure →</strong></div></a>
                     <?php endforeach; ?>
-                    <?php if (!$items): ?><div class="tng-library-empty tng-library-empty--wide"><span>🥾</span><h3>Your first completion is waiting.</h3><p>Finish a trail or game and it will appear in your adventure history.</p><a class="tng-ui-button" href="<?php echo esc_url(home_url('/play/')); ?>">Find an adventure</a></div><?php endif; ?>
+                    <?php foreach ($recaps as $recap): $title=sanitize_text_field($recap['title']??'My Tennessee adventure'); $stops=absint($recap['stop_count']??0); $minutes=absint($recap['minutes']??0); $date=sanitize_text_field($recap['date']??''); ?>
+                        <a href="<?php echo esc_url(home_url('/past-trips/')); ?>" class="tng-completed-card"><span class="tng-completed-media"><b>Trip complete</b></span><div><h3><?php echo esc_html($title); ?></h3><p><?php echo esc_html(trim(($stops?$stops.' stops':'').($minutes?' · '.$minutes.' min':'').($date?' · '.$date:''))); ?></p><strong>View trip recap →</strong></div></a>
+                    <?php endforeach; ?>
+                    <?php if (!$total): ?><div class="tng-library-empty tng-library-empty--wide"><span>🥾</span><h3>Your first completion is waiting.</h3><p>Finish a trail or game and it will appear in your adventure history.</p><a class="tng-ui-button" href="<?php echo esc_url(home_url('/play/')); ?>">Find an adventure</a></div><?php endif; ?>
                 </div>
             </section>
         </main>
