@@ -50,9 +50,16 @@ final class TNG_Game_Completion_Sync {
         $game_id = self::game_id();
         if (!$game_id || !self::is_complete($game_id)) return;
 
-        $session = get_user_meta(get_current_user_id(), self::ACTIVE_META, true);
+        $user_id = get_current_user_id();
+        do_action('tng_os_game_completed', $user_id, $game_id, [
+            'title' => get_the_title($game_id) ?: 'Adventure',
+            'checkpoints' => self::total($game_id),
+            'date' => current_time('mysql'),
+        ]);
+
+        $session = get_user_meta($user_id, self::ACTIVE_META, true);
         if (is_array($session) && absint($session['game_id'] ?? 0) === $game_id) {
-            delete_user_meta(get_current_user_id(), self::ACTIVE_META);
+            delete_user_meta($user_id, self::ACTIVE_META);
         }
     }
 
