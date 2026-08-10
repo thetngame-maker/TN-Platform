@@ -35,14 +35,16 @@ final class TNG_Start_Finish_Reward_Policy {
    const role=row.querySelector('.tng-cp-role-select');
    if(role&&!role.dataset.manual){
      const title=(field(row,'title')?.value||'').toLowerCase();
-     role.value=/finish/.test(title)?'trail_finish':'trail_start';
+     const wanted=/finish/.test(title)?'trail_finish':'trail_start';
+     if(role.value!==wanted)role.value=wanted;
    }
  };
  const fixButtons=()=>{
    const start=document.querySelector('.tng-add-start-point');
    const finish=document.querySelector('.tng-add-finish-point');
-   if(start&&!/Added/.test(start.textContent||''))start.textContent='Add Trail Start · 25 XP';
-   if(finish&&!/Added/.test(finish.textContent||''))finish.textContent='Add Trail Finish · 25 XP';
+   const startText='Add Trail Start · 25 XP',finishText='Add Trail Finish · 25 XP';
+   if(start&&!/Added/.test(start.textContent||'')&&start.textContent!==startText)start.textContent=startText;
+   if(finish&&!/Added/.test(finish.textContent||'')&&finish.textContent!==finishText)finish.textContent=finishText;
  };
  const scan=()=>{rows().forEach(applyRow);fixButtons();};
  let timer=null;
