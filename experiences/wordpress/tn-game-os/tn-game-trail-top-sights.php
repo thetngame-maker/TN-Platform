@@ -23,7 +23,7 @@ final class TNG_Trail_Top_Sights {
             $key = strtolower(str_replace(['-', '_'], '', (string)$type));
             if ($key === 'topsight' || (strpos($key, 'top') !== false && strpos($key, 'sight') !== false)) $types[] = $type;
         }
-        foreach (['top_sight','top-sight','topsight','tng_top_sight'] as $type) {
+        foreach (['top_sight','top-sight','topsight','top-sights','tng_top_sight'] as $type) {
             if (post_type_exists($type)) $types[] = $type;
         }
         return array_values(array_unique($types));
@@ -90,7 +90,8 @@ final class TNG_Trail_Top_Sights {
 
     private static function direct_relationship_ids(int $trail_id): array {
         $ids = [];
-        foreach (['top_sights','top_sight_ids','trail_top_sights','tng_top_sights','related_top_sights','linked_top_sights','trail_sights'] as $key) {
+        // related_top_sights is the canonical legacy TN Game / ACF relationship field.
+        foreach (['related_top_sights','top_sights','top_sight_ids','trail_top_sights','tng_top_sights','linked_top_sights','trail_sights'] as $key) {
             $ids = array_merge($ids, self::ids_from_value(get_post_meta($trail_id, $key, true)));
             if (function_exists('get_field')) $ids = array_merge($ids, self::ids_from_value(get_field($key, $trail_id)));
         }
@@ -129,8 +130,10 @@ final class TNG_Trail_Top_Sights {
     }
 
     private static function coordinates(int $sight_id, array $fallback = []): array {
-        $lat = self::numeric_meta($sight_id, ['latitude','lat','top_sight_latitude','map_latitude','location_latitude','location_lat']);
-        $lng = self::numeric_meta($sight_id, ['longitude','lng','lon','top_sight_longitude','map_longitude','location_longitude','location_lng']);
+        // IMPORTANT: sight_latitude / sight_longitude are the original TN Game Core
+        // coordinate fields used by the proven Mapbox Top Sight implementation.
+        $lat = self::numeric_meta($sight_id, ['sight_latitude','latitude','lat','top_sight_latitude','map_latitude','location_latitude','location_lat']);
+        $lng = self::numeric_meta($sight_id, ['sight_longitude','longitude','lng','lon','top_sight_longitude','map_longitude','location_longitude','location_lng']);
         if ($lat === null || $lng === null) {
             foreach (['location','map','coordinates','top_sight_location','google_map'] as $key) {
                 $value = get_post_meta($sight_id, $key, true);
