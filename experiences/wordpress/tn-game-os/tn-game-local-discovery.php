@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: TN Game Local Discovery
- * Description: Safe standalone bootstrap for Local Discovery, Town Scanner, Changes Inbox, Town Monitoring, cron health, and Content Studio operations on TN Game OS recovery-era installations.
- * Version: 0.1.5
+ * Description: Safe standalone bootstrap for Local Discovery, Town Scanner, Changes Inbox, Town Monitoring, cron health, Apify usage, and Content Studio operations on TN Game OS recovery-era installations.
+ * Version: 0.1.6
  * Author: The TN Game
  */
 
@@ -33,6 +33,7 @@ add_action('admin_menu', static function (): void {
                     <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=tng-town-changes')); ?>">Changes Inbox</a>
                     <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=tng-town-monitor')); ?>">Town Monitoring</a>
                     <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=tng-cron-reliability')); ?>">Cron Reliability</a>
+                    <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=tng-apify-usage')); ?>">Apify Usage</a>
                 </p>
             </div>
             <?php
@@ -63,6 +64,7 @@ add_action('plugins_loaded', static function (): void {
         'app/Modules/Sources/class-town-changes-inbox.php',
         'app/Modules/Sources/class-town-monitor.php',
         'app/Modules/Sources/class-server-cron-heartbeat.php',
+        'app/Modules/Sources/class-apify-usage-dashboard.php',
     ];
 
     foreach ($files as $file) {
@@ -159,6 +161,7 @@ add_action('plugins_loaded', static function (): void {
         new \TNG_OS\Modules\Sources\Town_Changes_Inbox(),
         new \TNG_OS\Modules\Sources\Town_Monitor(),
         new \TNG_OS\Modules\Sources\Server_Cron_Heartbeat(),
+        new \TNG_OS\Modules\Sources\Apify_Usage_Dashboard(),
     ];
 
     foreach ($modules as $module) $module->register($container);
