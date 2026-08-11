@@ -4,7 +4,6 @@ body.tng-trip-mode-v1-page .tng-trip-mode-v1-legacy-hidden{
     display:none !important;
 }
 
-/* Prevent broad theme button/card rules from recoloring the new controller. */
 body.tng-trip-mode-v1-page #tng-trip-mode-v1.tng-trip-mode{
     position:relative;
     z-index:2;
@@ -14,7 +13,7 @@ body.tng-trip-mode-v1-page #tng-trip-mode-v1.tng-trip-mode{
     margin:24px auto 34px;
     padding:0 18px;
     background:transparent !important;
-    color:#17231b;
+    color:#17231b !important;
 }
 body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__hero{
     background:linear-gradient(135deg,#123d29,#1d5b3b) !important;
@@ -26,11 +25,19 @@ body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__hero b{
     color:#fff !important;
 }
 body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__current,
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__current-body,
 body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__side,
 body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__route,
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__map-card,
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__next,
 body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__empty,
 body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__finish{
     background:#fff !important;
+    color:#17231b !important;
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__eta,
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__stat{
+    background:#eaf1ec !important;
     color:#17231b !important;
 }
 body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__primary{
@@ -39,11 +46,16 @@ body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__primary{
     color:#fff !important;
 }
 body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__complete{
-    background:#17452e !important;
-    border-color:#17452e !important;
+    background:#123d29 !important;
+    border-color:#123d29 !important;
     color:#fff !important;
 }
-body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__skip{
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__skip,
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__map-tools button{
     background:#fff !important;
+    border-color:#dfe5df !important;
     color:#657168 !important;
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__map{
+    background:#eef3ee !important;
 }
