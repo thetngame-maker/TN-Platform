@@ -1,3 +1,22 @@
+body.tng-trip-mode-v1-page #tng-trip-mode-v1.tng-trip-mode__instant-shell{
+    width:100%;max-width:1130px;margin:24px auto 34px;padding:0 18px;background:transparent!important
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__instant-loading{
+    min-height:180px;display:flex;align-items:center;justify-content:center;gap:14px;
+    border:1px solid #e4e9e5;border-radius:24px;background:#fff;color:#17231b;
+    box-shadow:0 14px 38px rgba(18,61,41,.06)
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__instant-loading>span{
+    width:22px;height:22px;border:3px solid #dfe8e1;border-top-color:#1d5b3b;border-radius:50%;
+    animation:tngTripSpin .7s linear infinite
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__instant-loading small{
+    display:block;margin-bottom:3px;color:#f06424;font-size:10px;font-weight:800;letter-spacing:.07em
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__instant-loading strong{display:block;font-size:18px}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__instant-loading p{margin:3px 0 0;color:#758078;font-size:12px}
+@keyframes tngTripSpin{to{transform:rotate(360deg)}}
+
 body.tng-trip-mode-v1-page .tng-trip-dev{
     position:fixed;right:18px;bottom:18px;z-index:100000;
     width:min(330px,calc(100vw - 36px));padding:14px;border-radius:18px;
