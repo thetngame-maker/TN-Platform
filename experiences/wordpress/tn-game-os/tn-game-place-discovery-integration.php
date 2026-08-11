@@ -2,13 +2,13 @@
 /**
  * Plugin Name: TN Game Place Discovery Integration
  * Description: Upgrades individual TN Game place pages with live discovery details and a real map.
- * Version: 0.2.1
+ * Version: 0.2.2
  * Author: The TN Game
  */
 
 if (!defined('ABSPATH')) exit;
 
-define('TNG_PLACE_DISCOVERY_VERSION', '0.2.1');
+define('TNG_PLACE_DISCOVERY_VERSION', '0.2.2');
 define('TNG_PLACE_DISCOVERY_URL', plugin_dir_url(__FILE__));
 
 function tng_place_discovery_meta_first(int $id, array $keys) {
@@ -127,6 +127,7 @@ add_action('wp_enqueue_scripts', static function (): void {
         'lat' => is_numeric($lat) ? (float)$lat : null,
         'lng' => is_numeric($lng) ? (float)$lng : null,
         'mapUrl' => home_url('/map/'),
+        'nearbyEndpoint' => esc_url_raw(add_query_arg('limit', 100, rest_url('tn-game/v1/explore/places'))),
         'map' => tng_place_discovery_map_config(),
     ]);
 }, 130);
