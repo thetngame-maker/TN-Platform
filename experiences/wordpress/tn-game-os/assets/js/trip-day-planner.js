@@ -8,10 +8,10 @@ var sourceItems=[];
 var routeMatrix=null;
 var routingState='estimate';
 var START_KEY='tng_trip_start_minutes_v1';
-var MATRIX_CACHE_PREFIX='tng_trip_matrix_v1_';
+var MATRIX_CACHE_PREFIX='tng_trip_matrix_v2_';
 var DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
-function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c];});}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#039;'}[c];});}
 function rad(v){return v*Math.PI/180;}
 function miles(a,b){if(!a||!b||!isFinite(a.lat)||!isFinite(a.lng)||!isFinite(b.lat)||!isFinite(b.lng))return null;var R=3958.8,dLat=rad(b.lat-a.lat),dLng=rad(b.lng-a.lng),x=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLng/2)*Math.sin(dLng/2);return 2*R*Math.asin(Math.sqrt(x));}
 function estimatedDriveMinutes(a,b){var d=miles(a,b);if(d==null)return 10;return Math.max(5,Math.round((d*1.22/35)*60));}
@@ -54,7 +54,7 @@ function matrixCacheKey(items){
 function applyMatrixPayload(payload,items){
     if(!payload||!Array.isArray(payload.durations)||payload.durations.length!==items.length)return false;
     var indexById={};items.forEach(function(p,i){indexById[String(Number(p.id))]=i;});
-    routeMatrix={durations:payload.durations,distances:Array.isArray(payload.distances)?payload.distances:null,indexById:indexById,provider:'mapbox'};
+    routeMatrix={durations:payload.durations,distances:Array.isArray(payload.distances)?payload.distances:null,indexById:indexById,provider:String(payload.provider||'mapbox')};
     return true;
 }
 
@@ -62,7 +62,7 @@ function loadRoadMatrix(items){
     var routing=cfg.routing||{};
     var max=Math.max(2,Math.min(25,Number(routing.maxCoordinates)||25));
     var matrixItems=items.filter(hasCoord).slice(0,max);
-    if(routing.provider!=='mapbox'||!routing.token||!routing.matrixBase||matrixItems.length<2)return Promise.resolve(false);
+    if(routing.provider!=='mapbox'||!routing.matrixEndpoint||matrixItems.length<2)return Promise.resolve(false);
 
     var cacheKey=matrixCacheKey(matrixItems);
     try{
@@ -73,14 +73,18 @@ function loadRoadMatrix(items){
         }
     }catch(e){}
 
-    var coords=matrixItems.map(function(p){return Number(p.lng).toFixed(6)+','+Number(p.lat).toFixed(6);}).join(';');
-    var url=String(routing.matrixBase)+coords+'?annotations=duration,distance&access_token='+encodeURIComponent(String(routing.token));
-    return fetch(url,{method:'GET',mode:'cors',credentials:'omit'})
-      .then(function(r){if(!r.ok)throw new Error('routing');return r.json();})
+    var body={coordinates:matrixItems.map(function(p){return {lat:Number(p.lat),lng:Number(p.lng)};})};
+    return fetch(String(routing.matrixEndpoint),{
+        method:'POST',
+        credentials:'same-origin',
+        headers:{'Content-Type':'application/json','X-WP-Nonce':String(cfg.restNonce||'')},
+        body:JSON.stringify(body)
+    })
+      .then(function(r){return r.json().then(function(data){if(!r.ok)throw new Error((data&&data.message)||'routing');return data;});})
       .then(function(data){
           if(!data||!Array.isArray(data.durations))throw new Error('routing');
           if(!applyMatrixPayload(data,matrixItems))throw new Error('routing');
-          try{sessionStorage.setItem(cacheKey,JSON.stringify({savedAt:Date.now(),durations:data.durations,distances:data.distances||null}));}catch(e){}
+          try{sessionStorage.setItem(cacheKey,JSON.stringify({savedAt:Date.now(),provider:data.provider||'mapbox',durations:data.durations,distances:data.distances||null}));}catch(e){}
           return true;
       })
       .catch(function(){routeMatrix=null;return false;});
@@ -270,7 +274,7 @@ function boot(){
         sourceItems=saved.map(function(id){return byId[id];}).filter(Boolean);
         if(!sourceItems.length)return;
 
-        var canRoute=cfg.routing&&cfg.routing.provider==='mapbox'&&cfg.routing.token&&sourceItems.filter(hasCoord).length>=2;
+        var canRoute=cfg.routing&&cfg.routing.provider==='mapbox'&&cfg.routing.matrixEndpoint&&sourceItems.filter(hasCoord).length>=2;
         routingState=canRoute?'loading':'estimate';
         render(makePlan(sourceItems,getStart()));
         if(!canRoute)return;
