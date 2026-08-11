@@ -2,13 +2,13 @@
 /**
  * Plugin Name: TN Game Place Discovery Integration
  * Description: Upgrades individual TN Game place pages with live discovery details and a real map.
- * Version: 0.2.6
+ * Version: 0.2.7
  * Author: The TN Game
  */
 
 if (!defined('ABSPATH')) exit;
 
-define('TNG_PLACE_DISCOVERY_VERSION', '0.2.6');
+define('TNG_PLACE_DISCOVERY_VERSION', '0.2.7');
 define('TNG_PLACE_DISCOVERY_URL', plugin_dir_url(__FILE__));
 
 function tng_place_discovery_meta_first(int $id, array $keys) {
@@ -51,29 +51,74 @@ function tng_place_discovery_gallery(int $id): array {
     return $images;
 }
 
+function tng_place_discovery_token_from_value($value): string {
+    if (is_string($value)) {
+        $value = trim($value);
+        if (strpos($value, 'pk.') === 0 || strpos($value, 'sk.') === 0) return $value;
+        return '';
+    }
+    if (!is_array($value)) return '';
+    foreach ($value as $key => $child) {
+        $key_text = strtolower((string)$key);
+        if (strpos($key_text, 'mapbox') !== false || strpos($key_text, 'token') !== false || strpos($key_text, 'api') !== false) {
+            $found = tng_place_discovery_token_from_value($child);
+            if ($found !== '') return $found;
+        }
+    }
+    foreach ($value as $child) {
+        $found = tng_place_discovery_token_from_value($child);
+        if ($found !== '') return $found;
+    }
+    return '';
+}
+
 function tng_place_discovery_mapbox_token(): string {
-    $token = '';
     foreach (['TNG_MAPBOX_TOKEN','MAPBOX_ACCESS_TOKEN','ST_MAPBOX_TOKEN'] as $constant) {
-        if (defined($constant) && is_string(constant($constant)) && constant($constant) !== '') {
-            $token = (string) constant($constant);
-            break;
+        if (defined($constant) && is_string(constant($constant))) {
+            $found = tng_place_discovery_token_from_value((string)constant($constant));
+            if ($found !== '') return $found;
         }
     }
-    if ($token === '') {
-        foreach (['tng_mapbox_token','mapbox_access_token','st_mapbox_token','mapbox_token','st_mapbox_api_key'] as $key) {
-            $value = get_option($key, '');
-            if (is_string($value) && strpos($value, 'pk.') === 0) {
-                $token = $value;
-                break;
+
+    $keys = [
+        'tng_mapbox_token','mapbox_access_token','st_mapbox_token','mapbox_token','st_mapbox_api_key',
+        'mapbox_api_key','mapbox_access_key','st_mapbox_access_token','mapbox_key'
+    ];
+    foreach ($keys as $key) {
+        $found = tng_place_discovery_token_from_value(get_option($key, ''));
+        if ($found !== '') return $found;
+    }
+
+    if (function_exists('ot_get_option')) {
+        foreach ($keys as $key) {
+            $found = tng_place_discovery_token_from_value(ot_get_option($key, ''));
+            if ($found !== '') return $found;
+        }
+    }
+
+    if (function_exists('st')) {
+        try {
+            $traveler = st();
+            if (is_object($traveler) && method_exists($traveler, 'get_option')) {
+                foreach ($keys as $key) {
+                    $found = tng_place_discovery_token_from_value($traveler->get_option($key, ''));
+                    if ($found !== '') return $found;
+                }
             }
-        }
+        } catch (Throwable $e) {}
     }
-    return $token;
+
+    foreach (['option_tree','st_options','traveler_options','traveler_setting','traveler_settings'] as $option_name) {
+        $found = tng_place_discovery_token_from_value(get_option($option_name, []));
+        if ($found !== '') return $found;
+    }
+
+    return '';
 }
 
 function tng_place_discovery_map_config(): array {
     $token = tng_place_discovery_mapbox_token();
-    if ($token !== '') {
+    if (strpos($token, 'pk.') === 0) {
         return [
             'tileUrl' => 'https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/tiles/512/{z}/{x}/{y}@2x?access_token=' . rawurlencode($token),
             'tileSize' => 512,
@@ -98,6 +143,66 @@ function tng_place_discovery_is_trip_builder(): bool {
     $path = (string) wp_parse_url($uri, PHP_URL_PATH);
     return (bool) preg_match('#/(?:trip-builder|build-my-day)/?$#i', rtrim($path, '/') . '/');
 }
+
+add_action('rest_api_init', static function (): void {
+    register_rest_route('tn-game/v1', '/trip/route-matrix', [
+        'methods' => 'POST',
+        'permission_callback' => static function (): bool { return is_user_logged_in(); },
+        'callback' => static function (WP_REST_Request $request) {
+            $coords = $request->get_param('coordinates');
+            if (!is_array($coords)) {
+                return new WP_Error('tng_bad_coordinates', 'Coordinates are required.', ['status' => 400]);
+            }
+            $coords = array_slice($coords, 0, 25);
+            $clean = [];
+            foreach ($coords as $point) {
+                if (!is_array($point)) continue;
+                $lat = isset($point['lat']) ? (float)$point['lat'] : null;
+                $lng = isset($point['lng']) ? (float)$point['lng'] : null;
+                if ($lat === null || $lng === null || $lat < -90 || $lat > 90 || $lng < -180 || $lng > 180) continue;
+                $clean[] = ['lat' => $lat, 'lng' => $lng];
+            }
+            if (count($clean) < 2) {
+                return new WP_Error('tng_not_enough_coordinates', 'At least two valid coordinates are required.', ['status' => 400]);
+            }
+
+            $token = tng_place_discovery_mapbox_token();
+            if ($token === '') {
+                return new WP_Error('tng_mapbox_missing', 'No Mapbox routing token is configured.', ['status' => 503]);
+            }
+
+            $coord_string = implode(';', array_map(static function (array $point): string {
+                return number_format($point['lng'], 6, '.', '') . ',' . number_format($point['lat'], 6, '.', '');
+            }, $clean));
+            $url = 'https://api.mapbox.com/directions-matrix/v1/mapbox/driving/' . $coord_string;
+            $url = add_query_arg([
+                'annotations' => 'duration,distance',
+                'access_token' => $token,
+            ], $url);
+
+            $response = wp_remote_get($url, [
+                'timeout' => 12,
+                'redirection' => 2,
+                'headers' => ['Accept' => 'application/json'],
+            ]);
+            if (is_wp_error($response)) {
+                return new WP_Error('tng_routing_request_failed', $response->get_error_message(), ['status' => 502]);
+            }
+            $status = wp_remote_retrieve_response_code($response);
+            $body = json_decode(wp_remote_retrieve_body($response), true);
+            if ($status < 200 || $status >= 300 || !is_array($body) || !isset($body['durations']) || !is_array($body['durations'])) {
+                $message = is_array($body) && !empty($body['message']) ? (string)$body['message'] : 'Mapbox routing did not return a matrix.';
+                return new WP_Error('tng_routing_response_failed', $message, ['status' => 502, 'upstream_status' => $status]);
+            }
+
+            return rest_ensure_response([
+                'provider' => 'mapbox',
+                'durations' => $body['durations'],
+                'distances' => isset($body['distances']) && is_array($body['distances']) ? $body['distances'] : null,
+            ]);
+        },
+    ]);
+});
 
 add_action('wp_enqueue_scripts', static function (): void {
     if (!is_singular('st_activity')) return;
@@ -172,23 +277,20 @@ add_action('wp_enqueue_scripts', static function (): void {
         $saved_ids = array_values(array_unique(array_filter(array_map('absint', $saved_ids))));
     }
 
-    $mapbox_token = tng_place_discovery_mapbox_token();
-    $public_routing_token = strpos($mapbox_token, 'pk.') === 0 ? $mapbox_token : '';
-
     wp_enqueue_style('tng-trip-day-planner', TNG_PLACE_DISCOVERY_URL . 'assets/css/trip-day-planner.css', [], TNG_PLACE_DISCOVERY_VERSION);
     wp_enqueue_script('tng-trip-day-planner', TNG_PLACE_DISCOVERY_URL . 'assets/js/trip-day-planner.js', [], TNG_PLACE_DISCOVERY_VERSION, true);
     wp_localize_script('tng-trip-day-planner', 'TNGTripDayPlanner', [
         'enabled' => true,
         'ajaxUrl' => admin_url('admin-ajax.php'),
         'nonce' => wp_create_nonce('tng_trip_data'),
+        'restNonce' => wp_create_nonce('wp_rest'),
         'savedIds' => $saved_ids,
         'endpoint' => esc_url_raw(add_query_arg('limit', 100, rest_url('tn-game/v1/explore/places'))),
         'tripsUrl' => home_url('/trips/'),
         'builderUrl' => home_url('/trip-builder/'),
         'routing' => [
-            'provider' => $public_routing_token !== '' ? 'mapbox' : 'estimate',
-            'matrixBase' => 'https://api.mapbox.com/directions-matrix/v1/mapbox/driving/',
-            'token' => $public_routing_token,
+            'provider' => tng_place_discovery_mapbox_token() !== '' ? 'mapbox' : 'estimate',
+            'matrixEndpoint' => esc_url_raw(rest_url('tn-game/v1/trip/route-matrix')),
             'maxCoordinates' => 25,
         ],
     ]);
