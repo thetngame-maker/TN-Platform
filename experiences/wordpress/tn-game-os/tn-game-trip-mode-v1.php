@@ -2,13 +2,13 @@
 /**
  * Plugin Name: TN Game Trip Mode V1
  * Description: Live active-trip controller for TN Game saved routes.
- * Version: 0.1.0
+ * Version: 0.1.1
  * Author: The TN Game
  */
 
 if (!defined('ABSPATH')) exit;
 
-define('TNG_TRIP_MODE_V1_VERSION', '0.1.0');
+define('TNG_TRIP_MODE_V1_VERSION', '0.1.1');
 define('TNG_TRIP_MODE_V1_URL', plugin_dir_url(__FILE__));
 define('TNG_TRIP_MODE_V1_META', 'tng_active_trip_state_v1');
 
@@ -25,6 +25,11 @@ function tng_trip_mode_v1_is_page(): bool {
     $path = (string) wp_parse_url($uri, PHP_URL_PATH);
     return (bool) preg_match('#/(?:trip-mode|active-trip)/?$#i', rtrim($path, '/') . '/');
 }
+
+add_filter('body_class', static function (array $classes): array {
+    if (tng_trip_mode_v1_is_page()) $classes[] = 'tng-trip-mode-v1-page';
+    return $classes;
+});
 
 function tng_trip_mode_v1_clean_state($raw): array {
     if (!is_array($raw)) $raw = [];
@@ -136,7 +141,9 @@ add_action('wp_enqueue_scripts', static function (): void {
     $saved_ids = is_user_logged_in() ? tng_trip_mode_v1_saved_ids(get_current_user_id()) : [];
 
     wp_enqueue_style('tng-trip-mode-v1', TNG_TRIP_MODE_V1_URL . 'assets/css/trip-mode-v1.css', [], TNG_TRIP_MODE_V1_VERSION);
+    wp_enqueue_style('tng-trip-mode-v1-compat', TNG_TRIP_MODE_V1_URL . 'assets/css/trip-mode-v1-compat.css', ['tng-trip-mode-v1'], TNG_TRIP_MODE_V1_VERSION);
     wp_enqueue_script('tng-trip-mode-v1', TNG_TRIP_MODE_V1_URL . 'assets/js/trip-mode-v1.js', [], TNG_TRIP_MODE_V1_VERSION, true);
+    wp_enqueue_script('tng-trip-mode-v1-compat', TNG_TRIP_MODE_V1_URL . 'assets/js/trip-mode-v1-compat.js', ['tng-trip-mode-v1'], TNG_TRIP_MODE_V1_VERSION, true);
     wp_localize_script('tng-trip-mode-v1', 'TNGTripModeV1', [
         'enabled' => true,
         'loggedIn' => is_user_logged_in(),
