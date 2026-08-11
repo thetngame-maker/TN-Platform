@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: TN Game Local Discovery
- * Description: Safe standalone bootstrap for Local Discovery, Town Scanner, Changes Inbox, and Town Monitoring on TN Game OS recovery-era installations.
- * Version: 0.1.3
+ * Description: Safe standalone bootstrap for Local Discovery, Town Scanner, Changes Inbox, Town Monitoring, and Content Studio operations on TN Game OS recovery-era installations.
+ * Version: 0.1.4
  * Author: The TN Game
  */
 
@@ -27,7 +27,8 @@ add_action('admin_menu', static function (): void {
                 <h1>Content Studio</h1>
                 <p>TN Game discovery, planning, and editorial tools.</p>
                 <p>
-                    <a class="button button-primary" href="<?php echo esc_url(admin_url('admin.php?page=tng-local-discovery')); ?>">Local Discovery</a>
+                    <a class="button button-primary" href="<?php echo esc_url(admin_url('admin.php?page=tng-content-studio-overview')); ?>">Operations Overview</a>
+                    <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=tng-local-discovery')); ?>">Local Discovery</a>
                     <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=tng-town-scanner')); ?>">Town Scanner</a>
                     <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=tng-town-changes')); ?>">Changes Inbox</a>
                     <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=tng-town-monitor')); ?>">Town Monitoring</a>
@@ -54,6 +55,7 @@ add_action('plugins_loaded', static function (): void {
     }
 
     $files = [
+        'app/Modules/Sources/class-content-studio-ops-dashboard.php',
         'app/Modules/Sources/class-local-discovery.php',
         'app/Modules/Sources/class-local-discovery-destination-linker.php',
         'app/Modules/Sources/class-town-scanner.php',
@@ -148,6 +150,7 @@ add_action('plugins_loaded', static function (): void {
     });
 
     $modules = [
+        new \TNG_OS\Modules\Sources\Content_Studio_Ops_Dashboard(),
         new \TNG_OS\Modules\Sources\Local_Discovery(),
         new \TNG_OS\Modules\Sources\Local_Discovery_Destination_Linker(),
         new \TNG_OS\Modules\Sources\Town_Scanner(),
