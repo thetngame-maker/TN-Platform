@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: TN Game Discovery Media Importer
- * Description: Imports approved Local Discovery photos into WordPress Media, using the first image as featured and the rest as the Activity gallery.
- * Version: 0.1.0
+ * Description: Captures up to 10 discovery photos and imports approved Local Discovery photos into WordPress Media, using the first image as featured and the rest as the Activity gallery.
+ * Version: 0.2.0
  * Author: The TN Game
  */
 
@@ -13,8 +13,22 @@ final class TNG_Discovery_Media_Importer {
     private const SOURCE_META = '_tng_discovery_source_url';
 
     public static function boot(): void {
+        add_filter('http_request_args', [__CLASS__, 'request_ten_photos'], 20, 2);
         add_action('added_post_meta', [__CLASS__, 'maybe_import'], 20, 4);
         add_action('updated_post_meta', [__CLASS__, 'maybe_import'], 20, 4);
+    }
+
+    public static function request_ten_photos(array $args, string $url): array {
+        if (strpos($url, 'https://api.apify.com/v2/acts/') !== 0 || strpos($url, '/run-sync-get-dataset-items') === false) return $args;
+        if (empty($args['body']) || !is_string($args['body'])) return $args;
+
+        $body = json_decode($args['body'], true);
+        if (!is_array($body) || empty($body['searchStringsArray']) || !array_key_exists('locationQuery', $body)) return $args;
+
+        $body['includeImages'] = true;
+        $body['maxImagesPerPlace'] = 10;
+        $args['body'] = wp_json_encode($body);
+        return $args;
     }
 
     public static function maybe_import($meta_id, $post_id, $meta_key, $meta_value): void {
@@ -39,9 +53,7 @@ final class TNG_Discovery_Media_Importer {
         $errors = [];
         foreach ($photos as $index => $url) {
             $attachment_id = self::existing_attachment_for_source($url);
-            if (!$attachment_id) {
-                $attachment_id = self::sideload($url, $post_id, $index + 1);
-            }
+            if (!$attachment_id) $attachment_id = self::sideload($url, $post_id, $index + 1);
             if (is_wp_error($attachment_id)) {
                 $errors[] = $attachment_id->get_error_message();
                 continue;
