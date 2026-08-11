@@ -40,7 +40,7 @@ final class TNG_Leaflet_Map_Capture {
  L.map=wrapped;
 })();
 JS
-        ,'after');
+        ,'before');
     }
 }
 TNG_Leaflet_Map_Capture::boot();
