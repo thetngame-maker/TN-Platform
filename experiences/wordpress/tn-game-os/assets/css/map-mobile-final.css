@@ -1,0 +1,47 @@
+/* TN Game Map mobile layout final pass */
+.tng-map-legacy-xp-hidden{display:none!important;visibility:hidden!important;pointer-events:none!important}
+
+@media(max-width:700px){
+  body.tng-map-mobile-layout .tng-map-screen{padding-bottom:118px}
+  body.tng-map-mobile-layout .tng-map-layout{display:block}
+  body.tng-map-mobile-layout .tng-map-canvas-wrap{display:block}
+  body.tng-map-mobile-layout .tng-map-canvas{height:66vh;min-height:560px;max-height:720px}
+  body.tng-map-mobile-layout .tng-map-live-status{left:14px;bottom:18px;min-width:210px;max-width:250px}
+
+  /* On the Map screen the trip dock becomes part of the page instead of floating over the map/nav. */
+  body.tng-map-mobile-layout .tng-map-layout>.tng-trip-dock,
+  body.tng-map-mobile-layout .tng-map-canvas-wrap+.tng-trip-dock{
+    position:relative!important;
+    z-index:20!important;
+    right:auto!important;
+    bottom:auto!important;
+    left:auto!important;
+    width:100%!important;
+    max-width:none!important;
+    margin:14px 0 0!important;
+    transform:none!important;
+    grid-template-columns:minmax(0,1fr) auto!important;
+    padding:12px 13px!important;
+    border-radius:20px!important;
+    box-shadow:0 10px 28px rgba(18,49,35,.12)!important;
+  }
+  body.tng-map-mobile-layout .tng-trip-dock__actions a:first-child{display:none!important}
+  body.tng-map-mobile-layout .tng-trip-dock__progress{bottom:6px}
+
+  /* The app navigation remains the lowest fixed layer. */
+  body.tng-map-mobile-layout .tng-app-nav{display:block!important;visibility:visible!important;opacity:1!important;z-index:99990!important}
+
+  /* While a discovery is open, keep nav visible but remove the trip card from behind the sheet. */
+  body.tng-map-mobile-layout.tng-map-sheet-open .tng-trip-dock{display:none!important}
+  body.tng-map-mobile-layout.tng-map-sheet-open .tng-app-nav{display:block!important;visibility:visible!important;opacity:1!important}
+
+  body.tng-map-mobile-layout .tng-map-sheet-backdrop{bottom:calc(88px + env(safe-area-inset-bottom))!important}
+  body.tng-map-mobile-layout .tng-map-sheet{bottom:calc(94px + env(safe-area-inset-bottom))!important;max-height:min(52vh,540px)!important}
+  body.tng-map-mobile-layout .tng-map-sheet__actions{padding-bottom:4px}
+}
+
+@media(max-width:430px){
+  body.tng-map-mobile-layout .tng-map-canvas{height:64vh;min-height:520px}
+  body.tng-map-mobile-layout .tng-map-live-status{min-width:190px;padding:12px 14px}
+  body.tng-map-mobile-layout .tng-map-sheet{left:8px!important;right:8px!important;border-radius:24px!important}
+}
