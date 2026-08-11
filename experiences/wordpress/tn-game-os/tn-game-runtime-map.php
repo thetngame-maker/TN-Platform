@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TN Game Runtime Map
  * Description: Live checkpoint map and trail route for active TN Game adventures.
- * Version: 0.2.0
+ * Version: 0.2.1
  * Author: The TN Game
  */
 if (!defined('ABSPATH')) exit;
@@ -137,8 +137,8 @@ final class TNG_Game_Runtime_Map {
 
         wp_enqueue_style('tng-leaflet', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css', [], '1.9.4');
         wp_enqueue_script('tng-leaflet', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', [], '1.9.4', true);
-        wp_enqueue_style('tng-game-runtime-map', TNG_OS_URL . 'assets/css/game-runtime-map.css', ['tng-game-runtime-ui','tng-leaflet'], '0.2.0');
-        wp_enqueue_script('tng-game-runtime-map', TNG_OS_URL . 'assets/js/game-runtime-map.js', ['tng-leaflet'], '0.2.0', true);
+        wp_enqueue_style('tng-game-runtime-map', TNG_OS_URL . 'assets/css/game-runtime-map.css', ['tng-game-runtime-ui','tng-leaflet'], '0.2.1');
+        wp_enqueue_script('tng-game-runtime-map', TNG_OS_URL . 'assets/js/game-runtime-map.js', ['tng-leaflet'], '0.2.1', true);
         wp_localize_script('tng-game-runtime-map', 'TNG_GAME_MAP', [
             'gameId' => $game_id,
             'checkpoints' => $checkpoints,
