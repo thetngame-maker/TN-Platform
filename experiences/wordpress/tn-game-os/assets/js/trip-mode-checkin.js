@@ -1,0 +1,24 @@
+(function(){
+'use strict';
+var cfg=window.TNGTripCheckin||{};
+if(!cfg.endpoint)return;
+var selectedFile=null,bound=false;
+function root(){return document.getElementById('tng-trip-mode-v1');}
+function arrived(){var el=document.querySelector('#tng-trip-mode-v1 .tng-trip-mode__arrival-state');return !!(el&&(/you.ve arrived/i.test(el.textContent||'')||el.classList.contains('is-arrived')));}
+function currentId(){var el=document.querySelector('#tng-trip-mode-v1 [data-stop-id]');if(el&&el.dataset.stopId)return Number(el.dataset.stopId)||0;var card=document.querySelector('#tng-trip-mode-v1 .tng-trip-mode__current');if(card&&card.dataset.stopId)return Number(card.dataset.stopId)||0;return 0;}
+function status(msg,type){var box=document.querySelector('.tng-trip-checkin__status');if(!box)return;box.textContent=msg||'';box.className='tng-trip-checkin__status'+(type?' is-'+type:'');}
+function getLocation(){return new Promise(function(resolve,reject){if(!navigator.geolocation){reject(new Error('Location is not available on this device.'));return;}navigator.geolocation.getCurrentPosition(function(pos){resolve({lat:pos.coords.latitude,lng:pos.coords.longitude,accuracy:pos.coords.accuracy});},function(){reject(new Error('Allow location access to check in.'));},{enableHighAccuracy:true,timeout:12000,maximumAge:5000});});}
+function ensureEnhancement(){var panel=document.querySelector('#tng-trip-mode-v1 .tng-trip-mode__arrival-actions');if(!panel||!arrived())return; if(panel.querySelector('.tng-trip-checkin__photo'))return;
+var buttons=panel.querySelector('.tng-trip-mode__arrival-actions-buttons');if(!buttons)return;
+var old=panel.querySelector('.tng-trip-mode__arrival-checkin');if(old){old.textContent='Check in';old.classList.add('tng-trip-checkin__submit');}
+var wrap=document.createElement('div');wrap.className='tng-trip-checkin__photo';wrap.innerHTML='<input class="tng-trip-checkin__file" type="file" accept="image/*" capture="environment" hidden><button type="button" class="tng-trip-checkin__photo-btn">Add photo</button><span class="tng-trip-checkin__file-name">Optional</span>';
+buttons.insertBefore(wrap,buttons.firstChild);
+var file=wrap.querySelector('.tng-trip-checkin__file'),photoBtn=wrap.querySelector('.tng-trip-checkin__photo-btn'),name=wrap.querySelector('.tng-trip-checkin__file-name');
+photoBtn.addEventListener('click',function(){file.click();});
+file.addEventListener('change',function(){selectedFile=file.files&&file.files[0]?file.files[0]:null;if(selectedFile&&selectedFile.size>((cfg.maxPhotoMb||10)*1024*1024)){selectedFile=null;file.value='';status('Photo must be '+(cfg.maxPhotoMb||10)+' MB or smaller.','error');name.textContent='Optional';return;}name.textContent=selectedFile?selectedFile.name:'Optional';status(selectedFile?'Photo ready to upload.':'','');});
+var s=document.createElement('div');s.className='tng-trip-checkin__status';panel.appendChild(s);
+}
+function submit(e){var btn=e.target.closest('.tng-trip-checkin__submit');if(!btn)return;e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();if(!arrived()){status('Move closer before checking in.','error');return false;}var stopId=currentId();if(!stopId){status('Could not identify the current stop.','error');return false;}btn.disabled=true;btn.textContent='Checking in…';status('Confirming your location…','working');getLocation().then(function(pos){var data=new FormData();data.append('stop_id',String(stopId));data.append('lat',String(pos.lat));data.append('lng',String(pos.lng));if(selectedFile)data.append('photo',selectedFile,selectedFile.name);return fetch(cfg.endpoint,{method:'POST',credentials:'same-origin',headers:{'X-WP-Nonce':cfg.nonce||''},body:data});}).then(function(r){return r.json().then(function(j){if(!r.ok)throw new Error((j&&j.message)||'Check-in failed.');return j;});}).then(function(j){status((j&&j.message)||'Check-in complete!','success');btn.textContent='Checked in ✓';btn.classList.add('is-complete');if(j&&j.photoUrl){var panel=btn.closest('.tng-trip-mode__arrival-actions');if(panel&&!panel.querySelector('.tng-trip-checkin__thumb')){var img=document.createElement('img');img.className='tng-trip-checkin__thumb';img.src=j.photoUrl;img.alt='Check-in photo';panel.appendChild(img);}}setTimeout(function(){window.location.reload();},1400);}).catch(function(err){status(err.message||'Check-in failed.','error');btn.disabled=false;btn.textContent='Check in';});return false;}
+function boot(){document.addEventListener('click',submit,true);var obs=new MutationObserver(ensureEnhancement);obs.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['class']});setInterval(ensureEnhancement,1000);ensureEnhancement();}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+})();
