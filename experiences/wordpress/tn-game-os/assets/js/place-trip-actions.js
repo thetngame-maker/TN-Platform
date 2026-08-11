@@ -3,74 +3,27 @@
 var cfg=window.TNGPlaceDiscovery||{};
 var trip=cfg.trip||{};
 var saved=new Set((Array.isArray(trip.savedIds)?trip.savedIds:[]).map(function(id){return Number(id);}).filter(Boolean));
+var feedPlaces=[];
+var tray=null,launcher=null,listEl=null,summaryEl=null;
 
-function postIdFromCard(card){
-    var mapLink=card.querySelector('.tng-place-nearby-card__actions a[href*="place="]');
-    if(!mapLink)return 0;
-    try{return Number(new URL(mapLink.href,window.location.href).searchParams.get('place'))||0;}catch(e){return 0;}
-}
-
-function setButtonState(button,id,isSaved){
-    button.classList.toggle('is-saved',!!isSaved);
-    button.setAttribute('aria-pressed',isSaved?'true':'false');
-    button.textContent=isSaved?'Added ✓':'Add to trip';
-    if(isSaved)saved.add(Number(id));else saved.delete(Number(id));
-}
-
-function toggleSaved(button,id){
-    if(!trip.loggedIn){
-        window.location.href=trip.loginUrl||window.location.href;
-        return;
-    }
-    if(!trip.ajaxUrl||!trip.nonce)return;
-    if(button.classList.contains('is-loading'))return;
-    button.classList.add('is-loading');
-    button.disabled=true;
-    var body=new URLSearchParams();
-    body.set('action','tng_toggle_saved');
-    body.set('nonce',trip.nonce);
-    body.set('post_id',String(id));
-    fetch(trip.ajaxUrl,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'},body:body.toString()})
-        .then(function(response){return response.json();})
-        .then(function(response){
-            if(!response||response.success!==true)throw new Error('Trip save failed');
-            var data=response.data||{};
-            setButtonState(button,id,!!data.saved);
-        })
-        .catch(function(){
-            button.classList.add('has-error');
-            var previous=button.textContent;
-            button.textContent='Try again';
-            setTimeout(function(){button.classList.remove('has-error');setButtonState(button,id,saved.has(Number(id)));},1400);
-        })
-        .finally(function(){button.classList.remove('is-loading');button.disabled=false;});
-}
-
-function enhanceCard(card){
-    if(card.dataset.tngTripReady==='1')return;
-    var id=postIdFromCard(card);
-    var actions=card.querySelector('.tng-place-nearby-card__actions');
-    if(!id||!actions)return;
-    card.dataset.tngTripReady='1';
-    var button=document.createElement('button');
-    button.type='button';
-    button.className='tng-place-nearby-card__trip';
-    button.dataset.postId=String(id);
-    setButtonState(button,id,saved.has(id));
-    button.addEventListener('click',function(){toggleSaved(button,id);});
-    actions.appendChild(button);
-}
-
-function enhanceAll(){
-    document.querySelectorAll('.tng-place-nearby-card').forEach(enhanceCard);
-}
-
-function boot(){
-    enhanceAll();
-    var observer=new MutationObserver(function(){enhanceAll();});
-    observer.observe(document.body,{childList:true,subtree:true});
-    setTimeout(function(){observer.disconnect();},12000);
-}
-
+function esc(v){var d=document.createElement('div');d.textContent=v==null?'':String(v);return d.innerHTML;}
+function postIdFromCard(card){var mapLink=card.querySelector('.tng-place-nearby-card__actions a[href*="place="]');if(!mapLink)return 0;try{return Number(new URL(mapLink.href,window.location.href).searchParams.get('place'))||0;}catch(e){return 0;}}
+function setButtonState(button,id,isSaved){button.classList.toggle('is-saved',!!isSaved);button.setAttribute('aria-pressed',isSaved?'true':'false');button.textContent=isSaved?'Added ✓':'+ Add to trip';if(isSaved)saved.add(Number(id));else saved.delete(Number(id));updateTray();}
+function postAction(action,payload){var body=new URLSearchParams();body.set('action',action);body.set('nonce',trip.nonce||'');Object.keys(payload||{}).forEach(function(k){var v=payload[k];if(Array.isArray(v)){v.forEach(function(item){body.append(k+'[]',String(item));});}else body.set(k,String(v));});return fetch(trip.ajaxUrl,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'},body:body.toString()}).then(function(r){return r.json();});}
+function toggleSaved(button,id){if(!trip.loggedIn){window.location.href=trip.loginUrl||window.location.href;return;}if(!trip.ajaxUrl||!trip.nonce||button.classList.contains('is-loading'))return;button.classList.add('is-loading');button.disabled=true;postAction('tng_toggle_saved',{post_id:id}).then(function(response){if(!response||response.success!==true)throw new Error('Trip save failed');setButtonState(button,id,!!(response.data||{}).saved);}).catch(function(){button.classList.add('has-error');button.textContent='Try again';setTimeout(function(){button.classList.remove('has-error');setButtonState(button,id,saved.has(Number(id)));},1400);}).finally(function(){button.classList.remove('is-loading');button.disabled=false;});}
+function enhanceCard(card){if(card.dataset.tngTripReady==='1')return;var id=postIdFromCard(card),actions=card.querySelector('.tng-place-nearby-card__actions');if(!id||!actions)return;card.dataset.tngTripReady='1';var button=document.createElement('button');button.type='button';button.className='tng-place-nearby-card__trip';button.dataset.postId=String(id);setButtonState(button,id,saved.has(id));button.addEventListener('click',function(){toggleSaved(button,id);});actions.appendChild(button);}
+function enhanceAll(){document.querySelectorAll('.tng-place-nearby-card').forEach(enhanceCard);}
+function distanceMiles(a,b){if(!a||!b)return 0;var lat1=Number(a.lat),lng1=Number(a.lng),lat2=Number(b.lat),lng2=Number(b.lng);if(!isFinite(lat1)||!isFinite(lng1)||!isFinite(lat2)||!isFinite(lng2))return 0;var r=Math.PI/180,R=3958.8,dLat=(lat2-lat1)*r,dLng=(lng2-lng1)*r;var x=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*r)*Math.cos(lat2*r)*Math.sin(dLng/2)*Math.sin(dLng/2);return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
+function savedPlaces(){var ids=Array.from(saved);return ids.map(function(id){return feedPlaces.find(function(p){return Number(p.id)===Number(id);})||{id:id,title:'Saved stop',bucket:'places'};});}
+function driveEstimate(places){if(places.length<2)return 0;var miles=0;for(var i=1;i<places.length;i++)miles+=distanceMiles(places[i-1],places[i]);if(!miles)return 0;return Math.max(5,Math.round((miles*1.18/35)*60));}
+function formatMinutes(mins){if(!mins)return '—';if(mins<60)return mins+' min';var h=Math.floor(mins/60),m=mins%60;return h+' hr'+(m?' '+m+' min':'');}
+function reorderSaved(ids){if(!trip.loggedIn||!trip.ajaxUrl||!trip.nonce)return Promise.resolve(false);return postAction('tng_reorder_saved',{ids:ids}).then(function(r){return !!(r&&r.success===true);}).catch(function(){return false;});}
+function moveStop(id,dir){var ids=Array.from(saved),i=ids.indexOf(Number(id)),j=i+dir;if(i<0||j<0||j>=ids.length)return;var tmp=ids[i];ids[i]=ids[j];ids[j]=tmp;saved=new Set(ids);updateTray();reorderSaved(ids);}
+function stopHtml(place,index,total){var image=place.image?'<img src="'+esc(place.image)+'" alt="">':'<span>📍</span>';var meta=place.category||place.type||'TN Game stop';return '<div class="tng-trip-stop" data-stop-id="'+esc(place.id)+'"><div class="tng-trip-stop__image">'+image+'</div><div class="tng-trip-stop__body"><strong>'+esc(place.title||'Saved stop')+'</strong><span>'+esc(meta)+'</span></div><div class="tng-trip-stop__order"><button type="button" data-move="-1" '+(index===0?'disabled':'')+' aria-label="Move up">↑</button><button type="button" data-move="1" '+(index===total-1?'disabled':'')+' aria-label="Move down">↓</button></div></div>';}
+function updateTray(){if(!launcher)return;var count=saved.size;launcher.querySelector('.tng-trip-tray-launcher__count').textContent=String(count);var places=savedPlaces();if(summaryEl){var estimate=driveEstimate(places);summaryEl.innerHTML='<span><strong>'+count+'</strong> stop'+(count===1?'':'s')+'</span><span>Estimated drive: <strong>'+formatMinutes(estimate)+'</strong></span>';}if(listEl){if(!places.length){listEl.innerHTML='<div class="tng-trip-tray__empty">Save places nearby and they’ll appear here.</div>';}else{listEl.innerHTML=places.map(function(p,i){return stopHtml(p,i,places.length);}).join('');listEl.querySelectorAll('[data-move]').forEach(function(btn){btn.addEventListener('click',function(){var row=btn.closest('[data-stop-id]');moveStop(Number(row.dataset.stopId),Number(btn.dataset.move));});});}}
+ document.querySelectorAll('.tng-place-nearby-card__trip').forEach(function(btn){var id=Number(btn.dataset.postId);btn.classList.toggle('is-saved',saved.has(id));btn.setAttribute('aria-pressed',saved.has(id)?'true':'false');btn.textContent=saved.has(id)?'Added ✓':'+ Add to trip';});}
+function buildTray(){if(document.querySelector('.tng-trip-tray-launcher'))return;launcher=document.createElement('button');launcher.type='button';launcher.className='tng-trip-tray-launcher';launcher.innerHTML='<span>My trip</span><span class="tng-trip-tray-launcher__count">0</span>';tray=document.createElement('aside');tray.className='tng-trip-tray';tray.setAttribute('aria-label','My trip');tray.innerHTML='<div class="tng-trip-tray__header"><div><small>YOUR ADVENTURE</small><h3>My trip</h3></div><button type="button" class="tng-trip-tray__close" aria-label="Close">×</button></div><div class="tng-trip-tray__summary"></div><div class="tng-trip-tray__list"></div><div class="tng-trip-tray__footer"><a href="'+esc(trip.savedUrl||'/saved/')+'">View trip</a><a class="is-primary" href="'+esc(trip.savedUrl||'/saved/')+'">Build my day</a></div>';document.body.appendChild(launcher);document.body.appendChild(tray);listEl=tray.querySelector('.tng-trip-tray__list');summaryEl=tray.querySelector('.tng-trip-tray__summary');launcher.addEventListener('click',function(){tray.classList.toggle('is-open');});tray.querySelector('.tng-trip-tray__close').addEventListener('click',function(){tray.classList.remove('is-open');});document.addEventListener('keydown',function(e){if(e.key==='Escape')tray.classList.remove('is-open');});updateTray();}
+function loadFeed(){if(!cfg.nearbyEndpoint)return Promise.resolve();return fetch(cfg.nearbyEndpoint,{credentials:'same-origin'}).then(function(r){return r.ok?r.json():null;}).then(function(data){feedPlaces=Array.isArray(data&&data.places)?data.places:[];updateTray();}).catch(function(){});}
+function boot(){enhanceAll();buildTray();loadFeed();var observer=new MutationObserver(function(){enhanceAll();});observer.observe(document.body,{childList:true,subtree:true});setTimeout(function(){observer.disconnect();},12000);}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 })();
