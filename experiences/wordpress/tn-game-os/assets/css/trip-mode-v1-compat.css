@@ -25,6 +25,22 @@ body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__hero b{
     color:#fff !important;
 }
 
+/* Keep the hero progress card quiet and on-brand. */
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__progress{
+    background:rgba(255,255,255,.10) !important;
+    border-color:rgba(255,255,255,.20) !important;
+    color:#fff !important;
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__progress span{
+    color:rgba(255,255,255,.72) !important;
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__progress i{
+    background:rgba(255,255,255,.18) !important;
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__progress em{
+    background:#fff !important;
+}
+
 /* Neutralize broad theme highlight/background rules. */
 body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__grid{
     background:transparent !important;
@@ -60,6 +76,47 @@ body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__stat{
     background:#eaf1ec !important;
     color:#17231b !important;
 }
+
+/* Remove remaining orange bars/highlight surfaces. */
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__actions,
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__map-tools,
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__map-foot,
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__section-head,
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__route-row{
+    background:#fff !important;
+    background-image:none !important;
+    color:#17231b !important;
+    box-shadow:none !important;
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__actions{
+    padding-left:0 !important;
+    padding-right:0 !important;
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__map-tools{
+    padding:0 !important;
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__map-foot{
+    border-top:1px solid #edf0ed !important;
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__route-row{
+    border-top:1px solid #edf0ed !important;
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__route-row > span{
+    background:#123d29 !important;
+    color:#fff !important;
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__section-head h2,
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__route-row strong,
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__map-foot b{
+    color:#17231b !important;
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__route-row small,
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__map-foot,
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__map-foot span{
+    color:#758078 !important;
+}
+
+/* Orange remains an accent for primary actions and route/navigation cues only. */
 body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__primary{
     background:#f06424 !important;
     border-color:#f06424 !important;
