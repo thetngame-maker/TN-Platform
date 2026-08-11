@@ -1,17 +1,17 @@
 <?php
 /**
  * Plugin Name: TN Game Local Discovery
- * Description: Safe standalone bootstrap for Local Discovery and Town Scanner on TN Game OS recovery-era installations.
- * Version: 0.1.1
+ * Description: Safe standalone bootstrap for Local Discovery, Town Scanner, and Changes Inbox on TN Game OS recovery-era installations.
+ * Version: 0.1.2
  * Author: The TN Game
  */
 
 if (!defined('ABSPATH')) exit;
 
 /**
- * Ensure the Content Studio parent exists before Local Discovery and Town
- * Scanner register their submenu pages at priorities 25/26. If TN Game OS
- * already owns the menu, this function does nothing.
+ * Ensure the Content Studio parent exists before child discovery modules
+ * register their submenu pages. If TN Game OS already owns the menu, this
+ * function does nothing.
  */
 add_action('admin_menu', static function (): void {
     if (!current_user_can('edit_posts')) return;
@@ -34,6 +34,7 @@ add_action('admin_menu', static function (): void {
                 <p>
                     <a class="button button-primary" href="<?php echo esc_url(admin_url('admin.php?page=tng-local-discovery')); ?>">Local Discovery</a>
                     <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=tng-town-scanner')); ?>">Town Scanner</a>
+                    <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=tng-town-changes')); ?>">Changes Inbox</a>
                 </p>
             </div>
             <?php
@@ -44,8 +45,6 @@ add_action('admin_menu', static function (): void {
 }, 20);
 
 add_action('plugins_loaded', static function (): void {
-    // The main TN Game OS plugin must be first in active_plugins and should
-    // already have loaded the core classes by this point.
     if (!defined('TNG_OS_PATH') || !class_exists('TNG_OS\\Core\\Container')) {
         add_action('admin_notices', static function (): void {
             if (!current_user_can('activate_plugins')) return;
@@ -54,8 +53,6 @@ add_action('plugins_loaded', static function (): void {
         return;
     }
 
-    // If a future TN Game OS core has already registered these actions, avoid
-    // double-booting the overlay.
     if (has_action('admin_post_tng_maps_discovery_search') && has_action('admin_post_tng_town_scan')) {
         return;
     }
@@ -64,6 +61,7 @@ add_action('plugins_loaded', static function (): void {
         'app/Modules/Sources/class-local-discovery.php',
         'app/Modules/Sources/class-local-discovery-destination-linker.php',
         'app/Modules/Sources/class-town-scanner.php',
+        'app/Modules/Sources/class-town-changes-inbox.php',
     ];
 
     foreach ($files as $file) {
@@ -80,23 +78,18 @@ add_action('plugins_loaded', static function (): void {
 
     $container = new \TNG_OS\Core\Container();
 
-    // Lightweight settings adapter compatible with Local_Discovery::apply_google_data().
     $container->set('settings', new class {
         public function get(string $key, $default = '') {
             $settings = get_option('tng_os_settings', []);
             if (is_array($settings) && array_key_exists($key, $settings)) return $settings[$key];
-
             if ($key === 'google_places_key') {
                 $legacy = get_option('tng_food_google_places_api_key', '');
                 if ($legacy !== '') return $legacy;
             }
-
             return $default;
         }
     });
 
-    // Destination relationship adapter for recovery-era OS builds. It writes
-    // the same primary/related/effective metadata used by TN Game Destinations.
     $container->set('destination_relationships', new class {
         public function assign(int $post_id, int $primary_id, array $related_ids = []): void {
             $primary_id = absint($primary_id);
@@ -161,14 +154,11 @@ add_action('plugins_loaded', static function (): void {
         new \TNG_OS\Modules\Sources\Local_Discovery(),
         new \TNG_OS\Modules\Sources\Local_Discovery_Destination_Linker(),
         new \TNG_OS\Modules\Sources\Town_Scanner(),
+        new \TNG_OS\Modules\Sources\Town_Changes_Inbox(),
     ];
 
-    foreach ($modules as $module) {
-        $module->register($container);
-    }
-    foreach ($modules as $module) {
-        $module->boot($container);
-    }
+    foreach ($modules as $module) $module->register($container);
+    foreach ($modules as $module) $module->boot($container);
 
     do_action('tng_local_discovery_overlay_booted', $container);
 }, 50);
