@@ -2,16 +2,16 @@
 /**
  * Plugin Name: TN Game Local Discovery
  * Description: Safe standalone bootstrap for Local Discovery and Town Scanner on TN Game OS recovery-era installations.
- * Version: 0.1.0
+ * Version: 0.1.1
  * Author: The TN Game
  */
 
 if (!defined('ABSPATH')) exit;
 
 /**
- * Ensure the Content Studio parent exists when an older/recovered TN Game OS
- * does not currently register it. If TN Game OS already owns the menu, this
- * function does nothing.
+ * Ensure the Content Studio parent exists before Local Discovery and Town
+ * Scanner register their submenu pages at priorities 25/26. If TN Game OS
+ * already owns the menu, this function does nothing.
  */
 add_action('admin_menu', static function (): void {
     if (!current_user_can('edit_posts')) return;
@@ -41,7 +41,7 @@ add_action('admin_menu', static function (): void {
         'dashicons-megaphone',
         26
     );
-}, 99);
+}, 20);
 
 add_action('plugins_loaded', static function (): void {
     // The main TN Game OS plugin must be first in active_plugins and should
