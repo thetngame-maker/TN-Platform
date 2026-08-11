@@ -1,7 +1,7 @@
 <?php
 /**
  * TN Game Leaflet Map Capture
- * Captures gameplay Leaflet map instances before runtime map initialization.
+ * Captures gameplay Leaflet map instances before the gameplay runtime initializes.
  */
 if (!defined('ABSPATH')) exit;
 
@@ -40,7 +40,7 @@ final class TNG_Leaflet_Map_Capture {
  L.map=wrapped;
 })();
 JS
-        ,'before');
+        ,'after');
     }
 }
 TNG_Leaflet_Map_Capture::boot();
