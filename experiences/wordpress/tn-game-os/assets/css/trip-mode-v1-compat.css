@@ -24,6 +24,26 @@ body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__hero p,
 body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__hero b{
     color:#fff !important;
 }
+
+/* Neutralize broad theme highlight/background rules. */
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__grid{
+    background:transparent !important;
+    border:0 !important;
+    box-shadow:none !important;
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__map-head{
+    background:#fff !important;
+    color:#17231b !important;
+    border:0 !important;
+    box-shadow:none !important;
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__map-head h2{
+    color:#17231b !important;
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__map-head p{
+    color:#758078 !important;
+}
+
 body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__current,
 body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__current-body,
 body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__side,
