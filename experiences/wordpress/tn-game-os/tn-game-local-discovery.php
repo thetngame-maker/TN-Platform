@@ -1,18 +1,13 @@
 <?php
 /**
  * Plugin Name: TN Game Local Discovery
- * Description: Safe standalone bootstrap for Local Discovery, Town Scanner, and Changes Inbox on TN Game OS recovery-era installations.
- * Version: 0.1.2
+ * Description: Safe standalone bootstrap for Local Discovery, Town Scanner, Changes Inbox, and Town Monitoring on TN Game OS recovery-era installations.
+ * Version: 0.1.3
  * Author: The TN Game
  */
 
 if (!defined('ABSPATH')) exit;
 
-/**
- * Ensure the Content Studio parent exists before child discovery modules
- * register their submenu pages. If TN Game OS already owns the menu, this
- * function does nothing.
- */
 add_action('admin_menu', static function (): void {
     if (!current_user_can('edit_posts')) return;
 
@@ -35,6 +30,7 @@ add_action('admin_menu', static function (): void {
                     <a class="button button-primary" href="<?php echo esc_url(admin_url('admin.php?page=tng-local-discovery')); ?>">Local Discovery</a>
                     <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=tng-town-scanner')); ?>">Town Scanner</a>
                     <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=tng-town-changes')); ?>">Changes Inbox</a>
+                    <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=tng-town-monitor')); ?>">Town Monitoring</a>
                 </p>
             </div>
             <?php
@@ -62,6 +58,7 @@ add_action('plugins_loaded', static function (): void {
         'app/Modules/Sources/class-local-discovery-destination-linker.php',
         'app/Modules/Sources/class-town-scanner.php',
         'app/Modules/Sources/class-town-changes-inbox.php',
+        'app/Modules/Sources/class-town-monitor.php',
     ];
 
     foreach ($files as $file) {
@@ -155,6 +152,7 @@ add_action('plugins_loaded', static function (): void {
         new \TNG_OS\Modules\Sources\Local_Discovery_Destination_Linker(),
         new \TNG_OS\Modules\Sources\Town_Scanner(),
         new \TNG_OS\Modules\Sources\Town_Changes_Inbox(),
+        new \TNG_OS\Modules\Sources\Town_Monitor(),
     ];
 
     foreach ($modules as $module) $module->register($container);
