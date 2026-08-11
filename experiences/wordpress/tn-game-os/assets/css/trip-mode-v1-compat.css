@@ -28,22 +28,17 @@ body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__hero b{
 /* Keep the hero progress card quiet and on-brand. */
 body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__progress{
     background:rgba(255,255,255,.10) !important;
-    background-image:none !important;
     border-color:rgba(255,255,255,.20) !important;
     color:#fff !important;
 }
 body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__progress span{
     color:rgba(255,255,255,.72) !important;
-    background:transparent !important;
-    background-image:none !important;
 }
 body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__progress i{
     background:rgba(255,255,255,.18) !important;
-    background-image:none !important;
 }
 body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__progress em{
-    background:#cfe0d4 !important;
-    background-image:none !important;
+    background:#b9d1c1 !important;
 }
 
 /* Neutralize broad theme highlight/background rules. */
@@ -121,7 +116,7 @@ body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__map-foot span{
     color:#758078 !important;
 }
 
-/* Orange remains an accent for primary actions and route/navigation cues only. */
+/* Primary actions. */
 body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__primary{
     background:#f06424 !important;
     border-color:#f06424 !important;
@@ -131,6 +126,10 @@ body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__complete{
     background:#123d29 !important;
     border-color:#123d29 !important;
     color:#fff !important;
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__complete.is-arrived{
+    box-shadow:0 0 0 4px rgba(29,91,59,.14) !important;
+    transform:translateY(-1px);
 }
 body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__skip,
 body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__map-tools button{
@@ -142,25 +141,71 @@ body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__map{
     background:#eef3ee !important;
 }
 
-/* Map markers use the TN Game green palette; the road route remains orange. */
-body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__leaflet-icon-wrap{
-    background:transparent !important;
-    background-image:none !important;
-    border:0 !important;
+/* Map markers match the TN Game palette. */
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__dest-pin{
+    background:#123d29 !important;
+    color:#fff !important;
 }
 body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__user-dot{
     background:#fff !important;
-    border-color:#123d29 !important;
-    box-shadow:0 3px 12px rgba(18,61,41,.24) !important;
+    border-color:#fff !important;
 }
 body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__user-dot i{
     background:#1d5b3b !important;
-    box-shadow:0 0 0 4px rgba(29,91,59,.18) !important;
+    box-shadow:0 0 0 4px rgba(29,91,59,.20) !important;
 }
-body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__dest-pin{
-    background:#123d29 !important;
-    background-image:none !important;
-    border-color:#fff !important;
-    color:#fff !important;
-    box-shadow:0 5px 16px rgba(18,61,41,.24) !important;
+
+/* Field arrival intelligence. */
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__arrival{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-top:18px;
+    padding:14px 16px;
+    border:1px solid #dfe8e1;
+    border-radius:16px;
+    background:#f7faf8 !important;
+    color:#17231b !important;
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__arrival-dot{
+    flex:0 0 12px;
+    width:12px;
+    height:12px;
+    border-radius:50%;
+    background:#91a99a;
+    box-shadow:0 0 0 5px rgba(145,169,154,.14);
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__arrival small{
+    color:#758078 !important;
+    font-size:9px !important;
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__arrival strong{
+    display:block;
+    margin-top:2px;
+    color:#17231b !important;
+    font-size:15px;
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__arrival p{
+    margin:3px 0 0 !important;
+    color:#758078 !important;
+    font-size:11px !important;
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__arrival.is-approaching{
+    background:#eaf1ec !important;
+    border-color:#cedfd3 !important;
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__arrival.is-approaching .tng-trip-mode__arrival-dot{
+    background:#5f8d6d;
+    box-shadow:0 0 0 5px rgba(95,141,109,.16);
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__arrival.is-arrived{
+    background:#dfece3 !important;
+    border-color:#b9d1c1 !important;
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__arrival.is-arrived .tng-trip-mode__arrival-dot{
+    background:#123d29;
+    box-shadow:0 0 0 5px rgba(18,61,41,.14);
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__arrival.is-arrived strong{
+    color:#123d29 !important;
 }
