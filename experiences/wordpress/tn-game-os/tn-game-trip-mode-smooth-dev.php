@@ -2,13 +2,13 @@
 /**
  * Plugin Name: TN Game Trip Mode Smooth + Developer
  * Description: Prevents legacy Active Trip flash and adds an admin-only Trip Mode arrival simulator.
- * Version: 0.1.0
+ * Version: 0.1.1
  * Author: The TN Game
  */
 
 if (!defined('ABSPATH')) exit;
 
-define('TNG_TRIP_SMOOTH_DEV_VERSION', '0.1.0');
+define('TNG_TRIP_SMOOTH_DEV_VERSION', '0.1.1');
 define('TNG_TRIP_SMOOTH_DEV_URL', plugin_dir_url(__FILE__));
 
 function tng_trip_smooth_dev_is_page() {
