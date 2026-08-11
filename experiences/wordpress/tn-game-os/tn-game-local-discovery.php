@@ -41,7 +41,7 @@ add_action('admin_menu', static function (): void {
         'dashicons-megaphone',
         26
     );
-}, 9);
+}, 99);
 
 add_action('plugins_loaded', static function (): void {
     // The main TN Game OS plugin must be first in active_plugins and should
