@@ -5,7 +5,7 @@ TARGET="${1:-$HOME/public_html}"
 SOURCE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PLUGIN_DIR="$TARGET/wp-content/plugins/tn-game-os"
 STAMP="$(date +%Y%m%d-%H%M%S)"
-BACKUP_ROOT="$HOME/tn-game-deploy-backups"
+BACKUP_ROOT="${TNG_BACKUP_ROOT:-$HOME/tmp/tn-game-deploy-backups}"
 BACKUP_DIR="$BACKUP_ROOT/tn-game-os-local-discovery-$STAMP"
 
 FILES=(
@@ -50,7 +50,7 @@ for rel in "${FILES[@]}"; do
   echo "✓ lint $rel"
 done
 
-mkdir -p "$BACKUP_ROOT"
+mkdir -p "$HOME/tmp" "$BACKUP_ROOT"
 cp -a "$PLUGIN_DIR" "$BACKUP_DIR"
 echo "✓ production TN Game OS backed up"
 
