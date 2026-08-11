@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: TN Game Local Discovery
- * Description: Safe standalone bootstrap for Local Discovery, Town Scanner, Changes Inbox, Town Monitoring, and Content Studio operations on TN Game OS recovery-era installations.
- * Version: 0.1.4
+ * Description: Safe standalone bootstrap for Local Discovery, Town Scanner, Changes Inbox, Town Monitoring, cron health, and Content Studio operations on TN Game OS recovery-era installations.
+ * Version: 0.1.5
  * Author: The TN Game
  */
 
@@ -32,6 +32,7 @@ add_action('admin_menu', static function (): void {
                     <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=tng-town-scanner')); ?>">Town Scanner</a>
                     <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=tng-town-changes')); ?>">Changes Inbox</a>
                     <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=tng-town-monitor')); ?>">Town Monitoring</a>
+                    <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=tng-cron-reliability')); ?>">Cron Reliability</a>
                 </p>
             </div>
             <?php
@@ -61,6 +62,7 @@ add_action('plugins_loaded', static function (): void {
         'app/Modules/Sources/class-town-scanner.php',
         'app/Modules/Sources/class-town-changes-inbox.php',
         'app/Modules/Sources/class-town-monitor.php',
+        'app/Modules/Sources/class-server-cron-heartbeat.php',
     ];
 
     foreach ($files as $file) {
@@ -156,6 +158,7 @@ add_action('plugins_loaded', static function (): void {
         new \TNG_OS\Modules\Sources\Town_Scanner(),
         new \TNG_OS\Modules\Sources\Town_Changes_Inbox(),
         new \TNG_OS\Modules\Sources\Town_Monitor(),
+        new \TNG_OS\Modules\Sources\Server_Cron_Heartbeat(),
     ];
 
     foreach ($modules as $module) $module->register($container);
