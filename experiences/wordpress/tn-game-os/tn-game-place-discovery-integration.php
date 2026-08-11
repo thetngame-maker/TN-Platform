@@ -2,13 +2,13 @@
 /**
  * Plugin Name: TN Game Place Discovery Integration
  * Description: Upgrades individual TN Game place pages with live discovery details and a real map.
- * Version: 0.2.4
+ * Version: 0.2.5
  * Author: The TN Game
  */
 
 if (!defined('ABSPATH')) exit;
 
-define('TNG_PLACE_DISCOVERY_VERSION', '0.2.4');
+define('TNG_PLACE_DISCOVERY_VERSION', '0.2.5');
 define('TNG_PLACE_DISCOVERY_URL', plugin_dir_url(__FILE__));
 
 function tng_place_discovery_meta_first(int $id, array $keys) {
@@ -86,6 +86,14 @@ function tng_place_discovery_map_config(): array {
     ];
 }
 
+function tng_place_discovery_is_trip_builder(): bool {
+    if (is_page('trip-builder')) return true;
+    $uri = isset($_SERVER['REQUEST_URI']) ? (string) $_SERVER['REQUEST_URI'] : '';
+    if ($uri === '') return false;
+    $path = (string) wp_parse_url($uri, PHP_URL_PATH);
+    return (bool) preg_match('#/(?:trip-builder|build-my-day)/?$#i', rtrim($path, '/') . '/');
+}
+
 add_action('wp_enqueue_scripts', static function (): void {
     if (!is_singular('st_activity')) return;
     $id = get_queried_object_id();
@@ -150,7 +158,7 @@ add_action('wp_enqueue_scripts', static function (): void {
 }, 130);
 
 add_action('wp_enqueue_scripts', static function (): void {
-    if (!is_page('trip-builder')) return;
+    if (!tng_place_discovery_is_trip_builder()) return;
 
     $saved_ids = [];
     if (is_user_logged_in()) {
