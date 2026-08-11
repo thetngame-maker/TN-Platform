@@ -6,6 +6,7 @@ var saved=(Array.isArray(cfg.savedIds)?cfg.savedIds:[]).map(Number).filter(Boole
 if(!saved.length)return;
 var sourceItems=[];
 var START_KEY='tng_trip_start_minutes_v1';
+var DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c];});}
 function rad(v){return v*Math.PI/180;}
@@ -18,27 +19,103 @@ function clock(mins){mins=Math.max(0,Math.round(mins));var h=Math.floor(mins/60)
 function slot(mins,p){if(isFood(p)&&mins>=690&&mins<855)return 'Lunch';if(mins<690)return 'Morning';if(mins<1050)return 'Afternoon';return 'Evening';}
 function coord(p){return {lat:Number(p.lat),lng:Number(p.lng)};}
 function clampStart(v){v=Number(v);if(!isFinite(v))v=540;return Math.max(300,Math.min(1260,Math.round(v)));}
-function getStart(){try{return clampStart(localStorage.getItem(START_KEY));}catch(e){return 540;}}
+function getStart(){try{var raw=localStorage.getItem(START_KEY);if(raw===null||raw==='')return 540;return clampStart(raw);}catch(e){return 540;}}
 function saveStart(v){try{localStorage.setItem(START_KEY,String(clampStart(v)));}catch(e){}}
 function minutesToInput(mins){mins=clampStart(mins);return String(Math.floor(mins/60)).padStart(2,'0')+':'+String(mins%60).padStart(2,'0');}
 function inputToMinutes(v){var m=String(v||'').match(/^(\d{1,2}):(\d{2})$/);if(!m)return getStart();return clampStart((Number(m[1])*60)+Number(m[2]));}
+
+function timeTokenToMinutes(token){
+    token=String(token||'').trim().toUpperCase().replace(/\./g,'');
+    var m=token.match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?$/);
+    if(!m)return null;
+    var h=Number(m[1]),min=Number(m[2]||0),ap=m[3]||'';
+    if(min>59)return null;
+    if(ap){if(h<1||h>12)return null;if(ap==='AM'&&h===12)h=0;if(ap==='PM'&&h!==12)h+=12;}
+    else if(h>23)return null;
+    return h*60+min;
+}
+
+function hoursTextForToday(raw){
+    if(raw==null||raw==='')return '';
+    var value=raw,day=DAYS[(new Date()).getDay()];
+    if(typeof value==='string'){
+        var trimmed=value.trim();
+        if((trimmed.charAt(0)==='{'&&trimmed.slice(-1)==='}')||(trimmed.charAt(0)==='['&&trimmed.slice(-1)===']')){
+            try{value=JSON.parse(trimmed);}catch(e){value=trimmed;}
+        }
+    }
+    if(Array.isArray(value)){
+        var line=value.find(function(x){return typeof x==='string'&&new RegExp('^'+day,'i').test(x.trim());});
+        if(line)return line;
+        value=value.map(function(x){return typeof x==='string'?x:'';}).filter(Boolean).join('\n');
+    }else if(value&&typeof value==='object'){
+        var direct=value[day]||value[day.toLowerCase()]||value[day.slice(0,3)]||value[day.slice(0,3).toLowerCase()];
+        if(Array.isArray(direct))direct=direct.join(', ');
+        if(direct!=null)return day+': '+String(direct);
+        value=Object.keys(value).map(function(k){return k+': '+String(value[k]);}).join('\n');
+    }
+    var text=String(value||'').replace(/\\n/g,'\n');
+    var lines=text.split(/\n|\s*;\s*|\s*\|\s*/).map(function(x){return x.trim();}).filter(Boolean);
+    var match=lines.find(function(x){return new RegExp('^'+day+'\b','i').test(x);});
+    if(match)return match;
+    var idx=text.toLowerCase().indexOf(day.toLowerCase());
+    if(idx>=0){
+        var tail=text.slice(idx);
+        var nextDay=DAYS.find(function(d){return d!==day&&tail.toLowerCase().indexOf(d.toLowerCase(),1)>0;});
+        if(nextDay){var ni=tail.toLowerCase().indexOf(nextDay.toLowerCase(),1);tail=tail.slice(0,ni);}
+        return tail.trim();
+    }
+    return text;
+}
+
+function parseTodayHours(p){
+    var line=hoursTextForToday(p&&p.hours);
+    if(!line)return null;
+    if(/closed/i.test(line))return {closed:true,intervals:[],label:'Closed today'};
+    if(/open\s*24\s*hours|24\s*hours/i.test(line))return {closed:false,intervals:[[0,1440]],label:'Open 24 hours'};
+    var intervals=[];
+    var re=/(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)\s*(?:–|—|-|to)\s*(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)/gi,m;
+    while((m=re.exec(line))){
+        var open=timeTokenToMinutes(m[1]),close=timeTokenToMinutes(m[2]);
+        if(open==null||close==null)continue;
+        if(close<=open)close+=1440;
+        intervals.push([open,close]);
+    }
+    if(!intervals.length)return null;
+    return {closed:false,intervals:intervals,label:line};
+}
+
+function availability(p,earliest,stay){
+    var parsed=parseTodayHours(p);
+    if(!parsed)return {start:earliest,wait:0,status:'Hours not verified',unknown:true,conflict:false};
+    if(parsed.closed)return {start:earliest,wait:0,status:'Closed today',unknown:false,conflict:true};
+    for(var i=0;i<parsed.intervals.length;i++){
+        var open=parsed.intervals[i][0],close=parsed.intervals[i][1],candidate=Math.max(earliest,open);
+        if(candidate+stay<=close){
+            return {start:candidate,wait:Math.max(0,candidate-earliest),status:(candidate>earliest?'Opens '+clock(open):'Open during visit'),unknown:false,conflict:false,open:open,close:close};
+        }
+    }
+    return {start:earliest,wait:0,status:'Outside today’s hours',unknown:false,conflict:true};
+}
 
 function optimize(items,startMinutes){
     if(items.length<2)return items.slice();
     var remaining=items.slice();
     var firstIndex=remaining.findIndex(function(p){return !isFood(p)&&isFinite(Number(p.lat))&&isFinite(Number(p.lng));});
     if(firstIndex<0)firstIndex=0;
-    var out=[remaining.splice(firstIndex,1)[0]], elapsed=startMinutes;
+    var out=[remaining.splice(firstIndex,1)[0]],elapsed=startMinutes;
     while(remaining.length){
-        var prev=out[out.length-1], best=0, bestScore=Infinity;
+        var prev=out[out.length-1],best=0,bestScore=Infinity;
         remaining.forEach(function(p,i){
-            var travel=driveMinutes(coord(prev),coord(p)), score=travel;
+            var travel=driveMinutes(coord(prev),coord(p)),arrival=elapsed+dwell(prev)+travel,avail=availability(p,arrival,dwell(p)),score=travel+(avail.wait*.35);
+            if(avail.conflict)score+=5000;
             if(elapsed>=11*60&&elapsed<=13*60+30){score+=isFood(p)?-18:12;}
             else if(isFood(p)&&out.some(isFood)){score+=10;}
             if(!isFinite(Number(p.lat))||!isFinite(Number(p.lng)))score+=50;
             if(score<bestScore){bestScore=score;best=i;}
         });
-        elapsed+=dwell(prev)+driveMinutes(coord(prev),coord(remaining[best]));
+        var chosen=remaining[best],travelToChosen=driveMinutes(coord(prev),coord(chosen)),arrivalChosen=elapsed+dwell(prev)+travelToChosen,chosenAvail=availability(chosen,arrivalChosen,dwell(chosen));
+        elapsed=chosenAvail.conflict?arrivalChosen:chosenAvail.start;
         out.push(remaining.splice(best,1)[0]);
     }
     return out;
@@ -50,8 +127,9 @@ function makePlan(items,startMinutes){
     ordered.forEach(function(p,i){
         var travel=i?driveMinutes(coord(ordered[i-1]),coord(p)):0;
         if(i)t+=travel;
-        var start=t,stay=dwell(p),end=start+stay;
-        rows.push({place:p,start:start,end:end,travel:travel,slot:slot(start,p)});
+        var avail=availability(p,t,dwell(p));
+        var start=avail.conflict?t:avail.start,stay=dwell(p),end=start+stay;
+        rows.push({place:p,start:start,end:end,travel:travel,slot:slot(start,p),wait:avail.wait||0,hoursStatus:avail.status,hoursUnknown:!!avail.unknown,hoursConflict:!!avail.conflict});
         t=end;
     });
     return {ordered:ordered,rows:rows,total:t-startMinutes,start:startMinutes,end:t};
@@ -83,14 +161,20 @@ function render(plan){
     var old=document.getElementById('tng-build-my-day');if(old)old.remove();
     var box=document.createElement('section');box.id='tng-build-my-day';box.className='tng-day-planner';
     var groups={};plan.rows.forEach(function(r){(groups[r.slot]||(groups[r.slot]=[])).push(r);});
-    var html='<div class="tng-day-planner__head"><div><small>SMART ITINERARY</small><h2>Build my day</h2><p>A suggested order based on your saved stops, distance, and meal timing.</p></div><div class="tng-day-planner__summary"><b>'+plan.rows.length+'</b><span>stops</span><b>'+Math.max(1,Math.round(plan.total/60))+'</b><span>est. hr</span></div></div>';
+    var conflicts=plan.rows.filter(function(r){return r.hoursConflict;}).length;
+    var html='<div class="tng-day-planner__head"><div><small>SMART ITINERARY</small><h2>Build my day</h2><p>A suggested order based on your saved stops, distance, opening hours, and meal timing.</p></div><div class="tng-day-planner__summary"><b>'+plan.rows.length+'</b><span>stops</span><b>'+Math.max(1,Math.round(plan.total/60))+'</b><span>est. hr</span></div></div>';
     html+='<div class="tng-day-planner__controls"><label><span>Start day</span><input class="tng-day-planner__start" type="time" min="05:00" max="21:00" step="900" value="'+minutesToInput(plan.start)+'"></label><div class="tng-day-planner__window"><span>Suggested window</span><strong>'+clock(plan.start)+' – '+clock(plan.end)+'</strong></div></div>';
-    html+='<div class="tng-day-planner__notice">Preview only — your current trip order will not change until you apply it.</div>';
+    html+='<div class="tng-day-planner__notice">Preview only — your current trip order will not change until you apply it.'+(conflicts?' <strong>'+conflicts+' stop'+(conflicts===1?' has':'s have')+' an hours conflict.</strong>':'')+'</div>';
     html+='<div class="tng-day-planner__timeline">';
     ['Morning','Lunch','Afternoon','Evening'].forEach(function(name){
         if(!groups[name])return;
         html+='<div class="tng-day-planner__period"><h3>'+name+'</h3>';
-        groups[name].forEach(function(r){var p=r.place,img=p.image?'<img src="'+esc(p.image)+'" alt="">':'<span class="tng-day-planner__ph">TN</span>';html+='<div class="tng-day-planner__stop">'+img+'<div><small>'+clock(r.start)+'–'+clock(r.end)+(r.travel?' · '+r.travel+' min drive':'')+'</small><strong>'+esc(p.title||'Saved stop')+'</strong><span>'+esc(p.category||p.bucket||'TN Game stop')+'</span></div></div>';});
+        groups[name].forEach(function(r){
+            var p=r.place,img=p.image?'<img src="'+esc(p.image)+'" alt="">':'<span class="tng-day-planner__ph">TN</span>';
+            var timing=clock(r.start)+'–'+clock(r.end)+(r.travel?' · '+r.travel+' min drive':'')+(r.wait?' · waits '+r.wait+' min':'');
+            var detail=esc(p.category||p.bucket||'TN Game stop')+' · '+esc(r.hoursStatus||'Hours not verified');
+            html+='<div class="tng-day-planner__stop'+(r.hoursConflict?' tng-day-planner__stop--conflict':'')+'">'+img+'<div><small>'+timing+'</small><strong>'+esc(p.title||'Saved stop')+'</strong><span>'+detail+'</span></div></div>';
+        });
         html+='</div>';
     });
     html+='</div><div class="tng-day-planner__actions"><button type="button" class="tng-day-planner__apply">Apply suggested order</button><button type="button" class="tng-day-planner__refresh">Rebuild suggestion</button><span class="tng-day-planner__status" aria-live="polite"></span></div>';
