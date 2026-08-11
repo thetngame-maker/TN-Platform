@@ -24,6 +24,12 @@
     const status = section.querySelector('[data-tng-map-status]');
     const routeBadge = section.querySelector('[data-tng-route-badge]');
     const map = L.map(mapNode, { zoomControl: true, scrollWheelZoom: false });
+    window.TNG_GAME_RUNTIME_MAP_INSTANCE = map;
+    window.TNG_LIVE_GAME_MAP = map;
+    window.TNG_LIVE_GAME_MAPS = window.TNG_LIVE_GAME_MAPS || [];
+    if (!window.TNG_LIVE_GAME_MAPS.includes(map)) window.TNG_LIVE_GAME_MAPS.push(map);
+    window.dispatchEvent(new CustomEvent('tng:runtime-map-ready', { detail: { map } }));
+
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '&copy; OpenStreetMap contributors'
@@ -31,6 +37,7 @@
 
     const bounds = [];
     const markerByIndex = new Map();
+    window.TNG_GAME_RUNTIME_MARKERS = markerByIndex;
 
     const markerHtml = (checkpoint) => {
       const cls = checkpoint.completed ? 'is-complete' : (checkpoint.current ? 'is-current' : 'is-locked');
@@ -94,13 +101,15 @@
         }).filter(Boolean);
         if (points.length < 2) throw new Error('No route points');
 
-        L.polyline(points, {
+        const routeLayer = L.polyline(points, {
           color: '#ef6425',
           weight: 5,
           opacity: .9,
           lineJoin: 'round',
           lineCap: 'round'
         }).addTo(map).bringToBack();
+        window.TNG_GAME_RUNTIME_ROUTE = { layer: routeLayer, points };
+        window.dispatchEvent(new CustomEvent('tng:runtime-route-ready', { detail: { map, layer: routeLayer, points } }));
         points.forEach((point) => bounds.push(point));
         map.fitBounds(bounds, { padding: [44,44], maxZoom: 16 });
         routeBadge.textContent = data.labels.routeReady;
@@ -119,6 +128,8 @@
     const placePlayer = (lat, lng, accuracy = 10, label = 'You are here', simulated = false) => {
       const latlng = [Number(lat), Number(lng)];
       if (!Number.isFinite(latlng[0]) || !Number.isFinite(latlng[1])) return;
+      window.TNG_GAME_RUNTIME_PLAYER_POSITION = { lat: latlng[0], lng: latlng[1], accuracy: Number(accuracy) || 10, simulated: !!simulated };
+      window.dispatchEvent(new CustomEvent('tng:runtime-player-location', { detail: window.TNG_GAME_RUNTIME_PLAYER_POSITION }));
       const icon = L.divIcon({ className: '', html: `<div class="tng-runtime-player${simulated ? ' is-simulated' : ''}"></div>`, iconSize: [22,22], iconAnchor: [11,11] });
       if (playerMarker) {
         playerMarker.setLatLng(latlng).setIcon(icon);
