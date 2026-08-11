@@ -100,6 +100,7 @@ final class Explore_Discovery_Feed {
         $rating = self::meta_first($id, ['_tng_source_rating','_tng_food_rating','_tng_rating','rating']);
         $rating_count = self::meta_first($id, ['_tng_source_rating_count','_tng_food_rating_count','_tng_rating_count','rating_count']);
         $address = self::meta_first($id, ['_tng_source_address','_tng_food_address','_tng_address','address']);
+        $hours = self::meta_first($id, ['_tng_source_hours','_tng_food_hours','_tng_food_hours_text','_tng_hours','hours']);
         $place_id = self::meta_first($id, ['_tng_google_place_id','_tng_food_google_place_id','_tng_local_place_id']);
         $bucket = self::bucket($id, $post_type);
         $image = get_the_post_thumbnail_url($id, 'medium_large');
@@ -125,6 +126,7 @@ final class Explore_Discovery_Feed {
             'rating' => is_numeric($rating) ? (float) $rating : null,
             'ratingCount' => is_numeric($rating_count) ? (int) $rating_count : 0,
             'address' => (string) $address,
+            'hours' => is_scalar($hours) ? (string) $hours : '',
             'lat' => is_numeric($lat) ? (float) $lat : null,
             'lng' => is_numeric($lng) ? (float) $lng : null,
             'googlePlaceId' => (string) $place_id,
