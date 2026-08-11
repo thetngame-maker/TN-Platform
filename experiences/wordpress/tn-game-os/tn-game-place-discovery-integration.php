@@ -2,13 +2,13 @@
 /**
  * Plugin Name: TN Game Place Discovery Integration
  * Description: Upgrades individual TN Game place pages with live discovery details and a real map.
- * Version: 0.2.0
+ * Version: 0.2.1
  * Author: The TN Game
  */
 
 if (!defined('ABSPATH')) exit;
 
-define('TNG_PLACE_DISCOVERY_VERSION', '0.2.0');
+define('TNG_PLACE_DISCOVERY_VERSION', '0.2.1');
 define('TNG_PLACE_DISCOVERY_URL', plugin_dir_url(__FILE__));
 
 function tng_place_discovery_meta_first(int $id, array $keys) {
@@ -17,6 +17,15 @@ function tng_place_discovery_meta_first(int $id, array $keys) {
         if ($value !== '' && $value !== null && !is_array($value)) return $value;
     }
     return '';
+}
+
+function tng_place_discovery_attributes(int $id): array {
+    foreach (['_tng_source_attributes', '_tng_food_services', '_tng_attributes'] as $key) {
+        $value = get_post_meta($id, $key, true);
+        if (!is_array($value) || !$value) continue;
+        return array_values(array_unique(array_filter(array_map('sanitize_key', $value))));
+    }
+    return [];
 }
 
 function tng_place_discovery_gallery(int $id): array {
@@ -113,6 +122,7 @@ add_action('wp_enqueue_scripts', static function (): void {
         'menuUrl' => esc_url_raw((string)$menu_url),
         'orderUrl' => esc_url_raw((string)$order_url),
         'reservationUrl' => esc_url_raw((string)$reservation_url),
+        'attributes' => tng_place_discovery_attributes($id),
         'gallery' => tng_place_discovery_gallery($id),
         'lat' => is_numeric($lat) ? (float)$lat : null,
         'lng' => is_numeric($lng) ? (float)$lng : null,
