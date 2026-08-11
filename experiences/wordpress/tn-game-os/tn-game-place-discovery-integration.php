@@ -2,13 +2,13 @@
 /**
  * Plugin Name: TN Game Place Discovery Integration
  * Description: Upgrades individual TN Game place pages with live discovery details and a real map.
- * Version: 0.2.2
+ * Version: 0.2.3
  * Author: The TN Game
  */
 
 if (!defined('ABSPATH')) exit;
 
-define('TNG_PLACE_DISCOVERY_VERSION', '0.2.2');
+define('TNG_PLACE_DISCOVERY_VERSION', '0.2.3');
 define('TNG_PLACE_DISCOVERY_URL', plugin_dir_url(__FILE__));
 
 function tng_place_discovery_meta_first(int $id, array $keys) {
@@ -104,10 +104,19 @@ add_action('wp_enqueue_scripts', static function (): void {
     $order_url = tng_place_discovery_meta_first($id, ['_tng_food_online_ordering_url','_tng_food_order_url','_tng_online_ordering_url','online_ordering_url','order_url']);
     $reservation_url = tng_place_discovery_meta_first($id, ['_tng_food_reservation_url','_tng_reservation_url','reservation_url']);
 
+    $saved_ids = [];
+    if (is_user_logged_in()) {
+        $saved_ids = get_user_meta(get_current_user_id(), 'tng_saved_trip_items', true);
+        if (!is_array($saved_ids)) $saved_ids = [];
+        $saved_ids = array_values(array_unique(array_filter(array_map('absint', $saved_ids))));
+    }
+
     wp_enqueue_style('leaflet','https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',[],'1.9.4');
     wp_enqueue_script('leaflet','https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',[],'1.9.4',true);
     wp_enqueue_style('tng-place-discovery',TNG_PLACE_DISCOVERY_URL.'assets/css/place-discovery-integration.css',['leaflet'],TNG_PLACE_DISCOVERY_VERSION);
+    wp_enqueue_style('tng-place-trip-actions',TNG_PLACE_DISCOVERY_URL.'assets/css/place-trip-actions.css',['tng-place-discovery'],TNG_PLACE_DISCOVERY_VERSION);
     wp_enqueue_script('tng-place-discovery',TNG_PLACE_DISCOVERY_URL.'assets/js/place-discovery-integration.js',['leaflet'],TNG_PLACE_DISCOVERY_VERSION,true);
+    wp_enqueue_script('tng-place-trip-actions',TNG_PLACE_DISCOVERY_URL.'assets/js/place-trip-actions.js',['tng-place-discovery'],TNG_PLACE_DISCOVERY_VERSION,true);
 
     wp_localize_script('tng-place-discovery','TNGPlaceDiscovery',[
         'id' => $id,
@@ -128,6 +137,14 @@ add_action('wp_enqueue_scripts', static function (): void {
         'lng' => is_numeric($lng) ? (float)$lng : null,
         'mapUrl' => home_url('/map/'),
         'nearbyEndpoint' => esc_url_raw(add_query_arg('limit', 100, rest_url('tn-game/v1/explore/places'))),
+        'trip' => [
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('tng_trip_data'),
+            'loggedIn' => is_user_logged_in(),
+            'loginUrl' => wp_login_url(get_permalink($id)),
+            'savedIds' => $saved_ids,
+            'savedUrl' => home_url('/saved/'),
+        ],
         'map' => tng_place_discovery_map_config(),
     ]);
 }, 130);
