@@ -30,13 +30,41 @@ final class Explore_Discovery_Feed {
         $is_explore = $path === '' || $path === 'explore' || is_front_page();
         if (!$is_map && !$is_explore) return;
 
-        wp_enqueue_style('tng-explore-discovery-feed', TNG_EXPLORE_DISCOVERY_URL . 'assets/css/explore-discovery-feed.css', [], TNG_EXPLORE_DISCOVERY_VERSION);
-        wp_enqueue_script('tng-explore-discovery-feed', TNG_EXPLORE_DISCOVERY_URL . 'assets/js/explore-discovery-feed.js', [], TNG_EXPLORE_DISCOVERY_VERSION, true);
+        if ($is_map) {
+            wp_enqueue_style(
+                'leaflet',
+                'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
+                [],
+                '1.9.4'
+            );
+            wp_enqueue_script(
+                'leaflet',
+                'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
+                [],
+                '1.9.4',
+                true
+            );
+        }
+
+        wp_enqueue_style(
+            'tng-explore-discovery-feed',
+            TNG_EXPLORE_DISCOVERY_URL . 'assets/css/explore-discovery-feed.css',
+            $is_map ? ['leaflet'] : [],
+            TNG_EXPLORE_DISCOVERY_VERSION
+        );
+        wp_enqueue_script(
+            'tng-explore-discovery-feed',
+            TNG_EXPLORE_DISCOVERY_URL . 'assets/js/explore-discovery-feed.js',
+            $is_map ? ['leaflet'] : [],
+            TNG_EXPLORE_DISCOVERY_VERSION,
+            true
+        );
         wp_localize_script('tng-explore-discovery-feed', 'TNGExploreDiscovery', [
             'endpoint' => esc_url_raw(rest_url(self::REST_NAMESPACE . self::REST_ROUTE)),
             'isMap' => $is_map,
             'isExplore' => $is_explore,
             'mapUrl' => home_url('/map/'),
+            'map' => self::map_config(),
         ]);
     }
 
@@ -101,6 +129,46 @@ final class Explore_Discovery_Feed {
             'lng' => is_numeric($lng) ? (float) $lng : null,
             'googlePlaceId' => (string) $place_id,
             'discoveryImported' => $place_id !== '',
+        ];
+    }
+
+    private static function map_config(): array {
+        $token = '';
+        foreach (['TNG_MAPBOX_TOKEN', 'MAPBOX_ACCESS_TOKEN', 'ST_MAPBOX_TOKEN'] as $constant) {
+            if (defined($constant) && is_string(constant($constant)) && constant($constant) !== '') {
+                $token = (string) constant($constant);
+                break;
+            }
+        }
+        if ($token === '') {
+            foreach (['tng_mapbox_token','mapbox_access_token','st_mapbox_token','mapbox_token','st_mapbox_api_key'] as $key) {
+                $value = get_option($key, '');
+                if (is_string($value) && strpos($value, 'pk.') === 0) {
+                    $token = $value;
+                    break;
+                }
+            }
+        }
+        $token = (string) apply_filters('tng_explore_mapbox_token', $token);
+
+        if ($token !== '') {
+            return [
+                'provider' => 'mapbox',
+                'tileUrl' => 'https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/tiles/512/{z}/{x}/{y}@2x?access_token=' . rawurlencode($token),
+                'tileSize' => 512,
+                'zoomOffset' => -1,
+                'maxZoom' => 20,
+                'attribution' => '© Mapbox © OpenStreetMap',
+            ];
+        }
+
+        return [
+            'provider' => 'openstreetmap',
+            'tileUrl' => 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            'tileSize' => 256,
+            'zoomOffset' => 0,
+            'maxZoom' => 19,
+            'attribution' => '© OpenStreetMap contributors',
         ];
     }
 
