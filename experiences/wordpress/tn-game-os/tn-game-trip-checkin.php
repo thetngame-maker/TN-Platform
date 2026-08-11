@@ -2,13 +2,13 @@
 /**
  * Plugin Name: TN Game Trip Check-in
  * Description: Arrival-gated Trip Mode check-ins with optional photos, one-time XP, visit history, and route advancement.
- * Version: 0.1.0
+ * Version: 0.1.1
  * Author: The TN Game
  */
 
 if (!defined('ABSPATH')) exit;
 
-define('TNG_TRIP_CHECKIN_VERSION', '0.1.0');
+define('TNG_TRIP_CHECKIN_VERSION', '0.1.1');
 define('TNG_TRIP_CHECKIN_URL', plugin_dir_url(__FILE__));
 define('TNG_TRIP_CHECKIN_VISITS_META', 'tng_trip_checkin_visits_v1');
 define('TNG_TRIP_CHECKIN_HISTORY_META', 'tng_trip_checkin_history_v1');
@@ -44,7 +44,7 @@ function tng_trip_checkin_recursive_coords($value): ?array {
     }
     if ($lat !== null && $lng !== null && abs($lat) <= 90 && abs($lng) <= 180) return ['lat'=>$lat,'lng'=>$lng];
     foreach ($value as $item) {
-        if (is_array($item) || is_serialized($item)) {
+        if (is_array($item) || (is_string($item) && is_serialized($item))) {
             $found = tng_trip_checkin_recursive_coords($item);
             if ($found) return $found;
         }
@@ -112,7 +112,7 @@ function tng_trip_checkin_complete_stop(int $user_id, int $stop_id): array {
     return tng_trip_mode_v1_save_state($user_id, $state);
 }
 
-function tng_trip_checkin_store_photo(int $stop_id): int|WP_Error {
+function tng_trip_checkin_store_photo(int $stop_id) {
     if (empty($_FILES['photo']) || !is_array($_FILES['photo']) || empty($_FILES['photo']['tmp_name'])) return 0;
     if (!empty($_FILES['photo']['size']) && (int)$_FILES['photo']['size'] > 10 * MB_IN_BYTES) {
         return new WP_Error('tng_checkin_photo_size', 'Photo must be 10 MB or smaller.', ['status'=>413]);
