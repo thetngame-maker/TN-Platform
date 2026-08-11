@@ -2,13 +2,13 @@
 /**
  * Plugin Name: TN Game Place Discovery Integration
  * Description: Upgrades individual TN Game place pages with live discovery details and a real map.
- * Version: 0.2.3
+ * Version: 0.2.4
  * Author: The TN Game
  */
 
 if (!defined('ABSPATH')) exit;
 
-define('TNG_PLACE_DISCOVERY_VERSION', '0.2.3');
+define('TNG_PLACE_DISCOVERY_VERSION', '0.2.4');
 define('TNG_PLACE_DISCOVERY_URL', plugin_dir_url(__FILE__));
 
 function tng_place_discovery_meta_first(int $id, array $keys) {
@@ -148,3 +148,26 @@ add_action('wp_enqueue_scripts', static function (): void {
         'map' => tng_place_discovery_map_config(),
     ]);
 }, 130);
+
+add_action('wp_enqueue_scripts', static function (): void {
+    if (!is_page('trip-builder')) return;
+
+    $saved_ids = [];
+    if (is_user_logged_in()) {
+        $saved_ids = get_user_meta(get_current_user_id(), 'tng_saved_trip_items', true);
+        if (!is_array($saved_ids)) $saved_ids = [];
+        $saved_ids = array_values(array_unique(array_filter(array_map('absint', $saved_ids))));
+    }
+
+    wp_enqueue_style('tng-trip-day-planner', TNG_PLACE_DISCOVERY_URL . 'assets/css/trip-day-planner.css', [], TNG_PLACE_DISCOVERY_VERSION);
+    wp_enqueue_script('tng-trip-day-planner', TNG_PLACE_DISCOVERY_URL . 'assets/js/trip-day-planner.js', [], TNG_PLACE_DISCOVERY_VERSION, true);
+    wp_localize_script('tng-trip-day-planner', 'TNGTripDayPlanner', [
+        'enabled' => true,
+        'ajaxUrl' => admin_url('admin-ajax.php'),
+        'nonce' => wp_create_nonce('tng_trip_data'),
+        'savedIds' => $saved_ids,
+        'endpoint' => esc_url_raw(add_query_arg('limit', 100, rest_url('tn-game/v1/explore/places'))),
+        'tripsUrl' => home_url('/trips/'),
+        'builderUrl' => home_url('/trip-builder/'),
+    ]);
+}, 135);
