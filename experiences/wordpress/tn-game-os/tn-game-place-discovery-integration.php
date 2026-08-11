@@ -2,13 +2,13 @@
 /**
  * Plugin Name: TN Game Place Discovery Integration
  * Description: Upgrades individual TN Game place pages with live discovery details and a real map.
- * Version: 0.1.0
+ * Version: 0.2.0
  * Author: The TN Game
  */
 
 if (!defined('ABSPATH')) exit;
 
-define('TNG_PLACE_DISCOVERY_VERSION', '0.1.0');
+define('TNG_PLACE_DISCOVERY_VERSION', '0.2.0');
 define('TNG_PLACE_DISCOVERY_URL', plugin_dir_url(__FILE__));
 
 function tng_place_discovery_meta_first(int $id, array $keys) {
@@ -17,6 +17,29 @@ function tng_place_discovery_meta_first(int $id, array $keys) {
         if ($value !== '' && $value !== null && !is_array($value)) return $value;
     }
     return '';
+}
+
+function tng_place_discovery_gallery(int $id): array {
+    $ids = (array)get_post_meta($id, '_tng_discovery_gallery_attachment_ids', true);
+    if (!$ids) $ids = (array)get_post_meta($id, '_tng_gallery_image_ids', true);
+    if (!$ids) {
+        $raw = (string)get_post_meta($id, 'gallery', true);
+        if ($raw !== '') $ids = preg_split('/\s*,\s*/', $raw);
+    }
+
+    $images = [];
+    foreach (array_slice(array_values(array_unique(array_filter(array_map('absint', $ids)))), 0, 9) as $attachment_id) {
+        $url = wp_get_attachment_image_url($attachment_id, 'large');
+        if (!$url) $url = wp_get_attachment_url($attachment_id);
+        if (!$url) continue;
+        $images[] = [
+            'id' => $attachment_id,
+            'url' => esc_url_raw($url),
+            'full' => esc_url_raw(wp_get_attachment_url($attachment_id) ?: $url),
+            'alt' => (string)get_post_meta($attachment_id, '_wp_attachment_image_alt', true),
+        ];
+    }
+    return $images;
 }
 
 function tng_place_discovery_map_config(): array {
@@ -66,8 +89,11 @@ add_action('wp_enqueue_scripts', static function (): void {
     $address = tng_place_discovery_meta_first($id, ['_tng_source_address','_tng_food_address','_tng_address','address']);
     $phone = tng_place_discovery_meta_first($id, ['_tng_source_phone','_tng_food_phone','_tng_phone','phone']);
     $website = tng_place_discovery_meta_first($id, ['_tng_source_website','_tng_food_website','_tng_website','website']);
-    $hours = tng_place_discovery_meta_first($id, ['_tng_source_hours','_tng_food_hours','_tng_hours','hours']);
+    $hours = tng_place_discovery_meta_first($id, ['_tng_source_hours','_tng_food_hours','_tng_food_hours_text','_tng_hours','hours']);
     $category = tng_place_discovery_meta_first($id, ['_tng_source_primary_type_label','_tng_food_cuisine','_tng_local_category']);
+    $menu_url = tng_place_discovery_meta_first($id, ['_tng_food_menu_url','_tng_menu_url','menu_url']);
+    $order_url = tng_place_discovery_meta_first($id, ['_tng_food_online_ordering_url','_tng_food_order_url','_tng_online_ordering_url','online_ordering_url','order_url']);
+    $reservation_url = tng_place_discovery_meta_first($id, ['_tng_food_reservation_url','_tng_reservation_url','reservation_url']);
 
     wp_enqueue_style('leaflet','https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',[],'1.9.4');
     wp_enqueue_script('leaflet','https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',[],'1.9.4',true);
@@ -84,6 +110,10 @@ add_action('wp_enqueue_scripts', static function (): void {
         'phone' => (string)$phone,
         'website' => esc_url_raw((string)$website),
         'hours' => (string)$hours,
+        'menuUrl' => esc_url_raw((string)$menu_url),
+        'orderUrl' => esc_url_raw((string)$order_url),
+        'reservationUrl' => esc_url_raw((string)$reservation_url),
+        'gallery' => tng_place_discovery_gallery($id),
         'lat' => is_numeric($lat) ? (float)$lat : null,
         'lng' => is_numeric($lng) ? (float)$lng : null,
         'mapUrl' => home_url('/map/'),
