@@ -2,13 +2,13 @@
 /**
  * Plugin Name: TN Game Place Discovery Integration
  * Description: Upgrades individual TN Game place pages with live discovery details and a real map.
- * Version: 0.2.5
+ * Version: 0.2.6
  * Author: The TN Game
  */
 
 if (!defined('ABSPATH')) exit;
 
-define('TNG_PLACE_DISCOVERY_VERSION', '0.2.5');
+define('TNG_PLACE_DISCOVERY_VERSION', '0.2.6');
 define('TNG_PLACE_DISCOVERY_URL', plugin_dir_url(__FILE__));
 
 function tng_place_discovery_meta_first(int $id, array $keys) {
@@ -51,7 +51,7 @@ function tng_place_discovery_gallery(int $id): array {
     return $images;
 }
 
-function tng_place_discovery_map_config(): array {
+function tng_place_discovery_mapbox_token(): string {
     $token = '';
     foreach (['TNG_MAPBOX_TOKEN','MAPBOX_ACCESS_TOKEN','ST_MAPBOX_TOKEN'] as $constant) {
         if (defined($constant) && is_string(constant($constant)) && constant($constant) !== '') {
@@ -68,6 +68,11 @@ function tng_place_discovery_map_config(): array {
             }
         }
     }
+    return $token;
+}
+
+function tng_place_discovery_map_config(): array {
+    $token = tng_place_discovery_mapbox_token();
     if ($token !== '') {
         return [
             'tileUrl' => 'https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/tiles/512/{z}/{x}/{y}@2x?access_token=' . rawurlencode($token),
@@ -167,6 +172,9 @@ add_action('wp_enqueue_scripts', static function (): void {
         $saved_ids = array_values(array_unique(array_filter(array_map('absint', $saved_ids))));
     }
 
+    $mapbox_token = tng_place_discovery_mapbox_token();
+    $public_routing_token = strpos($mapbox_token, 'pk.') === 0 ? $mapbox_token : '';
+
     wp_enqueue_style('tng-trip-day-planner', TNG_PLACE_DISCOVERY_URL . 'assets/css/trip-day-planner.css', [], TNG_PLACE_DISCOVERY_VERSION);
     wp_enqueue_script('tng-trip-day-planner', TNG_PLACE_DISCOVERY_URL . 'assets/js/trip-day-planner.js', [], TNG_PLACE_DISCOVERY_VERSION, true);
     wp_localize_script('tng-trip-day-planner', 'TNGTripDayPlanner', [
@@ -177,5 +185,11 @@ add_action('wp_enqueue_scripts', static function (): void {
         'endpoint' => esc_url_raw(add_query_arg('limit', 100, rest_url('tn-game/v1/explore/places'))),
         'tripsUrl' => home_url('/trips/'),
         'builderUrl' => home_url('/trip-builder/'),
+        'routing' => [
+            'provider' => $public_routing_token !== '' ? 'mapbox' : 'estimate',
+            'matrixBase' => 'https://api.mapbox.com/directions-matrix/v1/mapbox/driving/',
+            'token' => $public_routing_token,
+            'maxCoordinates' => 25,
+        ],
     ]);
 }, 135);
