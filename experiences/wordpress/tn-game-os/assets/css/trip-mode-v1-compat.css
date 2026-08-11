@@ -28,17 +28,22 @@ body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__hero b{
 /* Keep the hero progress card quiet and on-brand. */
 body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__progress{
     background:rgba(255,255,255,.10) !important;
+    background-image:none !important;
     border-color:rgba(255,255,255,.20) !important;
     color:#fff !important;
 }
 body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__progress span{
     color:rgba(255,255,255,.72) !important;
+    background:transparent !important;
+    background-image:none !important;
 }
 body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__progress i{
     background:rgba(255,255,255,.18) !important;
+    background-image:none !important;
 }
 body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__progress em{
-    background:#fff !important;
+    background:#cfe0d4 !important;
+    background-image:none !important;
 }
 
 /* Neutralize broad theme highlight/background rules. */
@@ -135,4 +140,27 @@ body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__map-tools button{
 }
 body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__map{
     background:#eef3ee !important;
+}
+
+/* Map markers use the TN Game green palette; the road route remains orange. */
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__leaflet-icon-wrap{
+    background:transparent !important;
+    background-image:none !important;
+    border:0 !important;
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__user-dot{
+    background:#fff !important;
+    border-color:#123d29 !important;
+    box-shadow:0 3px 12px rgba(18,61,41,.24) !important;
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__user-dot i{
+    background:#1d5b3b !important;
+    box-shadow:0 0 0 4px rgba(29,91,59,.18) !important;
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__dest-pin{
+    background:#123d29 !important;
+    background-image:none !important;
+    border-color:#fff !important;
+    color:#fff !important;
+    box-shadow:0 5px 16px rgba(18,61,41,.24) !important;
 }
