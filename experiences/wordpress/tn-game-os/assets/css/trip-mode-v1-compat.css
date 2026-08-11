@@ -1,0 +1,49 @@
+/* Trip Mode v1 owns the /trip-mode/ experience. */
+body.tng-trip-mode-v1-page main > .tng-trip-mode-v1-legacy-hidden,
+body.tng-trip-mode-v1-page .tng-trip-mode-v1-legacy-hidden{
+    display:none !important;
+}
+
+/* Prevent broad theme button/card rules from recoloring the new controller. */
+body.tng-trip-mode-v1-page #tng-trip-mode-v1.tng-trip-mode{
+    position:relative;
+    z-index:2;
+    display:block !important;
+    width:100%;
+    max-width:1130px;
+    margin:24px auto 34px;
+    padding:0 18px;
+    background:transparent !important;
+    color:#17231b;
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__hero{
+    background:linear-gradient(135deg,#123d29,#1d5b3b) !important;
+    color:#fff !important;
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__hero h1,
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__hero p,
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__hero b{
+    color:#fff !important;
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__current,
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__side,
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__route,
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__empty,
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__finish{
+    background:#fff !important;
+    color:#17231b !important;
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__primary{
+    background:#f06424 !important;
+    border-color:#f06424 !important;
+    color:#fff !important;
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__complete{
+    background:#17452e !important;
+    border-color:#17452e !important;
+    color:#fff !important;
+}
+body.tng-trip-mode-v1-page #tng-trip-mode-v1 .tng-trip-mode__skip{
+    background:#fff !important;
+    color:#657168 !important;
+}
