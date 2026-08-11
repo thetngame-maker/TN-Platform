@@ -186,6 +186,7 @@ final class Town_Scanner implements Module_Interface {
                 if (isset($seen[$key])||!is_array($old)) continue;
                 $miss_count=max(0,absint($old['miss_count']??0))+1;
                 $missing=$old;
+                unset($missing['_review_status'],$missing['_reviewed_at'],$missing['_reviewed_by']);
                 $missing['status']='missing'; $missing['activity_id']=absint($old['activity_id']??0); $missing['candidate_id']=absint($old['candidate_id']??0);
                 $missing['change_status']=$miss_count>=2?'possibly_closed':'missing'; $missing['changed_fields']=[]; $missing['miss_count']=$miss_count;
                 $results[]=$missing; $snapshot[$key]=$missing;
@@ -210,7 +211,7 @@ final class Town_Scanner implements Module_Interface {
         if (!$selected) $selected=array_keys($defs);
         $max=max(5,min(100,absint($_POST['max_items']??50)));
         $queries=[]; foreach ($selected as $key) $queries[]=$defs[$key]['query'];
-        $input=['searchStringsArray'=>$queries,'locationQuery'=>$town,'maxItems'=>$max,'deepSearch'=>false,'countryCode'=>'us','language'=>'en','scrapeContactsFromWebsite'=>true,'skipPlacesWithoutEmail'=>false,'skipDuplicateEmails'=>false,'includeReviews'=>false,'includeImages'=>false];
+        $input=['searchStringsArray'=>$queries,'locationQuery'=>$town,'maxItems'=>$max,'deepSearch'=>false,'countryCode'=>'us','language'=>'en','scrapeContactsFromWebsite'=>true,'skipPlacesWithoutEmail'=>false,'skipDuplicateEmails'=>false,'includeReviews'=>false,'includeImages'=>true,'maxImagesPerPlace'=>10];
         $endpoint='https://api.apify.com/v2/acts/'.rawurlencode($this->actor()).'/run-sync-get-dataset-items';
         $response=wp_remote_post($endpoint,['timeout'=>180,'headers'=>['Content-Type'=>'application/json','Accept'=>'application/json','Authorization'=>'Bearer '.$token],'body'=>wp_json_encode($input)]);
         if (is_wp_error($response)) $this->redirect('Town scan failed: '.$response->get_error_message());
@@ -238,82 +239,40 @@ final class Town_Scanner implements Module_Interface {
     public function bulk_add_action(): void {
         $this->guard(); $cache=get_transient($this->transient_key()); $results=is_array($cache)?($cache['results']??[]):[];
         if (!$results) $this->redirect('Town scan results expired. Run the scan again.');
-        $selected=array_values(array_unique(array_map('absint',(array)wp_unslash($_POST['result_indexes']??[]))));
+        $selected=array_values(array_unique(array_filter(array_map('absint',(array)wp_unslash($_POST['selected']??[])))));
         if (!$selected) $this->redirect('Select at least one new place.');
         $added=0; $skipped=0;
         foreach ($selected as $index) {
-            if (!isset($results[$index])||($results[$index]['status']??'')!=='new') { $skipped++; continue; }
-            $item=$results[$index]; if ($this->existing_activity_id($item)||$this->existing_candidate_id($item)) { $skipped++; continue; }
+            if (!isset($results[$index])||!is_array($results[$index])) { $skipped++; continue; }
+            $item=$results[$index]; if (($item['status']??'')!=='new') { $skipped++; continue; }
+            if ($this->existing_candidate_id($item)) { $skipped++; continue; }
             $id=wp_insert_post(['post_type'=>self::CANDIDATE_CPT,'post_status'=>'publish','post_title'=>$item['name'],'post_content'=>''],true);
             if (is_wp_error($id)||!$id) { $skipped++; continue; }
             $meta=['_tng_local_source'=>'google_maps_apify','_tng_local_place_id'=>$item['place_id'],'_tng_local_maps_url'=>$item['maps_url'],'_tng_local_address'=>$item['address'],'_tng_local_phone'=>$item['phone'],'_tng_local_website'=>$item['website'],'_tng_local_category'=>$item['category'],'_tng_local_rating'=>$item['rating'],'_tng_local_rating_count'=>$item['rating_count'],'_tng_local_latitude'=>$item['latitude'],'_tng_local_longitude'=>$item['longitude'],'_tng_local_email'=>$item['email'],'_tng_local_socials'=>$item['socials'],'_tng_local_photos'=>$item['photos'],'_tng_local_status'=>'review','_tng_local_service'=>$item['service'],'_tng_local_scan_town'=>(string)($cache['town']??''),'_tng_local_discovered_at'=>current_time('mysql')];
-            foreach ($meta as $key=>$value) update_post_meta($id,$key,$value);
-            $results[$index]['status']='discovery'; $results[$index]['candidate_id']=(int)$id; $added++;
+            foreach ($meta as $key=>$value) update_post_meta((int)$id,$key,$value);
+            $results[$index]['candidate_id']=(int)$id; $results[$index]['status']='discovery'; $added++;
         }
         $cache['results']=$results; set_transient($this->transient_key(),$cache,HOUR_IN_SECONDS);
-        $this->redirect($added.' place'.($added===1?'':'s').' added to Local Discovery'.($skipped?' ('.$skipped.' skipped).':'.'));
-    }
-
-    private function service_label(string $service): string {
-        return ['food'=>'Food & Drink','shops'=>'Shops','lodging'=>'Lodging','campgrounds'=>'Campgrounds','history'=>'Historic Sites','scenic'=>'Scenic Views','events'=>'Events'][$service]??ucfirst($service);
-    }
-
-    private function change_badge(array $item): string {
-        $status=$item['change_status']??'';
-        if ($status==='new') return '<strong style="color:#008a20">New</strong>';
-        if ($status==='changed') return '<strong style="color:#b26200">Changed</strong>';
-        if ($status==='returned') return '<strong style="color:#135e96">Returned</strong>';
-        if ($status==='missing') return '<strong style="color:#996800">Not found this scan</strong>';
-        if ($status==='possibly_closed') return '<strong style="color:#b32d2e">Possibly closed</strong>';
-        return '<span style="color:#646970">No change</span>';
+        $this->redirect($added.' place'.($added===1?'':'s').' added to Local Discovery'.($skipped?' ('.$skipped.' skipped)':'').'.');
     }
 
     public function render_page(): void {
         if (!current_user_can('edit_posts')) return;
-        $cache=get_transient($this->transient_key()); $results=is_array($cache)?($cache['results']??[]):[]; $town=is_array($cache)?(string)($cache['town']??''):'';
-        $notice=sanitize_text_field(wp_unslash($_GET['tng_notice']??'')); $defs=$this->definitions();
-        $counts=['new'=>0,'existing'=>0,'discovery'=>0]; foreach ($results as $item) if (isset($counts[$item['status']])) $counts[$item['status']]++;
-        $change_counts=is_array($cache)?(array)($cache['change_counts']??[]):[]; $scans=is_array($cache)?(array)($cache['scans']??[]):[];
-        foreach (['new','changed','returned','missing','possibly_closed'] as $key) $change_counts[$key]=absint($change_counts[$key]??0);
+        $cache=get_transient($this->transient_key()); $results=is_array($cache)?($cache['results']??[]):[];
+        $notice=sanitize_text_field(wp_unslash($_GET['tng_notice']??''));
+        $defs=$this->definitions(); $selected=is_array($cache['types']??null)?$cache['types']:array_keys($defs); $town=(string)($cache['town']??'Monteagle, TN');
+        $change_counts=is_array($cache['change_counts']??null)?$cache['change_counts']:['new'=>0,'changed'=>0,'returned'=>0,'missing'=>0,'possibly_closed'=>0];
+        $status_counts=['new'=>0,'existing'=>0,'discovery'=>0]; foreach ($results as $item) if (isset($status_counts[$item['status']??''])) $status_counts[$item['status']]++;
         ?>
-        <div class="wrap">
-            <h1>🏘 Town Scanner</h1>
-            <p>Scan local-business categories, compare them with TN Game and earlier scans, and surface new, changed, or potentially closed places for review.</p>
-            <?php if ($notice): ?><div class="notice notice-info is-dismissible"><p><?php echo esc_html($notice); ?></p></div><?php endif; ?>
-            <div style="background:#fff;border:1px solid #dcdcde;border-radius:12px;padding:20px;max-width:1150px;margin:20px 0">
-                <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-                    <input type="hidden" name="action" value="tng_town_scan"><?php wp_nonce_field(self::NONCE); ?>
-                    <table class="form-table">
-                        <tr><th>Town or city</th><td><input class="regular-text" name="town" value="<?php echo esc_attr($town); ?>" placeholder="Monteagle, TN" required></td></tr>
-                        <tr><th>Scan for</th><td><?php foreach ($defs as $key=>$def): ?><label style="display:inline-block;margin:0 18px 8px 0"><input type="checkbox" name="scan_types[]" value="<?php echo esc_attr($key); ?>" checked> <?php echo esc_html($def['label']); ?></label><?php endforeach; ?></td></tr>
-                        <tr><th>Maximum total results</th><td><input type="number" name="max_items" min="5" max="100" value="50"><p class="description">The result cap applies to the combined town scan.</p></td></tr>
-                    </table><?php submit_button('Scan Town','primary'); ?>
-                </form>
-            </div>
-            <?php if ($results): ?>
-                <div style="display:flex;gap:10px;flex-wrap:wrap;margin:20px 0">
-                    <div class="notice notice-success inline" style="margin:0"><p><strong><?php echo $change_counts['new']; ?></strong> new</p></div>
-                    <div class="notice notice-warning inline" style="margin:0"><p><strong><?php echo $change_counts['changed']; ?></strong> changed</p></div>
-                    <div class="notice notice-info inline" style="margin:0"><p><strong><?php echo absint($counts['existing']); ?></strong> in TN Game</p></div>
-                    <div class="notice notice-warning inline" style="margin:0"><p><strong><?php echo $change_counts['missing']; ?></strong> missing once</p></div>
-                    <div class="notice notice-error inline" style="margin:0"><p><strong><?php echo $change_counts['possibly_closed']; ?></strong> possibly closed</p></div>
-                </div>
-                <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-                    <input type="hidden" name="action" value="tng_town_scan_add"><?php wp_nonce_field(self::NONCE); ?>
-                    <p><button type="button" class="button" onclick="document.querySelectorAll('.tng-town-new').forEach(function(c){c.checked=true;});">Select all new</button> <?php submit_button('Add Selected to Discovery','primary','submit',false); ?></p>
-                    <div style="overflow-x:auto"><table class="widefat striped"><thead><tr><th style="width:36px"></th><th>Place</th><th>Category</th><th>Section</th><th>Rating</th><th>Change</th><th>TN Game status</th></tr></thead><tbody>
-                    <?php foreach ($results as $index=>$item): ?><tr>
-                        <td><?php if (($item['status']??'')==='new' && ($item['change_status']??'')!=='missing' && ($item['change_status']??'')!=='possibly_closed'): ?><input class="tng-town-new" type="checkbox" name="result_indexes[]" value="<?php echo absint($index); ?>"><?php endif; ?></td>
-                        <td><strong><?php echo esc_html($item['name']??''); ?></strong><?php if (!empty($item['address'])): ?><br><small><?php echo esc_html($item['address']); ?></small><?php endif; ?><?php if (!empty($item['maps_url'])): ?><br><a target="_blank" rel="noopener" href="<?php echo esc_url($item['maps_url']); ?>">Google Maps ↗</a><?php endif; ?></td>
-                        <td><?php echo esc_html($item['category']?:'—'); ?></td><td><?php echo esc_html($this->service_label((string)($item['service']??''))); ?></td>
-                        <td><?php echo ($item['rating']??'')!==''?'⭐ '.esc_html($item['rating']):'—'; ?><?php if (!empty($item['rating_count'])): ?> <small>(<?php echo esc_html($item['rating_count']); ?>)</small><?php endif; ?></td>
-                        <td><?php echo wp_kses_post($this->change_badge($item)); ?><?php if (!empty($item['changed_fields'])): ?><br><small><?php echo esc_html(implode(', ',$item['changed_fields'])); ?></small><?php endif; ?></td>
-                        <td><?php if (($item['status']??'')==='existing'): ?><strong>Already in TN Game</strong><?php if (!empty($item['activity_id'])): ?><br><a href="<?php echo esc_url(get_edit_post_link((int)$item['activity_id'])); ?>">Open listing ↗</a><?php endif; ?><?php elseif (($item['status']??'')==='discovery'): ?><strong style="color:#b26200">In Discovery</strong><?php elseif (($item['status']??'')==='missing'): ?>—<?php else: ?><strong style="color:#008a20">Not added yet</strong><?php endif; ?></td>
-                    </tr><?php endforeach; ?>
-                    </tbody></table></div><p style="margin-top:15px"><?php submit_button('Add Selected to Discovery','primary','submit',false); ?></p>
-                </form>
-                <?php if ($scans): ?><div style="background:#fff;border:1px solid #dcdcde;border-radius:12px;padding:20px;max-width:1150px;margin:24px 0"><h2 style="margin-top:0">Recent scan history</h2><table class="widefat striped"><thead><tr><th>Scanned</th><th>Results</th><th>New</th><th>Changed</th><th>Missing</th><th>Possibly closed</th></tr></thead><tbody><?php foreach (array_slice($scans,0,10) as $scan): $c=(array)($scan['counts']??[]); ?><tr><td><?php echo esc_html((string)($scan['scanned_at']??'')); ?></td><td><?php echo absint($scan['total']??0); ?></td><td><?php echo absint($c['new']??0); ?></td><td><?php echo absint($c['changed']??0); ?></td><td><?php echo absint($c['missing']??0); ?></td><td><?php echo absint($c['possibly_closed']??0); ?></td></tr><?php endforeach; ?></tbody></table><p class="description">A place is only marked “possibly closed” after it is absent from two comparable scans in a row. Category selections must match for absence tracking.</p></div><?php endif; ?>
-            <?php endif; ?>
-        </div><?php
+        <div class="wrap"><h1>🏘️ Town Scanner</h1><p>Scan several local-business categories at once, compare them with TN Game, and send only new places into the Local Discovery review queue.</p>
+        <?php if($notice): ?><div class="notice notice-info is-dismissible"><p><?php echo esc_html($notice); ?></p></div><?php endif; ?>
+        <div style="background:#fff;border:1px solid #dcdcde;border-radius:12px;padding:20px;max-width:1100px;margin:20px 0"><form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>"><input type="hidden" name="action" value="tng_town_scan"><?php wp_nonce_field(self::NONCE); ?>
+        <table class="form-table"><tr><th>Town or city</th><td><input class="regular-text" name="town" value="<?php echo esc_attr($town); ?>" required></td></tr><tr><th>Scan for</th><td><?php foreach($defs as $key=>$def): ?><label style="display:inline-block;margin:0 22px 8px 0"><input type="checkbox" name="scan_types[]" value="<?php echo esc_attr($key); ?>" <?php checked(in_array($key,$selected,true)); ?>> <?php echo esc_html($def['label']); ?></label><?php endforeach; ?></td></tr><tr><th>Maximum total results</th><td><input type="number" name="max_items" value="50" min="5" max="100"><p class="description">The result cap applies to the combined town scan.</p></td></tr></table><?php submit_button('Scan Town'); ?></form></div>
+        <?php if($results): ?><div style="display:flex;gap:10px;flex-wrap:wrap;margin:18px 0"><span style="background:#fff;border-left:4px solid #46b450;padding:12px 14px"><strong><?php echo absint($change_counts['new']??0); ?></strong> new</span><span style="background:#fff;border-left:4px solid #dba617;padding:12px 14px"><strong><?php echo absint($change_counts['changed']??0); ?></strong> changed</span><span style="background:#fff;border-left:4px solid #3858e9;padding:12px 14px"><strong><?php echo absint($status_counts['existing']); ?></strong> in TN Game</span><span style="background:#fff;border-left:4px solid #dba617;padding:12px 14px"><strong><?php echo absint($change_counts['missing']??0); ?></strong> missing once</span><span style="background:#fff;border-left:4px solid #b32d2e;padding:12px 14px"><strong><?php echo absint($change_counts['possibly_closed']??0); ?></strong> possibly closed</span></div>
+        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>"><input type="hidden" name="action" value="tng_town_scan_add"><?php wp_nonce_field(self::NONCE); ?><p><button type="button" class="button" onclick="document.querySelectorAll('.tng-town-new').forEach(function(c){c.checked=true;});">Select all new</button> <?php submit_button('Add Selected to Discovery','primary','submit',false); ?></p><div style="overflow-x:auto"><table class="widefat striped"><thead><tr><th></th><th>Place</th><th>Category</th><th>Section</th><th>Rating</th><th>Change</th><th>TN Game status</th></tr></thead><tbody>
+        <?php foreach($results as $index=>$item): $is_new=($item['status']==='new' && !in_array($item['change_status']??'', ['missing','possibly_closed'],true)); ?><tr><td><?php if($is_new): ?><input class="tng-town-new" type="checkbox" name="selected[]" value="<?php echo absint($index); ?>"><?php endif; ?></td><td><strong><?php echo esc_html($item['name']); ?></strong><br><small><?php echo esc_html($item['address']); ?></small></td><td><?php echo esc_html($item['category']?:'—'); ?></td><td><?php echo esc_html(ucwords(str_replace('_',' & ',$item['service']))); ?></td><td><?php echo $item['rating']!==''?'⭐ '.esc_html($item['rating']):'—'; ?></td><td><?php $cs=$item['change_status']??'unchanged'; if($cs==='new') echo '<strong style="color:#008a20">New</strong>'; elseif($cs==='changed') echo '<strong style="color:#b26200">Changed</strong><br><small>'.esc_html(implode(', ',(array)$item['changed_fields'])).'</small>'; elseif($cs==='returned') echo '<strong style="color:#2271b1">Returned</strong>'; elseif($cs==='missing') echo '<strong style="color:#996800">Not found this scan</strong>'; elseif($cs==='possibly_closed') echo '<strong style="color:#b32d2e">Possibly closed</strong>'; else echo 'Existing'; ?></td><td><?php if($item['status']==='existing'): ?>Already in TN Game<?php if($item['activity_id']): ?><br><a href="<?php echo esc_url(get_edit_post_link($item['activity_id'])); ?>">Open listing ↗</a><?php endif; ?><?php elseif($item['status']==='discovery'): ?>In Local Discovery<?php else: ?><strong style="color:#008a20">Not added yet</strong><?php endif; ?></td></tr><?php endforeach; ?>
+        </tbody></table></div></form>
+        <?php $scans=is_array($cache['scans']??null)?$cache['scans']:[]; if($scans): ?><h2 style="margin-top:28px">Recent scan history</h2><table class="widefat striped" style="max-width:900px"><thead><tr><th>Scanned</th><th>New</th><th>Changed</th><th>Returned</th><th>Missing</th><th>Possibly closed</th></tr></thead><tbody><?php foreach(array_slice($scans,0,10) as $scan): $c=(array)($scan['counts']??[]); ?><tr><td><?php echo esc_html($scan['scanned_at']??''); ?></td><td><?php echo absint($c['new']??0); ?></td><td><?php echo absint($c['changed']??0); ?></td><td><?php echo absint($c['returned']??0); ?></td><td><?php echo absint($c['missing']??0); ?></td><td><?php echo absint($c['possibly_closed']??0); ?></td></tr><?php endforeach; ?></tbody></table><?php endif; ?>
+        <?php endif; ?></div><?php
     }
 }
