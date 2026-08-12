@@ -2,13 +2,13 @@
 /**
  * Plugin Name: TN Game Trip Mode Smooth + Developer
  * Description: Safe Active Trip handoff plus an admin-only Trip Mode arrival simulator.
- * Version: 0.2.3
+ * Version: 0.2.4
  * Author: The TN Game
  */
 
 if (!defined('ABSPATH')) exit;
 
-define('TNG_TRIP_SMOOTH_DEV_VERSION', '0.2.3');
+define('TNG_TRIP_SMOOTH_DEV_VERSION', '0.2.4');
 define('TNG_TRIP_SMOOTH_DEV_URL', plugin_dir_url(__FILE__));
 
 function tng_trip_smooth_dev_is_page() {
@@ -19,83 +19,93 @@ function tng_trip_smooth_dev_is_page() {
     return (bool) preg_match('#/(?:trip-mode|active-trip)/?$#i', rtrim($path, '/') . '/');
 }
 
-/*
- * Active Trip has two renderers during the migration:
- * 1. the legacy "Your Tennessee day" page already present in WordPress markup
- * 2. the live #tng-trip-mode-v1 controller inserted by trip-mode-v1.js
+/**
+ * On /active-trip/ the live Trip Mode controller is the only page renderer.
+ * Replace the legacy WordPress page content before it reaches the browser so
+ * "Your Tennessee day" can never flash before JavaScript mounts Trip Mode.
  *
- * On /active-trip/ the live controller is authoritative. Keep the legacy markup
- * out of first paint, then permanently suppress its sibling content as soon as
- * Trip Mode mounts. The safety timeout restores the legacy page only when the
- * real Trip Mode controller genuinely fails to appear.
+ * trip-mode-v1.js already looks for #tng-trip-mode-v1 and will reuse this
+ * server-rendered root instead of creating a second one.
+ */
+add_filter('the_content', static function ($content) {
+    if (is_admin() || !is_page('active-trip') || !in_the_loop() || !is_main_query()) {
+        return $content;
+    }
+
+    return '<section id="tng-trip-mode-v1" class="tng-trip-mode tng-trip-mode--server-root" aria-live="polite">'
+        . '<div class="tng-trip-mode__empty tng-trip-mode__boot">'
+        . '<small>ACTIVE TRIP</small>'
+        . '<h1>Trip mode</h1>'
+        . '<p>Loading your active trip…</p>'
+        . '</div>'
+        . '</section>';
+}, 1);
+
+/*
+ * Fallback first-paint protection for layouts that bypass the_content.
+ * The class is applied in <head>, before page markup paints. Once the real
+ * server-rendered/controller root is present, the handoff is released.
  */
 add_action('wp_head', static function () {
     if (!is_page('active-trip')) return;
     ?>
     <style id="tng-active-trip-handoff-css">
-        /* Before Trip Mode mounts, prevent the legacy page from flashing. */
-        html.tng-active-trip-handoff body main {
+        html.tng-active-trip-handoff body main,
+        html.tng-active-trip-handoff body .tng-active-trip-page,
+        html.tng-active-trip-handoff body [data-tng-active-trip] {
             visibility: hidden !important;
         }
 
-        /* Once Trip Mode owns the page, show only its root inside <main>. */
-        html.tng-active-trip-owned body main {
-            visibility: visible !important;
-        }
-        html.tng-active-trip-owned body main > :not(#tng-trip-mode-v1) {
-            display: none !important;
-        }
-        html.tng-active-trip-owned body main > #tng-trip-mode-v1 {
+        html.tng-active-trip-owned #tng-trip-mode-v1 {
             display: block !important;
             visibility: visible !important;
+        }
+
+        .tng-trip-mode--server-root .tng-trip-mode__boot {
+            min-height: 46vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            gap: 8px;
         }
     </style>
     <script id="tng-active-trip-handoff-js">
     (function () {
         'use strict';
-
         var html = document.documentElement;
         var observer = null;
         var safetyTimer = null;
-        var owned = false;
 
         html.classList.add('tng-active-trip-handoff');
 
         function rootReady() {
-            var root = document.getElementById('tng-trip-mode-v1');
-            return !!(root && root.children && root.children.length);
+            return !!document.getElementById('tng-trip-mode-v1');
         }
 
-        function claimPage() {
-            if (owned || !rootReady()) return false;
-            owned = true;
+        function release() {
             html.classList.remove('tng-active-trip-handoff');
             html.classList.add('tng-active-trip-owned');
             if (observer) observer.disconnect();
             if (safetyTimer) window.clearTimeout(safetyTimer);
-            return true;
-        }
-
-        function restoreLegacy() {
-            if (owned) return;
-            html.classList.remove('tng-active-trip-handoff');
-            html.classList.remove('tng-active-trip-owned');
-            if (observer) observer.disconnect();
         }
 
         function watch() {
-            if (claimPage()) return;
+            if (rootReady()) {
+                release();
+                return;
+            }
 
             observer = new MutationObserver(function () {
-                claimPage();
+                if (rootReady()) release();
             });
-            observer.observe(document.documentElement, {
-                childList: true,
-                subtree: true
-            });
+            observer.observe(document.documentElement, { childList: true, subtree: true });
 
-            /* Fail safe only: if Trip Mode truly does not mount, show legacy UI. */
-            safetyTimer = window.setTimeout(restoreLegacy, 2500);
+            /* Never leave the page hidden if a custom template bypasses content. */
+            safetyTimer = window.setTimeout(function () {
+                html.classList.remove('tng-active-trip-handoff');
+            }, 2500);
         }
 
         if (document.readyState === 'loading') {
@@ -110,8 +120,8 @@ add_action('wp_head', static function () {
 
 /*
  * IMPORTANT:
- * This companion never redirects and never manufactures its own Trip Mode shell.
- * The primary tn-game-trip-mode-v1 controller owns page rendering.
+ * This companion never redirects and never manufactures a second Trip Mode
+ * controller. The primary tn-game-trip-mode-v1 JavaScript owns live rendering.
  */
 add_action('wp_enqueue_scripts', static function () {
     if (!tng_trip_smooth_dev_is_page()) return;
