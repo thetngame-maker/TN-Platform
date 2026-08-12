@@ -2,13 +2,13 @@
 /**
  * Plugin Name: TN Game Trip Mode Route
  * Description: Gives /trip-mode/ a dedicated live Trip Mode surface and prevents legacy trip pages from rendering first.
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: The TN Game
  */
 
 if (!defined('ABSPATH')) exit;
 
-define('TNG_TRIP_MODE_ROUTE_VERSION', '1.0.0');
+define('TNG_TRIP_MODE_ROUTE_VERSION', '1.0.1');
 define('TNG_TRIP_MODE_ROUTE_PATH', plugin_dir_path(__FILE__));
 
 function tng_trip_mode_route_path(): string {
@@ -27,36 +27,32 @@ add_action('template_redirect', static function (): void {
     if (tng_trip_mode_route_path() !== '/active-trip/') return;
     wp_safe_redirect(home_url('/trip-mode/'), 302, 'TN Game Trip Mode Route');
     exit;
-}, -9999);
+}, 0);
 
 /**
- * Own /trip-mode/ completely. We deliberately bypass template_include and
- * the_content so legacy Trips/Active Trip renderers cannot paint first.
+ * Replace only the final page template. This deliberately keeps the normal
+ * WordPress + Traveler lifecycle intact (wp_head, enqueues, wp_footer and the
+ * theme loader shutdown), while preventing the old Trips page content from
+ * ever being rendered into /trip-mode/.
  */
-add_action('template_redirect', static function (): void {
-    if (is_admin() || !tng_trip_mode_route_is_live()) return;
+add_filter('template_include', static function ($template) {
+    if (!tng_trip_mode_route_is_live()) return $template;
 
-    status_header(200);
-    nocache_headers();
-
-    $template = TNG_TRIP_MODE_ROUTE_PATH . 'templates/trip-mode.php';
-    if (!is_readable($template)) {
-        wp_die('Trip Mode template is missing.', 'Trip Mode', ['response' => 500]);
-    }
-
-    include $template;
-    exit;
-}, -9998);
+    $dedicated = TNG_TRIP_MODE_ROUTE_PATH . 'templates/trip-mode.php';
+    return is_readable($dedicated) ? $dedicated : $template;
+}, PHP_INT_MAX);
 
 add_filter('body_class', static function (array $classes): array {
-    if (tng_trip_mode_route_is_live()) $classes[] = 'tng-trip-mode-route-page';
+    if (tng_trip_mode_route_is_live()) {
+        $classes[] = 'tng-trip-mode-route-page';
+        $classes[] = 'tng-trip-mode-v1-page';
+    }
     return $classes;
 });
 
 /**
- * Keep unrelated trip-planner scripts off the dedicated live surface. This is
- * intentionally conservative: only known planner/legacy handles are removed;
- * the Trip Mode controller, Leaflet, check-in and developer assets remain.
+ * Keep unrelated trip-planner scripts off the dedicated live surface. The
+ * Trip Mode controller, Leaflet, check-in, arrival and developer assets remain.
  */
 add_action('wp_enqueue_scripts', static function (): void {
     if (!tng_trip_mode_route_is_live()) return;
