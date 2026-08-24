@@ -3,7 +3,7 @@
  * Plugin Name: TN Game Platform UI
  * Plugin URI: https://thetngame.com
  * Description: Mobile-first TN Game app shell, private preview, Traveler chrome replacement controls, and Explore page components.
- * Version: 0.4.0
+ * Version: 0.5.0
  * Author: The TN Game
  * Text Domain: tn-game-platform-ui
  */
@@ -17,6 +17,7 @@ final class TNG_Platform_UI {
         add_action('admin_menu', [self::class, 'admin_menu']);
         add_action('admin_init', [self::class, 'register_settings']);
         add_action('wp_enqueue_scripts', [self::class, 'enqueue'], 40);
+        add_action('wp_enqueue_scripts', [self::class, 'enqueue_mobile_audit'], 999);
         add_filter('body_class', [self::class, 'body_class']);
         add_action('wp_body_open', [self::class, 'header'], 5);
         add_action('wp_footer', [self::class, 'footer'], 50);
@@ -36,7 +37,8 @@ final class TNG_Platform_UI {
     public static function active(): bool {
         $settings = self::settings();
         $preview = current_user_can('manage_options') && isset($_GET[self::PREVIEW]) && $_GET[self::PREVIEW] === '1';
-        return !is_admin() && (!empty($settings['enabled']) || $preview);
+        $app_route = class_exists('TNG_OS\\Platform\\App_Router') && \TNG_OS\Platform\App_Router::is_app_request();
+        return !is_admin() && (!empty($settings['enabled']) || $preview || $app_route);
     }
 
     public static function admin_menu(): void {
@@ -84,9 +86,16 @@ final class TNG_Platform_UI {
     public static function enqueue(): void {
         if (!self::active()) return;
         $base = plugin_dir_url(__FILE__);
-        wp_enqueue_style('tng-platform-ui', $base . 'assets/css/platform-ui.css', [], '0.4.0');
-        wp_enqueue_style('tng-platform-ui-refinements', $base . 'assets/css/platform-ui-refinements.css', ['tng-platform-ui'], '0.4.0');
-        wp_enqueue_script('tng-platform-ui', $base . 'assets/js/platform-ui.js', [], '0.4.0', true);
+        wp_enqueue_style('tng-platform-ui', $base . 'assets/css/platform-ui.css', [], '0.5.0');
+        wp_enqueue_style('tng-platform-ui-refinements', $base . 'assets/css/platform-ui-refinements.css', ['tng-platform-ui'], '0.5.0');
+        wp_enqueue_script('tng-platform-ui', $base . 'assets/js/platform-ui.js', [], '0.5.0', true);
+    }
+
+    public static function enqueue_mobile_audit(): void {
+        if (!self::active()) return;
+        $base = plugin_dir_url(__FILE__);
+        wp_enqueue_style('tng-mobile-audit', $base . 'assets/css/mobile-audit.css', [], '0.5.0');
+        wp_enqueue_script('tng-mobile-audit', $base . 'assets/js/mobile-audit.js', ['tng-platform-ui'], '0.5.0', true);
     }
 
     public static function body_class(array $classes): array {
@@ -98,22 +107,38 @@ final class TNG_Platform_UI {
 
     public static function header(): void {
         if (!self::active()) return;
-        echo '<header class="tng-topbar"><a class="tng-brand" href="' . esc_url(home_url('/')) . '"><span class="tng-brand__mark">TN</span><span>The TN Game</span></a><a class="tng-topbar__action" href="' . esc_url(home_url('/search/')) . '" aria-label="Search">⌕</a></header>';
+        echo '<header class="tng-topbar"><a class="tng-brand" href="' . esc_url(home_url('/explore/')) . '"><span class="tng-brand__mark">TN</span><span>The TN Game</span></a><a class="tng-topbar__action" href="' . esc_url(home_url('/search/')) . '" aria-label="Search The TN Game">⌕</a></header>';
     }
 
     public static function footer(): void {
         if (!self::active()) return;
+        if (class_exists('TNG_OS\\Platform\\App_Router') && \TNG_OS\Platform\App_Router::is_app_request()) return;
         echo '<footer class="tng-footer"><strong>The TN Game</strong><span>Explore Tennessee. Play locally. Earn your story.</span></footer>';
     }
 
     public static function navigation(): void {
         if (!self::active()) return;
-        $profile = is_user_logged_in() ? get_author_posts_url(get_current_user_id()) : wp_login_url();
-        $items = [['Explore','⌂',home_url('/')],['Map','⌖',home_url('/map/')],['Play','▶',home_url('/play/'),'primary'],['Trips','◇',home_url('/trips/')],['Profile','○',$profile]];
+        $route = class_exists('TNG_OS\\Platform\\App_Router') ? \TNG_OS\Platform\App_Router::current_route() : '';
+        $sections = [
+            'explore' => ['explore','search','trails','events','food','top-sights','destinations'],
+            'map' => ['map'],
+            'play' => ['play','games','game-builder','game-play'],
+            'trips' => ['trips','saved','trip-builder','active-trip','trip-mode','past-trips'],
+            'profile' => ['profile','profile-settings','leaderboard','achievements','friends','activity','challenges','journal','explorer-journal','completed','my-photos'],
+        ];
+        $items = [
+            ['Explore','⌂',home_url('/explore/'),'explore'],
+            ['Map','⌖',home_url('/map/'),'map'],
+            ['Play','▶',home_url('/play/'),'play','primary'],
+            ['Trips','◇',home_url('/trips/'),'trips'],
+            ['Profile','○',home_url('/profile/'),'profile'],
+        ];
         echo '<nav class="tng-app-nav" aria-label="TN Game navigation"><div class="tng-app-nav__inner">';
         foreach ($items as $item) {
-            $class = 'tng-app-nav__item' . (!empty($item[3]) ? ' is-primary' : '');
-            echo '<a class="' . esc_attr($class) . '" href="' . esc_url($item[2]) . '"><span class="tng-app-nav__icon" aria-hidden="true">' . esc_html($item[1]) . '</span><span>' . esc_html($item[0]) . '</span></a>';
+            $section = $item[3];
+            $active = $route !== '' && in_array($route, $sections[$section], true);
+            $class = 'tng-app-nav__item' . (!empty($item[4]) ? ' is-primary' : '') . ($active ? ' is-active' : '');
+            echo '<a class="' . esc_attr($class) . '" href="' . esc_url($item[2]) . '" data-tng-section="' . esc_attr($section) . '"' . ($active ? ' aria-current="page"' : '') . '><span class="tng-app-nav__icon" aria-hidden="true">' . esc_html($item[1]) . '</span><span>' . esc_html($item[0]) . '</span></a>';
         }
         echo '</div></nav>';
     }
