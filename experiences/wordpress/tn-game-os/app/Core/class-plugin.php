@@ -62,6 +62,7 @@ final class Plugin {
             'app/Modules/Studio/class-review-studio.php',
             'app/Modules/Studio/class-tn-studio.php',
             'app/Modules/Admin/class-runtime-audit.php',
+            'app/Modules/Admin/class-launch-readiness.php',
             'app/Modules/Admin/class-service-tag-manager.php',
             'app/Modules/Admin/class-admin.php',
         ] as $file) require_once TNG_OS_PATH . $file;
@@ -94,6 +95,7 @@ final class Plugin {
             \TNG_OS\Modules\Studio\Review_Studio::class,
             \TNG_OS\Modules\Studio\TN_Studio::class,
             \TNG_OS\Modules\Admin\Runtime_Audit::class,
+            \TNG_OS\Modules\Admin\Launch_Readiness::class,
             \TNG_OS\Modules\Admin\Service_Tag_Manager::class,
             \TNG_OS\Modules\Admin\Admin::class,
         ];
