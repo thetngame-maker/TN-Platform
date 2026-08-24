@@ -3,13 +3,14 @@
  * Plugin Name: TN Game OS
  * Plugin URI: https://thetngame.com
  * Description: Modular tourism operating system for Traveler listings, trails, food, maps, Explorer progression, reusable assets, destinations, and developer tools.
- * Version: 5.100.0
+ * Version: 5.100.1
  * Author: The TN Game
  * Text Domain: tn-game-os
  */
 if (!defined('ABSPATH')) exit;
-define('TNG_OS_VERSION','5.100.0');
+define('TNG_OS_VERSION','5.100.1');
 define('TNG_OS_FILE',__FILE__);define('TNG_OS_PATH',plugin_dir_path(__FILE__));define('TNG_OS_URL',plugin_dir_url(__FILE__));
+require_once TNG_OS_PATH.'tn-game-app-router.php';
 require_once TNG_OS_PATH.'app/Core/class-module-interface.php';require_once TNG_OS_PATH.'app/Core/class-container.php';require_once TNG_OS_PATH.'app/Core/class-plugin.php';
 require_once TNG_OS_PATH.'app/Modules/Frontend/class-gameplay-notifications.php';require_once TNG_OS_PATH.'app/Modules/Frontend/class-mobile-session-recovery.php';
 foreach(['class-destination-intelligence-center.php','class-destination-health-dashboard.php','class-destination-ai-profiles.php','class-smart-recommendation-engine.php','class-explore-nearby-widget.php','class-smart-day-planner.php','class-my-trip-workspace.php','class-personalized-trip-builder.php','class-live-trip-optimizer.php','class-live-trip-companion.php','class-multi-stop-route-navigator.php','class-active-trip-mode.php','class-trip-completion-rewards.php','class-past-trips-journal.php','class-trip-explorer-integration.php','class-explorer-journal.php','class-explorer-timeline-bridge.php','class-public-explorer-profile.php','class-explorer-profile-settings.php','class-explorer-showcase.php','class-explorer-discovery.php','class-explorer-network-intelligence.php','class-coordinate-intelligence.php','class-coordinate-quality-controls.php','class-coordinate-source-resolver.php','class-knowledge-graph-core.php','class-knowledge-graph-inspector.php'] as $f)require_once TNG_OS_PATH.'app/Modules/Destinations/'.$f;
