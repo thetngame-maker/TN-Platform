@@ -32,6 +32,7 @@ final class Cleanup_Audit implements Module_Interface {
         $container->set('cleanup_audit', $this);
         add_action('admin_menu', [$this, 'menu'], 31);
         add_action('admin_post_tng_cleanup_audit_run', [$this, 'handle_cleanup']);
+        add_action('admin_post_tng_cleanup_audit_restore', [$this, 'handle_restore']);
         add_action('admin_notices', [$this, 'notice']);
     }
 
@@ -52,6 +53,7 @@ final class Cleanup_Audit implements Module_Interface {
         if (!current_user_can('manage_options')) return;
         $report = $this->scan();
         $score = max(0, 100 - min(100, $report['total_findings'] * 8));
+        $backup = get_option(self::BACKUP_OPTION, []);
         ?>
         <div class="wrap">
             <h1>TN Game Cleanup / Audit Engine</h1>
@@ -105,7 +107,7 @@ final class Cleanup_Audit implements Module_Interface {
                     <p>This will:</p>
                     <ul style="list-style:disc;padding-left:20px;">
                         <li>move exact Traveler demo pages/posts to Trash,</li>
-                        <li>remove exact Traveler demo menu items,</li>
+                        <li>disable exact Traveler demo menu items,</li>
                         <li>strip the old Traveler 2022 copyright from known theme-option arrays,</li>
                         <li>save a backup snapshot before changing anything.</li>
                     </ul>
@@ -115,6 +117,16 @@ final class Cleanup_Audit implements Module_Interface {
                         <button class="button button-primary button-hero" type="submit" <?php disabled($report['safe_findings'], 0); ?>>Run safe cleanup</button>
                     </form>
                     <p style="margin-bottom:0;color:#646970;font-size:12px;">Safe findings ready: <?php echo esc_html((string)$report['safe_findings']); ?></p>
+                    <?php if (is_array($backup) && !empty($backup['created_at'])): ?>
+                        <hr style="margin:20px 0;">
+                        <h3>Latest backup</h3>
+                        <p>Created <?php echo esc_html((string)$backup['created_at']); ?>. Restore the posts, menu items, and theme options changed by that cleanup run.</p>
+                        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                            <input type="hidden" name="action" value="tng_cleanup_audit_restore">
+                            <?php wp_nonce_field('tng_cleanup_audit_restore'); ?>
+                            <button class="button" type="submit">Restore latest cleanup</button>
+                        </form>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -128,8 +140,14 @@ final class Cleanup_Audit implements Module_Interface {
         $report = $this->scan();
         $backup = [
             'created_at' => current_time('mysql'),
-            'posts' => $report['posts'],
-            'menu_items' => $report['menu_items'],
+            'posts' => array_map(static function (array $item): array {
+                $item['status'] = (string)get_post_status($item['id']);
+                return $item;
+            }, $report['posts']),
+            'menu_items' => array_map(static function (array $item): array {
+                $item['status'] = (string)get_post_status($item['id']);
+                return $item;
+            }, $report['menu_items']),
             'options' => [],
         ];
 
@@ -143,7 +161,8 @@ final class Cleanup_Audit implements Module_Interface {
             if (get_post_status($item['id']) !== 'trash' && wp_trash_post($item['id'])) $changed++;
         }
         foreach ($report['menu_items'] as $item) {
-            if (wp_delete_post($item['id'], true)) $changed++;
+            $result = wp_update_post(['ID' => (int)$item['id'], 'post_status' => 'draft'], true);
+            if (!is_wp_error($result) && $result) $changed++;
         }
         foreach ($report['options'] as $item) {
             $value = get_option($item['option']);
@@ -155,6 +174,44 @@ final class Cleanup_Audit implements Module_Interface {
         }
 
         update_option(self::NOTICE_OPTION, sprintf('Cleanup complete. %d safe Traveler/demo artifacts were changed. A backup snapshot was saved.', $changed), false);
+        wp_safe_redirect(admin_url('admin.php?page=tng-cleanup-audit'));
+        exit;
+    }
+
+    public function handle_restore(): void {
+        if (!current_user_can('manage_options')) wp_die('Insufficient permissions.');
+        check_admin_referer('tng_cleanup_audit_restore');
+
+        $backup = get_option(self::BACKUP_OPTION, []);
+        if (!is_array($backup) || empty($backup['created_at'])) {
+            update_option(self::NOTICE_OPTION, 'No cleanup backup was available to restore.', false);
+            wp_safe_redirect(admin_url('admin.php?page=tng-cleanup-audit'));
+            exit;
+        }
+
+        $restored = 0;
+        foreach ((array)($backup['posts'] ?? []) as $item) {
+            $id = absint($item['id'] ?? 0);
+            if (!$id || !get_post($id)) continue;
+            if (get_post_status($id) === 'trash') wp_untrash_post($id);
+            $status = sanitize_key((string)($item['status'] ?? 'draft')) ?: 'draft';
+            $result = wp_update_post(['ID' => $id, 'post_status' => $status], true);
+            if (!is_wp_error($result) && $result) $restored++;
+        }
+        foreach ((array)($backup['menu_items'] ?? []) as $item) {
+            $id = absint($item['id'] ?? 0);
+            if (!$id || !get_post($id)) continue;
+            $status = sanitize_key((string)($item['status'] ?? 'publish')) ?: 'publish';
+            $result = wp_update_post(['ID' => $id, 'post_status' => $status], true);
+            if (!is_wp_error($result) && $result) $restored++;
+        }
+        foreach ((array)($backup['options'] ?? []) as $option_name => $value) {
+            if (update_option(sanitize_key((string)$option_name), $value)) $restored++;
+        }
+
+        $backup['restored_at'] = current_time('mysql');
+        update_option(self::BACKUP_OPTION, $backup, false);
+        update_option(self::NOTICE_OPTION, sprintf('Cleanup backup restored. %d items were returned to their previous state.', $restored), false);
         wp_safe_redirect(admin_url('admin.php?page=tng-cleanup-audit'));
         exit;
     }
