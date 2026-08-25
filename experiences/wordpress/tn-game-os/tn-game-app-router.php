@@ -32,7 +32,7 @@ add_action('wp_enqueue_scripts',static function():void{
     if(in_array($route,['saved','trip-builder','active-trip','trip-mode','past-trips'],true))wp_enqueue_style('tng-trip-builder-ui',TNG_OS_URL.'assets/css/trip-builder-ui.css',['tng-trips-ui'],'0.3.0');
     if(in_array($route,['active-trip','trip-mode'],true))wp_enqueue_style('tng-active-trip-ui',TNG_OS_URL.'assets/css/active-trip-ui.css',['tng-trip-builder-ui','tng-active-trip-leaflet'],'0.3.0');
     if($route==='past-trips')wp_enqueue_style('tng-past-trips-ui',TNG_OS_URL.'assets/css/past-trips-ui.css',['tng-trip-builder-ui'],'0.1.1');
-    if($route==='profile')wp_enqueue_style('tng-profile-ui',TNG_OS_URL.'assets/css/profile-ui.css',['tng-ui-kit'],'0.2.4');
+    if($route==='profile')wp_enqueue_style('tng-profile-ui',TNG_OS_URL.'assets/css/profile-ui.css',['tng-ui-kit'],TNG_OS_VERSION);
     if($route==='profile-settings')wp_enqueue_style('tng-settings-ui',TNG_OS_URL.'assets/css/settings-ui.css',['tng-ui-kit'],'0.1.4');
     if($route==='search')wp_enqueue_style('tng-search-ui',TNG_OS_URL.'assets/css/search-ui.css',['tng-ui-kit'],'0.1.9');
     if(in_array($route,['leaderboard','achievements'],true))wp_enqueue_style('tng-progress-ui',TNG_OS_URL.'assets/css/progress-ui.css',['tng-ui-kit'],'0.1.8');

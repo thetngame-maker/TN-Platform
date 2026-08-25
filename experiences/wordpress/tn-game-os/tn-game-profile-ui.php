@@ -1,13 +1,22 @@
 <?php
 /**
- * Plugin Name: TN Game Profile UI
- * Description: Native Explorer profile dashboard for the TN Game app router.
- * Version: 0.2.0
+ * Component Name: TN Game Profile UI
+ * Description: Explorer Profile 2.0 dashboard for the TN Game app router.
+ * Version: 0.3.0
  * Author: The TN Game
  */
 if (!defined('ABSPATH')) exit;
 
 final class TNG_Profile_UI {
+    private static function level_title(int $level): string {
+        if ($level >= 10) return 'Grand Tennessee Explorer';
+        if ($level >= 7) return 'Volunteer Pathfinder';
+        if ($level >= 5) return 'Tennessee Explorer';
+        if ($level >= 3) return 'Ridge Walker';
+        if ($level >= 2) return 'Trail Scout';
+        return 'New Explorer';
+    }
+
     private static function points_type(): string {
         $configured = sanitize_key((string) get_option('tng_gamipress_points_type', ''));
         if ($configured !== '') return $configured;
@@ -133,7 +142,7 @@ final class TNG_Profile_UI {
         $xp_to_next = max(0, ($level * 500) - $xp);
         $stats = self::explorer_stats($user_id);
         $earned_ids = self::earned_achievement_ids($user_id);
-        $achievements = count($earned_ids);
+        $achievements = count($earned_ids) + absint($stats['native_achievements'] ?? 0);
         $completed_games = absint($stats['completed_games'] ?? 0);
         $completed_trips = absint($stats['completed_trips'] ?? $stats['trips'] ?? 0);
         $completed_legacy = self::count_meta($user_id, ['tng_completed_trails','tng_completed_adventures','completed_trails']);
@@ -141,6 +150,14 @@ final class TNG_Profile_UI {
         $checkpoints = max(absint($stats['game_checkpoints'] ?? 0), absint($stats['checkpoints'] ?? 0));
         $photos = max(self::count_meta($user_id, ['tng_photo_count','tng_approved_photos','photo_count']), absint($stats['photos'] ?? 0));
         $rank = sanitize_text_field($stats['rank_name'] ?? self::rank_name($user_id));
+        if ($rank === '' || strtolower($rank) === 'explorer') $rank = self::level_title($level);
+        $discoveries = max(absint($stats['discoveries'] ?? 0), absint($stats['top_sights'] ?? 0));
+        $mapped_discoveries = absint($stats['mapped_discoveries'] ?? 0);
+        $tennessee_total = absint($stats['tennessee_completion_total'] ?? 0);
+        $tennessee_remaining = absint($stats['tennessee_completion_remaining'] ?? 0);
+        $tennessee_percent = min(100, max(0, (float)($stats['tennessee_completion'] ?? 0)));
+        $discovery_categories = is_array($stats['discovery_categories'] ?? null) ? $stats['discovery_categories'] : [];
+        $category_progression = is_array($stats['category_progression'] ?? null) ? $stats['category_progression'] : [];
         $next_achievement = self::next_achievement($user_id, $earned_ids);
         $recent = self::recent_activity($user_id);
         $avatar = $logged_in ? get_avatar_url($user_id, ['size' => 192]) : '';
@@ -162,11 +179,31 @@ final class TNG_Profile_UI {
             </section>
 
             <section class="tng-profile-stats" aria-label="Explorer statistics">
-                <a href="<?php echo esc_url(home_url('/achievements/')); ?>"><span>🏆</span><strong><?php echo esc_html((string) $achievements); ?></strong><small>Achievements</small></a>
-                <a href="<?php echo esc_url(home_url('/completed/')); ?>"><span>🥾</span><strong><?php echo esc_html((string) $completed); ?></strong><small>Adventures</small></a>
-                <a href="<?php echo esc_url(home_url('/completed/')); ?>"><span>📍</span><strong><?php echo esc_html((string) $checkpoints); ?></strong><small>Checkpoints</small></a>
-                <a href="<?php echo esc_url(home_url('/my-photos/')); ?>"><span>📸</span><strong><?php echo esc_html((string) $photos); ?></strong><small>Photos</small></a>
+                <a data-tng-profile-stat="achievements" href="<?php echo esc_url(home_url('/achievements/')); ?>"><span>🏆</span><strong><?php echo esc_html(number_format_i18n($achievements)); ?></strong><small>Achievements</small></a>
+                <a data-tng-profile-stat="adventures" href="<?php echo esc_url(home_url('/completed/')); ?>"><span>🥾</span><strong><?php echo esc_html(number_format_i18n($completed)); ?></strong><small>Adventures</small></a>
+                <a data-tng-profile-stat="checkpoints" href="<?php echo esc_url(home_url('/completed/')); ?>"><span>📍</span><strong><?php echo esc_html(number_format_i18n($checkpoints)); ?></strong><small>Checkpoints</small></a>
+                <a data-tng-profile-stat="photos" href="<?php echo esc_url(home_url('/my-photos/')); ?>"><span>📸</span><strong><?php echo esc_html(number_format_i18n($photos)); ?></strong><small>Photos</small></a>
+                <a data-tng-profile-stat="discoveries" href="<?php echo esc_url(home_url('/map/')); ?>"><span>🧭</span><strong><?php echo esc_html(number_format_i18n($discoveries)); ?></strong><small>Discoveries</small></a>
             </section>
+
+            <section class="tng-tennessee-completion" aria-label="Tennessee completion">
+                <div class="tng-tennessee-completion__summary">
+                    <div class="tng-tennessee-completion__ring" style="--tng-completion:<?php echo esc_attr((string)$tennessee_percent); ?>"><span><strong><?php echo esc_html(number_format_i18n($tennessee_percent, 1)); ?>%</strong><small>Tennessee</small></span></div>
+                    <div><span class="tng-eyebrow">Tennessee completion</span><h2>Your statewide discovery map</h2><p><?php echo $tennessee_total ? esc_html(number_format_i18n($mapped_discoveries) . ' of ' . number_format_i18n($tennessee_total) . ' mapped TN Game discoveries completed. ' . number_format_i18n($tennessee_remaining) . ' remain.') : 'Mapped TN Game discoveries will build your statewide completion here.'; ?></p><a href="<?php echo esc_url(home_url('/map/')); ?>">Explore the Universal Map →</a></div>
+                </div>
+                <?php if ($discovery_categories): ?><div class="tng-tennessee-completion__categories">
+                    <?php foreach ($discovery_categories as $category): if (empty($category['total'])) continue; ?>
+                    <article><span><?php echo esc_html((string)($category['icon'] ?? '•')); ?></span><div><strong><?php echo esc_html((string)($category['label'] ?? 'Places')); ?></strong><small><?php echo esc_html(number_format_i18n(absint($category['discovered'] ?? 0)) . ' / ' . number_format_i18n(absint($category['total'] ?? 0))); ?></small><i><b style="width:<?php echo esc_attr((string)min(100,max(0,(float)($category['percent'] ?? 0)))); ?>%"></b></i></div></article>
+                    <?php endforeach; ?>
+                </div><?php endif; ?>
+            </section>
+
+            <?php if ($category_progression): ?><section class="tng-category-progression tng-profile-v2-categories">
+                <div class="tng-category-progression__head"><div><span class="tng-eyebrow">Explorer paths</span><h2>Level every part of your journey</h2></div><p>Games, checkpoints, sights, trips, and photos each unlock their own milestones.</p></div>
+                <div class="tng-category-progression__grid">
+                    <?php foreach ($category_progression as $category): ?><article class="tng-category-card"><div class="tng-category-card__top"><span class="tng-category-card__icon"><?php echo esc_html((string)($category['icon'] ?? '•')); ?></span><span class="tng-category-card__value"><?php echo esc_html(number_format_i18n(absint($category['value'] ?? 0))); ?></span></div><strong><?php echo esc_html((string)($category['label'] ?? 'Progress')); ?></strong><small><?php echo !empty($category['remaining']) ? esc_html(number_format_i18n(absint($category['remaining'])) . ' to ' . number_format_i18n(absint($category['target'] ?? 0))) : 'Top tier reached'; ?></small><div class="tng-category-card__bar"><i style="width:<?php echo esc_attr((string)min(100,max(0,absint($category['progress'] ?? 0)))); ?>%"></i></div></article><?php endforeach; ?>
+                </div>
+            </section><?php endif; ?>
 
             <section class="tng-profile-grid">
                 <article class="tng-profile-panel">

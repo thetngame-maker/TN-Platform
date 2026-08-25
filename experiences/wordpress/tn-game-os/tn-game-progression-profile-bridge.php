@@ -56,8 +56,10 @@ final class TNG_Progression_Profile_Bridge {
             const stats=document.querySelector('.tng-profile-stats');
             if(!stats)return false;
             const cards=[...stats.querySelectorAll('a')];
-            if(cards[0]){const n=cards[0].querySelector('strong');if(n)n.textContent=Number(data.achievements||0).toLocaleString();}
-            if(cards[2]){const n=cards[2].querySelector('strong');if(n)n.textContent=Number(data.checkpoints||0).toLocaleString();}
+            const achievementCard=stats.querySelector('[data-tng-profile-stat="achievements"]')||cards[0];
+            const checkpointCard=stats.querySelector('[data-tng-profile-stat="checkpoints"]')||cards[2];
+            if(achievementCard){const n=achievementCard.querySelector('strong');if(n)n.textContent=Number(data.achievements||0).toLocaleString();}
+            if(checkpointCard){const n=checkpointCard.querySelector('strong');if(n)n.textContent=Number(data.checkpoints||0).toLocaleString();}
             const goals=document.querySelector('.tng-profile-goals');
             if(goals&&data.next&&data.next.title){
               const links=[...goals.querySelectorAll('a')];
