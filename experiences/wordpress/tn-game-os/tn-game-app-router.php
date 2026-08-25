@@ -28,6 +28,7 @@ add_action('wp_enqueue_scripts',static function():void{
     if($route==='game-play')wp_enqueue_style('tng-game-runtime-ui',TNG_OS_URL.'assets/css/game-runtime-ui.css',['tng-ui-kit'],'0.2.0');
     if($route==='map')wp_enqueue_style('tng-map-ui',TNG_OS_URL.'assets/css/map-ui.css',['tng-ui-kit'],'0.3.4');
     if(in_array($route,['trips','saved','trip-builder','active-trip','trip-mode','past-trips'],true))wp_enqueue_style('tng-trips-ui',TNG_OS_URL.'assets/css/trips-ui.css',['tng-ui-kit'],'0.3.0');
+    if($route==='adventure-ai')wp_enqueue_style('tng-adventure-ai',TNG_OS_URL.'assets/css/adventure-ai.css',['tng-ui-kit'],'1.0.0');
     if(in_array($route,['saved','trip-builder','active-trip','trip-mode','past-trips'],true))wp_enqueue_style('tng-trip-builder-ui',TNG_OS_URL.'assets/css/trip-builder-ui.css',['tng-trips-ui'],'0.3.0');
     if(in_array($route,['active-trip','trip-mode'],true))wp_enqueue_style('tng-active-trip-ui',TNG_OS_URL.'assets/css/active-trip-ui.css',['tng-trip-builder-ui','tng-active-trip-leaflet'],'0.3.0');
     if($route==='past-trips')wp_enqueue_style('tng-past-trips-ui',TNG_OS_URL.'assets/css/past-trips-ui.css',['tng-trip-builder-ui'],'0.1.1');
@@ -40,6 +41,7 @@ add_action('wp_enqueue_scripts',static function():void{
     if(in_array($route,['journal','explorer-journal','completed','my-photos'],true))wp_enqueue_style('tng-library-ui',TNG_OS_URL.'assets/css/library-ui.css',['tng-ui-kit'],'0.1.5');
     if(in_array($route,['trails','events','food','top-sights','destinations'],true))wp_enqueue_style('tng-directory-ui',TNG_OS_URL.'assets/css/directory-ui.css',['tng-ui-kit'],'0.2.0');
     wp_enqueue_script('tng-platform-ui',TNG_OS_URL.'assets/js/platform-ui.js',[],'2.2.0',true);
+    if($route==='adventure-ai')wp_enqueue_script('tng-adventure-ai',TNG_OS_URL.'assets/js/adventure-ai.js',[],'1.0.0',true);
     if($route==='game-play')wp_enqueue_script('tng-game-runtime-ui',TNG_OS_URL.'assets/js/game-runtime-ui.js',[],'0.2.0',true);
     if($route==='trip-builder')wp_enqueue_script('tng-trip-builder',TNG_OS_URL.'assets/js/trip-builder.js',['tng-trip-data','tng-trip-builder-leaflet'],'0.5.0',true);
     if(in_array($route,['active-trip','trip-mode'],true))wp_enqueue_script('tng-active-trip',TNG_OS_URL.'assets/js/active-trip.js',['tng-trip-data','tng-active-trip-leaflet'],'0.3.0',true);

@@ -85,6 +85,15 @@ final class TNG_Trip_Data {
         return ['postId' => $post_id, 'saved' => !$saved, 'count' => count($ids), 'ids' => $ids, 'progressReset' => true];
     }
 
+    public static function merge(array $post_ids, int $user_id): array {
+        $incoming = array_values(array_filter(array_unique(array_map('absint', $post_ids)), static fn($id) => $id > 0 && get_post_status($id) === 'publish'));
+        $existing = self::ids($user_id);
+        $ids = array_slice(array_values(array_unique(array_merge($incoming, $existing))), 0, 100);
+        update_user_meta($user_id, self::META_KEY, $ids);
+        self::clear_route($user_id);
+        return ['count'=>count($ids),'added'=>count(array_diff($incoming, $existing)),'ids'=>$ids];
+    }
+
     public static function ajax_toggle(): void {
         check_ajax_referer('tng_trip_data', 'nonce');
         if (!is_user_logged_in()) wp_send_json_error(['code' => 'login_required'], 401);
