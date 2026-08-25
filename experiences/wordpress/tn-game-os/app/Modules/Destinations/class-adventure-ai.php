@@ -207,6 +207,7 @@ final class Adventure_AI implements Module_Interface {
                 $seen[$id] = true;
                 $used += 20 + $minutes;
                 if (count($rows) >= $target) break 2;
+                break;
             }
         }
 
@@ -281,17 +282,30 @@ final class Adventure_AI implements Module_Interface {
 
     private function stop(int $id, string $label, string $reason, int $minutes): array {
         $type = get_post_type_object(get_post_type($id));
+        if ($this->is_food($id)) $label = 'Food & drink';
+        $charset = get_bloginfo('charset') ?: 'UTF-8';
         return [
             'id'=>$id,
-            'title'=>get_the_title($id) ?: '#'.$id,
+            'title'=>html_entity_decode(get_the_title($id) ?: '#'.$id, ENT_QUOTES, $charset),
             'url'=>get_permalink($id),
             'image'=>get_the_post_thumbnail_url($id, 'medium_large') ?: '',
             'type'=>$type && !empty($type->labels->singular_name) ? $type->labels->singular_name : 'Place',
             'label'=>$label,
-            'reason'=>wp_strip_all_tags($reason),
+            'reason'=>html_entity_decode(wp_strip_all_tags($reason), ENT_QUOTES, $charset),
             'minutes'=>$minutes,
             'time'=>'',
         ];
+    }
+
+    private function is_food(int $id): bool {
+        $profile = class_exists(Destination_AI_Profiles::class) ? Destination_AI_Profiles::profile($id) : [];
+        $searchable = strtolower((string)get_the_title($id).' '.(string)($profile['traits'] ?? '').' '.(string)($profile['experience_type'] ?? ''));
+        foreach (get_object_taxonomies(get_post_type($id)) as $taxonomy) {
+            $terms = get_the_terms($id, $taxonomy);
+            if (!is_array($terms)) continue;
+            foreach ($terms as $term) $searchable .= ' '.strtolower((string)$term->name);
+        }
+        return (bool)preg_match('/\b(food|restaurant|grill|grille|cafe|coffee|pizza|kitchen|cantina|brewery|diner|bistro|eatery|bar)\b/', $searchable);
     }
 
     private function visit_minutes(int $id): int {
