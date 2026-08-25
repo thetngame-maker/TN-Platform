@@ -35,14 +35,19 @@
   const markers = new Map();
   const resultNodes = new Map();
   const itemById = new Map(cfg.items.map(item => [String(item.id), item]));
+  const categories = cfg.categories || {};
   const resultsEl = document.querySelector('[data-tng-map-results]');
   const panelIntro = document.querySelector('[data-tng-panel-intro]');
   const nearestEl = document.querySelector('[data-tng-nearest]');
+  const emptyEl = document.querySelector('[data-tng-map-empty]');
+  const searchInput = document.querySelector('[data-tng-map-search]');
+  const searchClear = document.querySelector('[data-tng-map-search-clear]');
   const sheet = document.querySelector('[data-tng-map-sheet]');
   const sheetContent = document.querySelector('[data-tng-map-sheet-content]');
   const sheetBackdrop = document.querySelector('.tng-map-sheet-backdrop');
   const sheetHandle = document.querySelector('[data-tng-map-sheet-handle]');
   let activeFilter = 'all';
+  let searchQuery = '';
   let userMarker = null;
   let userLatLng = null;
   let initialFitDone = false;
@@ -51,7 +56,8 @@
   let touchDeltaY = 0;
 
   const icons = {
-    trail: '🥾', game: '🎮', sight: '📍', food: '🍽️', event: '🎵', destination: '🗺️', place: '•'
+    trail: '🥾', game: '🎮', sight: '📍', food: '🍽️', event: '🎵', lodging: '🛏️',
+    tour: '🚌', rental: '🏡', transport: '🚗', destination: '🗺️', venue: '🎤', place: '•'
   };
   const esc = value => String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[c]));
   const markerIcon = item => L.divIcon({
@@ -100,7 +106,8 @@
     const distance = itemDistance(item) ? `<b>${esc(itemDistance(item))}</b>` : '';
     const actionLabel = item.actionLabel || (item.kind === 'game' ? 'Play game' : 'View');
     const actionUrl = item.actionUrl || item.url;
-    return `<article class="tng-map-popup">${image}<div><small>${esc(item.label)}</small><strong>${esc(item.title)}</strong>${distance}${item.subtitle ? `<p>${esc(item.subtitle)}</p>` : ''}<span class="tng-map-popup__actions"><a class="is-primary" href="${esc(actionUrl)}">${esc(actionLabel)}</a><button type="button" data-tng-directions data-lat="${esc(item.lat)}" data-lng="${esc(item.lng)}">Directions</button><button type="button" data-tng-trip-toggle data-post-id="${esc(item.id)}">＋ Add to trip</button></span></div></article>`;
+    const xp = Number(item.xp) > 0 ? `<span class="tng-map-popup__xp">+${esc(item.xp)} XP</span>` : '';
+    return `<article class="tng-map-popup">${image}<div><small>${esc(item.label)}</small><strong>${esc(item.title)}</strong>${distance}${xp}${item.subtitle ? `<p>${esc(item.subtitle)}</p>` : ''}<span class="tng-map-popup__actions"><a class="is-primary" href="${esc(actionUrl)}">${esc(actionLabel)}</a><button type="button" data-tng-directions data-lat="${esc(item.lat)}" data-lng="${esc(item.lng)}">Directions</button><button type="button" data-tng-trip-toggle data-post-id="${esc(item.id)}">＋ Add to trip</button></span></div></article>`;
   };
 
   const sheetMarkup = item => {
@@ -109,7 +116,8 @@
     const actionLabel = item.actionLabel || (item.kind === 'game' ? 'Play game' : item.kind === 'trail' ? 'View trail' : 'View');
     const actionUrl = item.actionUrl || item.url;
     const kindChip = `<span class="tng-map-sheet__chip">${icons[item.kind] || '•'} ${esc(item.label)}</span>`;
-    return `<div class="tng-map-sheet__overview">${image}<div class="tng-map-sheet__body"><div class="tng-map-sheet__eyebrow"><span>${esc(item.label)}</span>${distance ? `<b>${esc(distance)}</b>` : ''}</div><h2>${esc(item.title)}</h2>${item.subtitle ? `<p>${esc(item.subtitle)}</p>` : ''}<div class="tng-map-sheet__chips">${kindChip}${distance ? `<span class="tng-map-sheet__chip is-distance">⌖ ${esc(distance)} away</span>` : ''}</div></div></div><div class="tng-map-sheet__actions"><a class="is-primary" href="${esc(actionUrl)}">${esc(actionLabel)}</a><button type="button" data-tng-directions data-lat="${esc(item.lat)}" data-lng="${esc(item.lng)}">↗ Directions</button><button type="button" data-tng-trip-toggle data-post-id="${esc(item.id)}">＋ Add to trip</button></div>`;
+    const xpChip = Number(item.xp) > 0 ? `<span class="tng-map-sheet__chip is-xp">+${esc(item.xp)} XP</span>` : '';
+    return `<div class="tng-map-sheet__overview">${image}<div class="tng-map-sheet__body"><div class="tng-map-sheet__eyebrow"><span>${esc(item.label)}</span>${distance ? `<b>${esc(distance)}</b>` : ''}</div><h2>${esc(item.title)}</h2>${item.subtitle ? `<p>${esc(item.subtitle)}</p>` : ''}<div class="tng-map-sheet__chips">${kindChip}${xpChip}${distance ? `<span class="tng-map-sheet__chip is-distance">⌖ ${esc(distance)} away</span>` : ''}</div></div></div><div class="tng-map-sheet__actions"><a class="is-primary" href="${esc(actionUrl)}">${esc(actionLabel)}</a><button type="button" data-tng-directions data-lat="${esc(item.lat)}" data-lng="${esc(item.lng)}">↗ Directions</button><button type="button" data-tng-trip-toggle data-post-id="${esc(item.id)}">＋ Add to trip</button></div>`;
   };
 
   const openMobileSheet = item => {
@@ -140,7 +148,12 @@
     document.body.classList.remove('tng-map-sheet-open');
   };
 
-  const showItem = item => activeFilter === 'all' || item.kind === activeFilter;
+  const showItem = item => {
+    if (activeFilter !== 'all' && item.kind !== activeFilter) return false;
+    if (!searchQuery) return true;
+    const haystack = String(item.search || `${item.title || ''} ${item.label || ''}`).toLowerCase();
+    return searchQuery.split(/\s+/).filter(Boolean).every(term => haystack.includes(term));
+  };
 
   const activateResult = id => {
     document.querySelectorAll('.tng-map-result.is-active').forEach(n => n.classList.remove('is-active'));
@@ -155,11 +168,19 @@
   const focusItem = id => {
     const item = itemById.get(String(id));
     if (!item) return;
+    let rerender = false;
+    if (searchQuery && !String(item.search || '').toLowerCase().includes(searchQuery)) {
+      searchQuery = '';
+      if (searchInput) searchInput.value = '';
+      if (searchClear) searchClear.hidden = true;
+      rerender = true;
+    }
     if (activeFilter !== 'all' && activeFilter !== item.kind) {
       activeFilter = item.kind;
       document.querySelectorAll('[data-tng-map-filter]').forEach(b => b.classList.toggle('is-active', b.getAttribute('data-tng-map-filter') === activeFilter));
-      renderMarkers();
+      rerender = true;
     }
+    if (rerender) renderMarkers();
     const marker = markers.get(String(id));
     if (!marker) return;
     const openMarker = () => {
@@ -178,11 +199,12 @@
 
   const renderNearest = () => {
     if (!nearestEl || !userLatLng) return;
-    const kinds = [
-      ['trail', '🥾', 'Nearest trail'],
-      ['game', '🎮', 'Nearest game'],
-      ['sight', '📍', 'Nearest sight']
-    ];
+    const priority = ['trail', 'game', 'sight', 'food', 'event', 'lodging', 'tour', 'destination'];
+    const kinds = priority.filter(kind => cfg.items.some(item => item.kind === kind)).slice(0, 3).map(kind => [
+      kind,
+      categories[kind]?.icon || icons[kind] || '•',
+      `Nearest ${String(categories[kind]?.singular || categories[kind]?.label || kind).toLowerCase()}`
+    ]);
     const cards = kinds.map(([kind, icon, label]) => {
       const choices = cfg.items.filter(item => item.kind === kind && Number.isFinite(Number(item.lat)) && Number.isFinite(Number(item.lng)));
       if (!choices.length) return '';
@@ -255,11 +277,15 @@
       if (node) resultsEl.appendChild(node);
     });
 
+    if (emptyEl) emptyEl.hidden = visible.length > 0 || (!searchQuery && activeFilter === 'all');
+
     const count = document.querySelector('[data-tng-map-count]');
-    if (count) count.textContent = `${visible.length} ${visible.length === 1 ? 'place' : 'places'} in view`;
+    if (count) count.textContent = `${visible.length} ${visible.length === 1 ? 'discovery' : 'discoveries'} in view`;
     if (panelIntro) panelIntro.textContent = userLatLng
       ? 'Showing discoveries in this map view, sorted by distance from you.'
-      : 'Showing discoveries currently visible on the map. Move or zoom to explore another area.';
+      : searchQuery
+        ? `Showing matches for “${searchQuery}”. Move or zoom to explore another area.`
+        : 'Showing discoveries currently visible on the map. Move or zoom to explore another area.';
 
     if (activeSheetId && userLatLng) {
       const activeItem = itemById.get(activeSheetId);
@@ -283,6 +309,29 @@
       document.querySelectorAll('[data-tng-map-filter]').forEach(b => b.classList.toggle('is-active', b === button));
       renderMarkers({ fit: true });
     });
+  });
+
+  const applySearch = value => {
+    searchQuery = String(value || '').trim().toLowerCase();
+    if (searchClear) searchClear.hidden = !searchQuery;
+    closeMobileSheet();
+    renderMarkers({ fit: true });
+  };
+
+  if (searchInput) {
+    let searchTimer = 0;
+    searchInput.addEventListener('input', () => {
+      window.clearTimeout(searchTimer);
+      searchTimer = window.setTimeout(() => applySearch(searchInput.value), 120);
+    });
+    searchInput.addEventListener('search', () => applySearch(searchInput.value));
+  }
+  if (searchClear) searchClear.addEventListener('click', () => {
+    if (searchInput) {
+      searchInput.value = '';
+      searchInput.focus();
+    }
+    applySearch('');
   });
 
   document.addEventListener('click', event => {

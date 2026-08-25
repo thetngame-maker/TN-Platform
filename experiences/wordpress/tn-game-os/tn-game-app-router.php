@@ -26,7 +26,7 @@ add_action('wp_enqueue_scripts',static function():void{
     if($route==='games')wp_enqueue_style('tng-games-ui',TNG_OS_URL.'assets/css/games-ui.css',['tng-ui-kit'],'0.3.0');
     if($route==='game-builder')wp_enqueue_style('tng-game-builder-ui',TNG_OS_URL.'assets/css/game-builder-ui.css',['tng-ui-kit'],'0.5.0');
     if($route==='game-play')wp_enqueue_style('tng-game-runtime-ui',TNG_OS_URL.'assets/css/game-runtime-ui.css',['tng-ui-kit'],'0.2.0');
-    if($route==='map')wp_enqueue_style('tng-map-ui',TNG_OS_URL.'assets/css/map-ui.css',['tng-ui-kit'],'0.3.4');
+    if($route==='map')wp_enqueue_style('tng-map-ui',TNG_OS_URL.'assets/css/map-ui.css',['tng-ui-kit'],TNG_OS_VERSION);
     if(in_array($route,['trips','saved','trip-builder','active-trip','trip-mode','past-trips'],true))wp_enqueue_style('tng-trips-ui',TNG_OS_URL.'assets/css/trips-ui.css',['tng-ui-kit'],'0.3.0');
     if($route==='adventure-ai')wp_enqueue_style('tng-adventure-ai',TNG_OS_URL.'assets/css/adventure-ai.css',['tng-ui-kit'],'1.0.0');
     if(in_array($route,['saved','trip-builder','active-trip','trip-mode','past-trips'],true))wp_enqueue_style('tng-trip-builder-ui',TNG_OS_URL.'assets/css/trip-builder-ui.css',['tng-trips-ui'],'0.3.0');
