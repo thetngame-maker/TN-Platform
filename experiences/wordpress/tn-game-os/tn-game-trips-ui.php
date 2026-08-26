@@ -68,12 +68,13 @@ final class TNG_Trips_UI {
                 <a href="<?php echo esc_url(home_url('/active-trip/')); ?>"><span>▶</span><strong>Active trip</strong><small><?php echo $saved_count ? 'Continue your current route' : 'Plan your first route'; ?></small></a>
                 <a href="<?php echo esc_url(home_url('/saved/')); ?>"><span>♡</span><strong>Saved places<?php echo $saved_count?' · '.esc_html((string)$saved_count):''; ?></strong><small>Review places you bookmarked</small></a>
                 <a href="<?php echo esc_url(home_url('/recaps/')); ?>"><span>✦</span><strong>Adventure recaps</strong><small>Relive completed adventures</small></a>
+                <a href="<?php echo esc_url(home_url('/adventures/')); ?>"><span>◇</span><strong>Saved Adventures</strong><small>Reopen your Adventure AI plans</small></a>
                 <a href="<?php echo esc_url($logged_in?home_url('/profile/'):wp_login_url(home_url('/trips/'))); ?>"><span>★</span><strong>Trip rewards</strong><small>See XP and achievements</small></a>
             </section>
             <?php if ($saved_posts): ?><section class="tng-trips-section"><div class="tng-section__heading"><div><span class="tng-eyebrow">Your route</span><h2>Saved for this trip</h2><p>These stops stay synced to your Explorer account.</p></div><a href="<?php echo esc_url(home_url('/saved/')); ?>">Manage all</a></div><?php echo self::cards(array_slice($saved_posts,0,6),true); ?></section><?php endif; ?>
             <?php echo self::resume_panel($saved_posts); ?>
             <section class="tng-trips-section"><div class="tng-section__heading"><div><span class="tng-eyebrow">Ideas for your route</span><h2>Add another stop</h2><p>Popular places and adventures you can build into your next trip.</p></div><a href="<?php echo esc_url(home_url('/explore/')); ?>">Explore all</a></div><?php echo self::cards(self::suggested_places()); ?></section>
-            <section class="tng-trip-builder-card"><div><span class="tng-eyebrow">Adventure AI · New</span><h2>Describe the day. TN Game builds it.</h2><p>Use natural language to create a Tennessee itinerary from real trails, food, sights, destinations, and events—then save every stop to Trips.</p></div><a class="tng-ui-button" href="<?php echo esc_url(home_url('/adventure-ai/')); ?>">Try Adventure AI</a></section>
+            <section class="tng-trip-builder-card"><div><span class="tng-eyebrow">Adventure AI · v2</span><h2>Describe the day. TN Game builds it.</h2><p>Create, edit, and save reusable Tennessee itineraries from real trails, food, sights, destinations, and events.</p></div><div class="tng-current-trip__actions"><a class="tng-ui-button tng-ui-button--secondary" href="<?php echo esc_url(home_url('/adventures/')); ?>">Saved Adventures</a><a class="tng-ui-button" href="<?php echo esc_url(home_url('/adventure-ai/')); ?>">Build a plan</a></div></section>
         </main>
         <?php return (string)ob_get_clean();
     }

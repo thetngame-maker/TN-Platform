@@ -10,8 +10,8 @@ const client = read('assets/js/adventure-ai.js');
 const css = read('assets/css/adventure-ai.css');
 const router = read('tn-game-app-router.php');
 
-assert.match(bootstrap, /Version:\s*5\.111\.0/);
-assert.match(bootstrap, /define\('TNG_OS_VERSION','5\.111\.0'\)/);
+assert.match(bootstrap, /Version:\s*5\.(?:11[1-9]|1[2-9][0-9]|[2-9][0-9]{2})\.\d+/);
+assert.match(bootstrap, /define\('TNG_OS_VERSION','5\.(?:11[1-9]|1[2-9][0-9]|[2-9][0-9]{2})\.\d+'\)/);
 assert.match(adventure, /Adventure AI · v2/);
 assert.match(adventure, /Universal_Map_Registry::dataset\(\)/);
 assert.match(adventure, /private function mapped_coordinates\(array \$ids\): array/);

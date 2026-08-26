@@ -10,6 +10,8 @@ if (!defined('ABSPATH')) exit;
 final class Adventure_AI implements Module_Interface {
     private const NONCE = 'tng_adventure_ai';
     private const LAST_PLAN_META = 'tng_last_adventure_ai_plan';
+    private const PLAN_LIBRARY_META = 'tng_adventure_ai_plan_library';
+    private const PLAN_LIBRARY_LIMIT = 12;
 
     public function id(): string { return 'adventure_ai'; }
 
@@ -19,11 +21,13 @@ final class Adventure_AI implements Module_Interface {
         add_action('wp_ajax_tng_generate_adventure_ai', [$this, 'ajax_generate']);
         add_action('wp_ajax_nopriv_tng_generate_adventure_ai', [$this, 'ajax_generate']);
         add_action('wp_ajax_tng_save_adventure_ai', [$this, 'ajax_save']);
+        add_action('wp_ajax_tng_adventure_library_action', [$this, 'ajax_library_action']);
     }
 
     public function boot(Container $container): void {}
 
     public static function render_screen(): string {
+        $initial_plan = self::requested_plan();
         $examples = [
             'Plan a relaxed 5-hour waterfall and lunch adventure near Tracy City.',
             'Build a family-friendly day with easy walks, scenic views, and food.',
@@ -31,6 +35,7 @@ final class Adventure_AI implements Module_Interface {
         ];
         ob_start(); ?>
         <main class="tng-adventure-ai-screen tng-native-screen tng-app-shell" data-tng-adventure-ai data-ajax-url="<?php echo esc_url(admin_url('admin-ajax.php')); ?>" data-nonce="<?php echo esc_attr(wp_create_nonce(self::NONCE)); ?>" data-logged-in="<?php echo is_user_logged_in() ? '1' : '0'; ?>" data-login-url="<?php echo esc_url(wp_login_url(home_url('/adventure-ai/'))); ?>">
+            <?php if ($initial_plan): ?><script type="application/json" data-tng-ai-initial><?php echo wp_json_encode($initial_plan, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT); ?></script><?php endif; ?>
             <section class="tng-ai-hero">
                 <div class="tng-ai-hero__copy">
                     <span class="tng-eyebrow">Adventure AI · v2</span>
@@ -76,8 +81,9 @@ final class Adventure_AI implements Module_Interface {
                 <div class="tng-ai-timeline" data-tng-ai-stops></div>
                 <button class="tng-ai-undo" type="button" data-tng-ai-undo hidden>Undo removed stop</button>
                 <div class="tng-ai-result-actions">
-                    <button class="tng-ui-button" type="button" data-tng-ai-save>＋ Save stops to Trips</button>
+                    <button class="tng-ui-button" type="button" data-tng-ai-save>＋ Save adventure</button>
                     <button class="tng-ui-button tng-ui-button--secondary" type="button" data-tng-ai-share>Share itinerary</button>
+                    <a class="tng-ai-trips-link" href="<?php echo esc_url(home_url('/adventures/')); ?>">Saved Adventures</a>
                     <a class="tng-ai-trips-link" href="<?php echo esc_url(home_url('/trips/')); ?>">Open Trips →</a>
                 </div>
             </section>
@@ -86,6 +92,35 @@ final class Adventure_AI implements Module_Interface {
                 <article><span>◇</span><div><strong>Edit before saving</strong><p>Reorder or remove stops, then save the exact plan you want to Trips.</p></div></article>
                 <article><span>↻</span><div><strong>Timing that adapts</strong><p>Change your start or travel buffer and every arrival time recalculates.</p></div></article>
             </section>
+        </main>
+        <?php return (string)ob_get_clean();
+    }
+
+    public static function render_library(): string {
+        $logged_in = is_user_logged_in();
+        $plans = $logged_in ? self::library(get_current_user_id()) : [];
+        ob_start(); ?>
+        <main class="tng-adventure-library tng-native-screen tng-app-shell" data-tng-adventure-library data-ajax-url="<?php echo esc_url(admin_url('admin-ajax.php')); ?>" data-nonce="<?php echo esc_attr(wp_create_nonce(self::NONCE)); ?>">
+            <section class="tng-adventure-library__hero"><div><span class="tng-eyebrow">Saved Adventures</span><h1>Your Tennessee plans.</h1><p>Reopen an Adventure AI itinerary, adjust the timing, or make a copy for a different day.</p></div><a class="tng-ui-button" href="<?php echo esc_url(home_url('/adventure-ai/')); ?>">＋ Build another</a></section>
+            <?php if (!$logged_in): ?>
+                <section class="tng-adventure-library__empty"><span>◇</span><h2>Sign in to keep your plans together.</h2><p>Saved Adventures are private to your Explorer account.</p><a class="tng-ui-button" href="<?php echo esc_url(wp_login_url(home_url('/adventures/'))); ?>">Sign in</a></section>
+            <?php elseif (!$plans): ?>
+                <section class="tng-adventure-library__empty"><span>✦</span><h2>Your first plan starts with a sentence.</h2><p>Describe a Tennessee day in Adventure AI, edit it, and press Save Adventure.</p><a class="tng-ui-button" href="<?php echo esc_url(home_url('/adventure-ai/')); ?>">Open Adventure AI</a></section>
+            <?php else: ?>
+                <p class="tng-adventure-library__status" data-tng-library-status aria-live="polite"><?php echo esc_html(count($plans).' saved adventure'.(count($plans)===1?'':'s')); ?></p>
+                <section class="tng-adventure-library__grid">
+                    <?php foreach ($plans as $plan): $ids=array_slice((array)$plan['ids'],0,4); ?>
+                        <article class="tng-adventure-card" data-plan-id="<?php echo esc_attr((string)$plan['id']); ?>">
+                            <div class="tng-adventure-card__top"><span><?php echo esc_html(number_format_i18n(count($plan['ids'])).' stops'); ?></span><time datetime="<?php echo esc_attr(gmdate('c',(int)$plan['updated_at'])); ?>"><?php echo esc_html(human_time_diff((int)$plan['updated_at'],time()).' ago'); ?></time></div>
+                            <h2 data-plan-title><?php echo esc_html((string)$plan['title']); ?></h2>
+                            <p><?php echo esc_html(wp_trim_words((string)$plan['prompt'],18)); ?></p>
+                            <div class="tng-adventure-card__stops"><?php foreach($ids as $id): ?><span><?php echo esc_html(get_the_title((int)$id) ?: '#'.(int)$id); ?></span><?php endforeach; ?></div>
+                            <div class="tng-adventure-card__actions"><a class="tng-ui-button" href="<?php echo esc_url(add_query_arg('plan',(string)$plan['id'],home_url('/adventure-ai/'))); ?>">Reopen</a><button class="tng-ui-button tng-ui-button--secondary" type="button" data-tng-plan-duplicate>Duplicate</button></div>
+                            <form class="tng-adventure-card__rename" data-tng-plan-rename><label>Rename plan<input name="title" maxlength="100" value="<?php echo esc_attr((string)$plan['title']); ?>"></label><button type="submit">Save name</button></form>
+                        </article>
+                    <?php endforeach; ?>
+                </section>
+            <?php endif; ?>
         </main>
         <?php return (string)ob_get_clean();
     }
@@ -132,19 +167,102 @@ final class Adventure_AI implements Module_Interface {
         $saved = \TNG_Trip_Data::merge($ids, get_current_user_id());
         $prompt = sanitize_textarea_field(wp_unslash((string)($_POST['prompt'] ?? '')));
         $title = sanitize_text_field(wp_unslash((string)($_POST['title'] ?? 'Tennessee adventure')));
+        $plan_id = sanitize_text_field(wp_unslash((string)($_POST['plan_id'] ?? '')));
         $start_minutes = min(1439, max(0, absint($_POST['start_minutes'] ?? 600)));
         $buffer_minutes = absint($_POST['buffer_minutes'] ?? 20);
         if (!in_array($buffer_minutes, [10,20,30,45,60], true)) $buffer_minutes = 20;
-        update_user_meta(get_current_user_id(), self::LAST_PLAN_META, [
-            'title' => $title,
+        $record = [
+            'title' => substr($title, 0, 100),
             'prompt' => substr($prompt, 0, 600),
             'ids' => $ids,
             'start_minutes' => $start_minutes,
             'buffer_minutes' => $buffer_minutes,
             'plan_version' => 2,
             'created_at' => time(),
-        ]);
-        wp_send_json_success(['count'=>$saved['count'],'added'=>$saved['added'],'url'=>home_url('/trips/')]);
+        ];
+        $library = self::library(get_current_user_id());
+        $existing_index = self::plan_index($library, $plan_id);
+        if ($existing_index >= 0) {
+            $record['id'] = (string)$library[$existing_index]['id'];
+            $record['created_at'] = (int)$library[$existing_index]['created_at'];
+            array_splice($library, $existing_index, 1);
+        } else $record['id'] = wp_generate_uuid4();
+        $record['updated_at'] = time();
+        array_unshift($library, $record);
+        $library = array_slice($library, 0, self::PLAN_LIBRARY_LIMIT);
+        update_user_meta(get_current_user_id(), self::PLAN_LIBRARY_META, $library);
+        update_user_meta(get_current_user_id(), self::LAST_PLAN_META, $record);
+        wp_send_json_success(['count'=>$saved['count'],'added'=>$saved['added'],'plan_id'=>$record['id'],'library_url'=>home_url('/adventures/'),'url'=>home_url('/trips/')]);
+    }
+
+    public function ajax_library_action(): void {
+        check_ajax_referer(self::NONCE, 'nonce');
+        if (!is_user_logged_in()) wp_send_json_error(['message'=>'Sign in to manage Saved Adventures.'], 401);
+        $operation = sanitize_key((string)($_POST['operation'] ?? ''));
+        $plan_id = sanitize_text_field(wp_unslash((string)($_POST['plan_id'] ?? '')));
+        $library = self::library(get_current_user_id());
+        $index = self::plan_index($library, $plan_id);
+        if ($index < 0) wp_send_json_error(['message'=>'That saved adventure could not be found.'], 404);
+        if ($operation === 'rename') {
+            $title = sanitize_text_field(wp_unslash((string)($_POST['title'] ?? '')));
+            if ($title === '') wp_send_json_error(['message'=>'Give this adventure a name.'], 400);
+            $library[$index]['title'] = substr($title, 0, 100);
+            $library[$index]['updated_at'] = time();
+        } elseif ($operation === 'duplicate') {
+            $copy = $library[$index];
+            $copy['id'] = wp_generate_uuid4();
+            $copy['title'] = substr('Copy of '.(string)$copy['title'], 0, 100);
+            $copy['created_at'] = $copy['updated_at'] = time();
+            array_unshift($library, $copy);
+            $library = array_slice($library, 0, self::PLAN_LIBRARY_LIMIT);
+        } else wp_send_json_error(['message'=>'That plan action is not supported.'], 400);
+        update_user_meta(get_current_user_id(), self::PLAN_LIBRARY_META, array_values($library));
+        wp_send_json_success(['message'=>$operation==='rename'?'Adventure renamed.':'Adventure duplicated.','url'=>home_url('/adventures/')]);
+    }
+
+    private static function library(int $user_id): array {
+        $plans = get_user_meta($user_id, self::PLAN_LIBRARY_META, true);
+        if (!is_array($plans) || !$plans) {
+            $legacy = get_user_meta($user_id, self::LAST_PLAN_META, true);
+            if (is_array($legacy) && !empty($legacy['ids'])) {
+                $created = absint($legacy['created_at'] ?? time());
+                $legacy['id'] = 'legacy-'.substr(hash('sha256',$user_id.'|'.$created.'|'.implode(',',array_map('absint',(array)$legacy['ids']))),0,24);
+                $legacy['created_at'] = $created;
+                $legacy['updated_at'] = absint($legacy['updated_at'] ?? $created);
+                $plans = [$legacy];
+            } else return [];
+        }
+        return array_values(array_filter($plans, static fn($plan): bool => is_array($plan) && !empty($plan['id']) && !empty($plan['ids'])));
+    }
+
+    private static function plan_index(array $plans, string $plan_id): int {
+        if ($plan_id === '') return -1;
+        foreach ($plans as $index=>$plan) if (hash_equals((string)($plan['id']??''), $plan_id)) return (int)$index;
+        return -1;
+    }
+
+    private static function requested_plan(): array {
+        if (!is_user_logged_in()) return [];
+        $plan_id = sanitize_text_field(wp_unslash((string)($_GET['plan'] ?? '')));
+        $plans = self::library(get_current_user_id());
+        $index = self::plan_index($plans, $plan_id);
+        if ($index < 0) return [];
+        $saved = $plans[$index];
+        $instance = new self();
+        $rows = [];
+        foreach (array_slice(array_map('absint',(array)$saved['ids']),0,12) as $id) {
+            if (!$id || get_post_status($id) !== 'publish') continue;
+            $rows[] = $instance->stop($id, 'Saved stop', 'Restored from your Saved Adventures library', $instance->visit_minutes($id));
+        }
+        if (!$rows) return [];
+        $coordinates = $instance->mapped_coordinates(array_column($rows,'id'));
+        $start = min(1439,max(0,absint($saved['start_minutes']??600)));
+        $clock = $start;
+        $buffer = absint($saved['buffer_minutes']??20);
+        if (!in_array($buffer,[10,20,30,45,60],true)) $buffer=20;
+        foreach($rows as &$row){$row['time']=$instance->clock($clock);$clock+=(int)$row['minutes']+$buffer;$id=(int)$row['id'];if(isset($coordinates[$id]))$row=array_merge($row,$coordinates[$id]);}unset($row);
+        $total=array_sum(array_column($rows,'minutes'))+max(0,count($rows)-1)*$buffer;
+        return ['id'=>(string)$saved['id'],'title'=>(string)$saved['title'],'prompt'=>(string)$saved['prompt'],'summary'=>'Reopened from your private Saved Adventures library.','tags'=>['Saved adventure',count($rows).' stops'],'stops'=>$rows,'start_minutes'=>$start,'buffer_minutes'=>$buffer,'total_minutes'=>$total];
     }
 
     private function interpret(string $prompt): array {

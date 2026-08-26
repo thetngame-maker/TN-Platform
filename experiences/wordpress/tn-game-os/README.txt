@@ -1,3 +1,12 @@
+TN GAME OS 5.112.0 — SAVED ADVENTURES
+
+CURRENT MILESTONE
+- Adds a private Saved Adventures workspace for reusable Adventure AI itineraries.
+- Reopens plans with their stop order, start time, travel buffer, and Universal Map preview.
+- Supports explicit rename and duplicate actions without permanent deletion.
+- Keeps up to 12 plans per Explorer and carries forward the existing 5.111 last-plan record.
+- Connects Saved Adventures to Trips and the native five-tab app shell.
+
 TN GAME OS 5.111.0 — ADVENTURE AI V2
 
 CURRENT MILESTONE
