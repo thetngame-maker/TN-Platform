@@ -3,6 +3,7 @@ namespace TNG_OS\Modules\Destinations;
 
 use TNG_OS\Core\Container;
 use TNG_OS\Core\Module_Interface;
+use TNG_OS\Platform\Universal_Map_Registry;
 
 if (!defined('ABSPATH')) exit;
 
@@ -32,7 +33,7 @@ final class Adventure_AI implements Module_Interface {
         <main class="tng-adventure-ai-screen tng-native-screen tng-app-shell" data-tng-adventure-ai data-ajax-url="<?php echo esc_url(admin_url('admin-ajax.php')); ?>" data-nonce="<?php echo esc_attr(wp_create_nonce(self::NONCE)); ?>" data-logged-in="<?php echo is_user_logged_in() ? '1' : '0'; ?>" data-login-url="<?php echo esc_url(wp_login_url(home_url('/adventure-ai/'))); ?>">
             <section class="tng-ai-hero">
                 <div class="tng-ai-hero__copy">
-                    <span class="tng-eyebrow">Adventure AI · v1</span>
+                    <span class="tng-eyebrow">Adventure AI · v2</span>
                     <h1>Describe your Tennessee day.</h1>
                     <p>Tell TN Game where you want to go, how much time you have, and what sounds fun. Adventure AI turns it into a real itinerary using published TN Game places.</p>
                 </div>
@@ -56,7 +57,24 @@ final class Adventure_AI implements Module_Interface {
                     <div><span class="tng-eyebrow">Your generated itinerary</span><h2 data-tng-ai-title>Your Tennessee adventure</h2><p data-tng-ai-summary></p></div>
                     <div class="tng-ai-tags" data-tng-ai-tags></div>
                 </header>
+                <div class="tng-ai-workspace">
+                    <section class="tng-ai-route-card" aria-labelledby="tng-ai-route-title">
+                        <div class="tng-ai-route-card__header"><div><span class="tng-eyebrow">Route preview</span><h3 id="tng-ai-route-title">Your Tennessee path</h3></div><span data-tng-ai-route-count></span></div>
+                        <div class="tng-ai-route-canvas" data-tng-ai-route-canvas>
+                            <svg data-tng-ai-route-svg viewBox="0 0 520 220" role="img" aria-label="A preview of the itinerary route"></svg>
+                            <p data-tng-ai-route-empty hidden>Map coordinates are not available for these stops yet. Your editable itinerary is still ready below.</p>
+                        </div>
+                    </section>
+                    <section class="tng-ai-timing" aria-labelledby="tng-ai-timing-title">
+                        <div><span class="tng-eyebrow">Timing controls</span><h3 id="tng-ai-timing-title">Shape the day</h3></div>
+                        <label for="tng-ai-start-time">Start time<input id="tng-ai-start-time" type="time" value="10:00" data-tng-ai-start></label>
+                        <label for="tng-ai-buffer">Travel buffer<select id="tng-ai-buffer" data-tng-ai-buffer><option value="10">10 minutes</option><option value="20" selected>20 minutes</option><option value="30">30 minutes</option><option value="45">45 minutes</option><option value="60">60 minutes</option></select></label>
+                        <div class="tng-ai-timing__stats"><span><strong data-tng-ai-stop-count>0</strong> stops</span><span><strong data-tng-ai-total-time>0 hr</strong> planned</span></div>
+                        <button class="tng-ui-button tng-ui-button--secondary" type="button" data-tng-ai-reset>Reset original plan</button>
+                    </section>
+                </div>
                 <div class="tng-ai-timeline" data-tng-ai-stops></div>
+                <button class="tng-ai-undo" type="button" data-tng-ai-undo hidden>Undo removed stop</button>
                 <div class="tng-ai-result-actions">
                     <button class="tng-ui-button" type="button" data-tng-ai-save>＋ Save stops to Trips</button>
                     <button class="tng-ui-button tng-ui-button--secondary" type="button" data-tng-ai-share>Share itinerary</button>
@@ -65,8 +83,8 @@ final class Adventure_AI implements Module_Interface {
             </section>
             <section class="tng-ai-trust">
                 <article><span>⌖</span><div><strong>Built from Tennessee</strong><p>Only published TN Game places become itinerary stops.</p></div></article>
-                <article><span>◇</span><div><strong>Ready for Trips</strong><p>Save the generated stops to your Explorer account in one tap.</p></div></article>
-                <article><span>↻</span><div><strong>Easy to regenerate</strong><p>Change the time, pace, budget, weather, or interests and try again.</p></div></article>
+                <article><span>◇</span><div><strong>Edit before saving</strong><p>Reorder or remove stops, then save the exact plan you want to Trips.</p></div></article>
+                <article><span>↻</span><div><strong>Timing that adapts</strong><p>Change your start or travel buffer and every arrival time recalculates.</p></div></article>
             </section>
         </main>
         <?php return (string)ob_get_clean();
@@ -96,6 +114,8 @@ final class Adventure_AI implements Module_Interface {
             'source_id' => $source_id,
             'source_title' => $source_title,
             'stops' => $stops,
+            'start_minutes' => (int)$intent['start_minutes'],
+            'buffer_minutes' => 20,
             'total_minutes' => $visit_minutes + $drive_buffer,
             'planning_note' => 'Times include a 20-minute planning buffer between stops. Confirm hours, tickets, trail conditions, and driving time before leaving.',
         ]);
@@ -112,10 +132,16 @@ final class Adventure_AI implements Module_Interface {
         $saved = \TNG_Trip_Data::merge($ids, get_current_user_id());
         $prompt = sanitize_textarea_field(wp_unslash((string)($_POST['prompt'] ?? '')));
         $title = sanitize_text_field(wp_unslash((string)($_POST['title'] ?? 'Tennessee adventure')));
+        $start_minutes = min(1439, max(0, absint($_POST['start_minutes'] ?? 600)));
+        $buffer_minutes = absint($_POST['buffer_minutes'] ?? 20);
+        if (!in_array($buffer_minutes, [10,20,30,45,60], true)) $buffer_minutes = 20;
         update_user_meta(get_current_user_id(), self::LAST_PLAN_META, [
             'title' => $title,
             'prompt' => substr($prompt, 0, 600),
             'ids' => $ids,
+            'start_minutes' => $start_minutes,
+            'buffer_minutes' => $buffer_minutes,
+            'plan_version' => 2,
             'created_at' => time(),
         ]);
         wp_send_json_success(['count'=>$saved['count'],'added'=>$saved['added'],'url'=>home_url('/trips/')]);
@@ -229,7 +255,29 @@ final class Adventure_AI implements Module_Interface {
             $clock += (int)$row['minutes'] + 20;
         }
         unset($row);
+        $coordinates = $this->mapped_coordinates(array_column($rows, 'id'));
+        foreach ($rows as &$row) {
+            $id = (int)$row['id'];
+            if (isset($coordinates[$id])) {
+                $row['lat'] = $coordinates[$id]['lat'];
+                $row['lng'] = $coordinates[$id]['lng'];
+            }
+        }
+        unset($row);
         return $rows;
+    }
+
+    private function mapped_coordinates(array $ids): array {
+        if (!class_exists(Universal_Map_Registry::class)) return [];
+        $wanted = array_fill_keys(array_map('absint', $ids), true);
+        $coordinates = [];
+        $dataset = Universal_Map_Registry::dataset();
+        foreach ((array)($dataset['items'] ?? []) as $item) {
+            $id = absint($item['id'] ?? 0);
+            if (!$id || !isset($wanted[$id]) || !is_numeric($item['lat'] ?? null) || !is_numeric($item['lng'] ?? null)) continue;
+            $coordinates[$id] = ['lat'=>(float)$item['lat'], 'lng'=>(float)$item['lng']];
+        }
+        return $coordinates;
     }
 
     private function match_source(string $prompt): int {
