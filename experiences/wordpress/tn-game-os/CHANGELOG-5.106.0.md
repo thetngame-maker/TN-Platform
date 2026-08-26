@@ -13,3 +13,4 @@
 - Sends only a limited inventory summary to the model and excludes credentials and private user data.
 - Falls back to an on-site natural-language planner when no API key is configured or the model is unavailable.
 - Adds responsive administration styling for narrow screens.
+- Adds automated AI Admin safety checks to the repository CI.
