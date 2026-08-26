@@ -61,7 +61,7 @@
 
   const markDirty = () => {
     save.disabled = false;
-    save.textContent = '＋ Save edited plan to Trips';
+    save.textContent = '＋ Save adventure';
   };
 
   const post = async (action, fields = {}) => {
@@ -314,14 +314,16 @@
         ids: plan.stops.map((stop) => stop.id),
         prompt: prompt.value.trim(),
         title: plan.title,
+        plan_id: plan.id || '',
         start_minutes: startMinutes(),
         buffer_minutes: Number(buffer.value || 20),
       });
-      save.textContent = `✓ Saved ${data.added} new stop${data.added === 1 ? '' : 's'}`;
-      setStatus(`${data.count} total stops are now in Trips.`);
+      plan.id = data.plan_id || plan.id;
+      save.textContent = '✓ Adventure saved';
+      setStatus(`${data.count} total stops are now in Trips. This plan is in Saved Adventures.`);
     } catch (error) {
       save.disabled = false;
-      save.textContent = '＋ Save stops to Trips';
+      save.textContent = '＋ Save adventure';
       setStatus(error.message || 'The itinerary could not be saved.', true);
     }
   });
@@ -339,4 +341,18 @@
       if (error?.name !== 'AbortError') setStatus('The itinerary could not be shared.', true);
     }
   });
+
+  const initial = root.querySelector('[data-tng-ai-initial]');
+  if (initial) {
+    try {
+      const restored = JSON.parse(initial.textContent || '{}');
+      if (restored?.stops?.length) {
+        prompt.value = restored.prompt || '';
+        render(restored);
+        setStatus('Saved adventure reopened. Edit it or continue to Trips.');
+      }
+    } catch (error) {
+      setStatus('The saved adventure could not be reopened.', true);
+    }
+  }
 })();

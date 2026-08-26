@@ -10,8 +10,8 @@ if (!defined('ABSPATH')) exit;
 final class Production_Smoke_Tests implements Module_Interface {
     private const PAGE_SLUG = 'tng-production-smoke-tests';
     private const REPORT_OPTION = 'tng_production_smoke_report_v1';
-    private const REQUIRED_ROUTES = ['explore','map','play','offline','trips','profile','adventure-ai','recaps','activity','trails','events','food','top-sights','destinations'];
-    private const PRIVATE_ROUTES = ['trips','profile','recaps','activity'];
+    private const REQUIRED_ROUTES = ['explore','map','play','offline','trips','profile','adventure-ai','adventures','recaps','activity','trails','events','food','top-sights','destinations'];
+    private const PRIVATE_ROUTES = ['trips','adventures','profile','recaps','activity'];
 
     public function id(): string { return 'production_smoke_tests'; }
 
