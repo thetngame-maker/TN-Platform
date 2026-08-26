@@ -198,6 +198,15 @@ final class Admin implements Module_Interface {
     private function all_tools(): array {
         $tools = [
             [
+                'label' => 'AI Content Manager',
+                'description' => 'Turn natural-language requests into safe, reviewable content actions.',
+                'workspace' => 'Content',
+                'icon' => 'dashicons-superhero-alt',
+                'capability' => 'edit_posts',
+                'page' => 'tng-ai-content-manager',
+                'keywords' => ['ai', 'assistant', 'audit', 'plan', 'content manager', 'natural language'],
+            ],
+            [
                 'label' => 'Content Wizard',
                 'description' => 'Create a new listing using the guided workflow.',
                 'workspace' => 'Content',

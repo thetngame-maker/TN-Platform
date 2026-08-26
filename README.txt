@@ -1,3 +1,29 @@
+TN GAME OS 5.108.0 — OFFLINE MODE
+
+CURRENT MILESTONE
+- Adds a root-scoped service worker and installable TN Game web app manifest.
+- Caches same-origin app assets and anonymous public discovery screens.
+- Provides a branded read-only offline fallback when the network disappears.
+- Keeps Trips, XP, uploads, profiles, and Adventure Recaps network-only for privacy and consistency.
+- Never queues gameplay rewards or mutations that could be duplicated after reconnecting.
+
+TN GAME OS 5.107.0 — ADVENTURE RECAPS
+
+CURRENT MILESTONE
+- Automatically creates private recaps from completed trips and games.
+- Saves stops, checkpoints, XP, route distance, time and approved Explorer photos.
+- Adds editable memory titles and notes plus native share/copy controls.
+- Connects Recaps to Trips, Past Trips and Completed Adventures.
+- Keeps every recap private to its signed-in Explorer account.
+
+TN GAME OS 5.106.0 — AI ADMIN / CONTENT MANAGER
+
+CURRENT MILESTONE
+- Natural-language requests become reviewable content plans.
+- Every write requires explicit approval and is reversible.
+- No automatic publishing, permanent deletion or batch execution.
+- Optional structured OpenAI planning with an on-site fallback.
+
 TN GAME OS 2.1.0 — MODULAR REBUILD
 
 INSTALLATION
