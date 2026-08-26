@@ -9,6 +9,7 @@ final class App_Router {
     public static function query_vars(array $vars):array{$vars[]='tng_app_route';return$vars;}
     public static function resolve_route():void{$route=sanitize_key((string)get_query_var('tng_app_route'));if(!$route){$path=trim((string)wp_parse_url($_SERVER['REQUEST_URI']??'/',PHP_URL_PATH),'/');$candidate=explode('/',$path)[0]??'';if(in_array($candidate,self::ROUTES,true))$route=$candidate;}if(!in_array($route,self::ROUTES,true))return;self::$route=$route;global$wp_query;$wp_query->is_404=false;$wp_query->is_page=true;$wp_query->is_search=false;status_header(200);}
     public static function current_route():string{return self::$route;}public static function is_app_request():bool{return self::$route!=='';}
+    public static function routes():array{return self::ROUTES;}
     public static function enqueue_assets():void{if(self::is_app_request())wp_enqueue_style('tng-app-router',TNG_OS_URL.'assets/css/app-router.css',['tng-platform-ui'],TNG_OS_VERSION);}
     public static function template(string $template):string{if(!self::is_app_request())return$template;$native=TNG_OS_PATH.'templates/app-shell.php';return is_readable($native)?$native:$template;}
     public static function body_classes(array $classes):array{if(!self::is_app_request())return$classes;$classes[]='tng-platform-ui';$classes[]='tng-app-route';$classes[]='tng-app-route--'.self::$route;$classes[]='tng-hide-traveler-chrome';return array_values(array_unique($classes));}

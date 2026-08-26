@@ -10,8 +10,10 @@ const offline = read('tn-game-offline-mode.php');
 const css = read('assets/css/offline-mode.css');
 const client = read('assets/js/offline-mode.js');
 
-assert.match(bootstrap, /Version:\s*5\.108\.0/);
-assert.match(bootstrap, /define\('TNG_OS_VERSION','5\.108\.0'\)/);
+const version = bootstrap.match(/Version:\s*(\d+\.\d+\.\d+)/)?.[1] || '';
+const [major, minor] = version.split('.').map(Number);
+assert.ok(major > 5 || (major === 5 && minor >= 108), 'Offline Mode requires TN Game OS 5.108.0 or newer');
+assert.match(bootstrap, new RegExp(`define\\('TNG_OS_VERSION','${version.replaceAll('.', '\\.')}'\\)`));
 assert.match(appRouter, /TNG_Offline_Mode.*tn-game-offline-mode\.php/);
 
 assert.match(offline, /tn-game-sw\\\.js/);
