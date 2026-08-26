@@ -144,6 +144,9 @@ final class Nearby_XP implements Module_Interface {
         update_user_meta($user_id, self::META_LEDGER, $ledger);
         update_user_meta($user_id, self::META_TOTAL, max(0, (int) get_user_meta($user_id, self::META_TOTAL, true)) + $amount);
         do_action('tng_os_nearby_xp_awarded', $user_id, $amount, $key, $entry);
+        if ($object_id > 0 && str_starts_with($key, 'discovery:')) {
+            do_action('tng_gameplay_external_event', $user_id, 'nearby_discovery', 'discovery', (string) $object_id, $amount, ['title' => get_the_title($object_id), 'object_id' => $object_id]);
+        }
         return ['awarded' => true, 'amount' => $amount, 'reason' => $reason, 'object_id' => $object_id];
     }
 

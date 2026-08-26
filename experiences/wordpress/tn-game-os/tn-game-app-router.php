@@ -36,7 +36,8 @@ add_action('wp_enqueue_scripts',static function():void{
     if($route==='profile-settings')wp_enqueue_style('tng-settings-ui',TNG_OS_URL.'assets/css/settings-ui.css',['tng-ui-kit'],'0.1.4');
     if($route==='search')wp_enqueue_style('tng-search-ui',TNG_OS_URL.'assets/css/search-ui.css',['tng-ui-kit'],'0.1.9');
     if(in_array($route,['leaderboard','achievements'],true))wp_enqueue_style('tng-progress-ui',TNG_OS_URL.'assets/css/progress-ui.css',['tng-ui-kit'],'0.1.8');
-    if(in_array($route,['friends','activity'],true))wp_enqueue_style('tng-social-ui',TNG_OS_URL.'assets/css/social-ui.css',['tng-ui-kit'],'0.1.7');
+    if(in_array($route,['friends','activity'],true))wp_enqueue_style('tng-social-ui',TNG_OS_URL.'assets/css/social-ui.css',['tng-ui-kit'],TNG_OS_VERSION);
+    if($route==='activity')wp_enqueue_style('tng-community-feed',TNG_OS_URL.'assets/css/community-feed.css',['tng-social-ui'],TNG_OS_VERSION);
     if($route==='challenges')wp_enqueue_style('tng-challenges-ui',TNG_OS_URL.'assets/css/challenges-ui.css',['tng-ui-kit'],'0.1.6');
     if(in_array($route,['journal','explorer-journal','completed','my-photos'],true))wp_enqueue_style('tng-library-ui',TNG_OS_URL.'assets/css/library-ui.css',['tng-ui-kit'],'0.1.5');
     if(in_array($route,['trails','events','food','top-sights','destinations'],true))wp_enqueue_style('tng-directory-ui',TNG_OS_URL.'assets/css/directory-ui.css',['tng-ui-kit'],'0.2.0');

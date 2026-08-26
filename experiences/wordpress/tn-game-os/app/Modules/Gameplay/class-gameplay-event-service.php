@@ -18,6 +18,7 @@ final class Gameplay_Event_Service implements Module_Interface {
         $container->set('gameplay_event_service', $this);
         add_action('init', [$this, 'ensure_table'], 5);
         add_action('tng_gameplay_profile_saved', [$this, 'record_profile_delta'], 10, 3);
+        add_action('tng_gameplay_external_event', [$this, 'record_external_event'], 10, 6);
         add_action('admin_menu', [$this, 'menu'], 29);
         add_action('admin_post_tng_rebuild_gameplay_events', [$this, 'rebuild']);
     }
@@ -75,6 +76,12 @@ final class Gameplay_Event_Service implements Module_Interface {
             $fingerprint = implode('|', [absint($before['totalXp'] ?? 0), absint($after['totalXp'] ?? 0), count($after_checkpoints), count($after_quests)]);
             $this->record($user_id, 'xp_earned', 'profile', (string)$user_id, $xp_delta, ['from' => absint($before['totalXp'] ?? 0), 'to' => absint($after['totalXp'] ?? 0)], $occurred, $fingerprint);
         }
+    }
+
+    public function record_external_event(int $user_id, string $type, string $object_type, string $object_id, int $xp = 0, array $payload = []): void {
+        if (!$user_id || $type === '' || $object_id === '') return;
+        $this->ensure_table();
+        $this->record($user_id, $type, $object_type, $object_id, $xp, $payload);
     }
 
     public function record(int $user_id, string $type, string $object_type, string $object_id, int $xp = 0, array $payload = [], string $occurred_at = '', string $fingerprint = ''): bool {

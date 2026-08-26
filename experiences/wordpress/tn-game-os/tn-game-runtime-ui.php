@@ -130,7 +130,9 @@ final class TNG_Game_Runtime_UI {
         $checked=wp_check_filetype_and_ext($file['tmp_name'],$file['name']); if (empty($checked['type']) || strpos($checked['type'],'image/')!==0) return false;
         require_once ABSPATH.'wp-admin/includes/file.php'; require_once ABSPATH.'wp-admin/includes/media.php'; require_once ABSPATH.'wp-admin/includes/image.php';
         $attachment_id=media_handle_upload('checkpoint_photo',$id,array(),array('test_form'=>false)); if (is_wp_error($attachment_id)) return false;
-        update_user_meta(get_current_user_id(),'_tng_game_photo_'.absint($id).'_'.absint($index),absint($attachment_id)); return true;
+        update_user_meta(get_current_user_id(),'_tng_game_photo_'.absint($id).'_'.absint($index),absint($attachment_id));
+        if(class_exists('TNG_OS\\Modules\\Frontend\\Community_Photos'))\TNG_OS\Modules\Frontend\Community_Photos::register_checkpoint_photo(absint($attachment_id),absint($id),absint($index));
+        return true;
     }
 
     private static function redirect_with_status($id,$error='',$award=0) {
@@ -165,7 +167,11 @@ final class TNG_Game_Runtime_UI {
             $completed[]=$index; $completed=array_values(array_unique($completed));
             update_user_meta(get_current_user_id(),self::progress_key($id),$completed);
             $award=self::award_checkpoint_xp($id,$index,$checkpoint);
-            if (count($completed)>=count($checkpoints)) self::mark_game_complete($id);
+            do_action('tng_gameplay_external_event',get_current_user_id(),'checkpoint_completed','checkpoint',absint($id).':'.absint($index),absint($award),array('title'=>sanitize_text_field($checkpoint['title']??'Checkpoint'),'object_id'=>absint($id)));
+            if (count($completed)>=count($checkpoints)) {
+                self::mark_game_complete($id);
+                do_action('tng_gameplay_external_event',get_current_user_id(),'game_completed','game',(string)absint($id),0,array('title'=>get_the_title($id)));
+            }
         }
 
         if ($action==='reset') {
