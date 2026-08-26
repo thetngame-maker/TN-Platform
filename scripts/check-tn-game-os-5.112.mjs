@@ -15,8 +15,8 @@ const editor = read('assets/js/adventure-ai.js');
 const library = read('assets/js/saved-adventures.js');
 const css = read('assets/css/saved-adventures.css');
 
-assert.match(bootstrap, /Version:\s*5\.112\.0/);
-assert.match(bootstrap, /define\('TNG_OS_VERSION','5\.112\.0'\)/);
+assert.match(bootstrap, /Version:\s*5\.(?:11[2-9]|1[2-9][0-9]|[2-9][0-9]{2})\.\d+/);
+assert.match(bootstrap, /define\('TNG_OS_VERSION','5\.(?:11[2-9]|1[2-9][0-9]|[2-9][0-9]{2})\.\d+'\)/);
 assert.match(appRouter, /'adventures'/);
 assert.match(appRouter, /Adventure_AI::render_library/);
 assert.match(assetRouter, /saved-adventures\.css/);

@@ -31,6 +31,7 @@
       })
     : L.layerGroup();
   markerLayer.addTo(map);
+  const adventureLayer = L.layerGroup().addTo(map);
 
   const markers = new Map();
   const resultNodes = new Map();
@@ -418,5 +419,17 @@
   window.setTimeout(hideLegacyXpOverlay, 350);
   window.setTimeout(hideLegacyXpOverlay, 1200);
   renderMarkers();
+  if (cfg.adventure?.stops?.length) {
+    const routePoints = [];
+    cfg.adventure.stops.forEach((stop, index) => {
+      const lat = Number(stop.lat), lng = Number(stop.lng);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+      routePoints.push([lat,lng]);
+      const icon = L.divIcon({className:'tng-adventure-map-marker-wrap',html:`<button class="tng-adventure-map-marker" type="button" aria-label="Stop ${index+1}: ${esc(stop.title)}"><span>${index+1}</span></button>`,iconSize:[42,42],iconAnchor:[21,38]});
+      L.marker([lat,lng],{icon,keyboard:true}).bindPopup(`<article class="tng-adventure-map-popup"><small>Stop ${index+1}</small><strong>${esc(stop.title)}</strong><a href="${esc(stop.url)}">View stop</a></article>`).addTo(adventureLayer);
+    });
+    if (routePoints.length > 1) L.polyline(routePoints,{color:'#e66428',weight:5,opacity:.9,dashArray:'2 10',lineCap:'round'}).addTo(adventureLayer);
+    if (routePoints.length) map.fitBounds(routePoints,{padding:[52,52],maxZoom:13});
+  }
   setTimeout(() => { map.invalidateSize(); updateLiveResults(); }, 180);
 })();
