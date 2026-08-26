@@ -1,0 +1,56 @@
+name: Deploy TN Game OS to Cloudways
+
+on:
+  push:
+    branches:
+      - deploy/tn-game-os
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tn-game-os-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy production plugin
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Trigger Cloudways Git deployment
+        shell: bash
+        env:
+          CLOUDWAYS_API_TOKEN: ${{ secrets.CLOUDWAYS_API_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${CLOUDWAYS_API_TOKEN:-}" ]]; then
+            echo "::error::CLOUDWAYS_API_TOKEN is not configured."
+            exit 1
+          fi
+
+          tng_response_file="$(mktemp)"
+          tng_http_status="$(curl --silent --show-error \
+            --output "${tng_response_file}" \
+            --write-out "%{http_code}" \
+            --request POST \
+            "https://api.cloudways.com/api/v1/git/pull" \
+            --header "Authorization: Bearer ${CLOUDWAYS_API_TOKEN}" \
+            --header "Content-Type: application/x-www-form-urlencoded" \
+            --data-urlencode "server_id=1636344" \
+            --data-urlencode "app_id=6485109" \
+            --data-urlencode "git_url=git@github.com:thetngame-maker/TN-Platform.git" \
+            --data-urlencode "branch_name=deploy/tn-game-os" \
+            --data-urlencode "deploy_path=wp-content/plugins/tn-game-os/")"
+
+          cat "${tng_response_file}"
+
+          if [[ "${tng_http_status}" -lt 200 || "${tng_http_status}" -ge 300 ]]; then
+            echo "::error::Cloudways returned HTTP ${tng_http_status}."
+            exit 1
+          fi
+
+          echo "Cloudways accepted the TN Game OS deployment request."
