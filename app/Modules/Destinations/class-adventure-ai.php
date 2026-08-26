@@ -99,8 +99,9 @@ final class Adventure_AI implements Module_Interface {
     public static function render_library(): string {
         $logged_in = is_user_logged_in();
         $plans = $logged_in ? self::library(get_current_user_id()) : [];
+        $current_trip_count = $logged_in && class_exists('TNG_Trip_Data') ? count(\TNG_Trip_Data::ids(get_current_user_id())) : 0;
         ob_start(); ?>
-        <main class="tng-adventure-library tng-native-screen tng-app-shell" data-tng-adventure-library data-ajax-url="<?php echo esc_url(admin_url('admin-ajax.php')); ?>" data-nonce="<?php echo esc_attr(wp_create_nonce(self::NONCE)); ?>">
+        <main class="tng-adventure-library tng-native-screen tng-app-shell" data-tng-adventure-library data-ajax-url="<?php echo esc_url(admin_url('admin-ajax.php')); ?>" data-nonce="<?php echo esc_attr(wp_create_nonce(self::NONCE)); ?>" data-current-trip-count="<?php echo esc_attr((string)$current_trip_count); ?>">
             <section class="tng-adventure-library__hero"><div><span class="tng-eyebrow">Saved Adventures</span><h1>Your Tennessee plans.</h1><p>Reopen an Adventure AI itinerary, adjust the timing, or make a copy for a different day.</p></div><a class="tng-ui-button" href="<?php echo esc_url(home_url('/adventure-ai/')); ?>">＋ Build another</a></section>
             <?php if (!$logged_in): ?>
                 <section class="tng-adventure-library__empty"><span>◇</span><h2>Sign in to keep your plans together.</h2><p>Saved Adventures are private to your Explorer account.</p><a class="tng-ui-button" href="<?php echo esc_url(wp_login_url(home_url('/adventures/'))); ?>">Sign in</a></section>
@@ -115,7 +116,7 @@ final class Adventure_AI implements Module_Interface {
                             <h2 data-plan-title><?php echo esc_html((string)$plan['title']); ?></h2>
                             <p><?php echo esc_html(wp_trim_words((string)$plan['prompt'],18)); ?></p>
                             <div class="tng-adventure-card__stops"><?php foreach($ids as $id): ?><span><?php echo esc_html(get_the_title((int)$id) ?: '#'.(int)$id); ?></span><?php endforeach; ?></div>
-                            <div class="tng-adventure-card__actions"><a class="tng-ui-button" href="<?php echo esc_url(add_query_arg('plan',(string)$plan['id'],home_url('/adventure-ai/'))); ?>">Reopen</a><a class="tng-ui-button tng-ui-button--secondary" href="<?php echo esc_url(add_query_arg('adventure',(string)$plan['id'],home_url('/map/'))); ?>">View map</a><button class="tng-ui-button tng-ui-button--secondary" type="button" data-tng-plan-duplicate>Duplicate</button></div>
+                            <div class="tng-adventure-card__actions"><button class="tng-ui-button" type="button" data-tng-plan-start>Start adventure</button><a class="tng-ui-button tng-ui-button--secondary" href="<?php echo esc_url(add_query_arg('plan',(string)$plan['id'],home_url('/adventure-ai/'))); ?>">Reopen</a><a class="tng-ui-button tng-ui-button--secondary" href="<?php echo esc_url(add_query_arg('adventure',(string)$plan['id'],home_url('/map/'))); ?>">View map</a><button class="tng-ui-button tng-ui-button--secondary" type="button" data-tng-plan-duplicate>Duplicate</button></div>
                             <form class="tng-adventure-card__rename" data-tng-plan-rename><label>Rename plan<input name="title" maxlength="100" value="<?php echo esc_attr((string)$plan['title']); ?>"></label><button type="submit">Save name</button></form>
                         </article>
                     <?php endforeach; ?>
@@ -203,7 +204,16 @@ final class Adventure_AI implements Module_Interface {
         $library = self::library(get_current_user_id());
         $index = self::plan_index($library, $plan_id);
         if ($index < 0) wp_send_json_error(['message'=>'That saved adventure could not be found.'], 404);
-        if ($operation === 'rename') {
+        if ($operation === 'start') {
+            if (!class_exists('TNG_Trip_Data')) wp_send_json_error(['message'=>'Trips is temporarily unavailable.'], 503);
+            $ids = array_values(array_filter(array_unique(array_map('absint',(array)$library[$index]['ids'])), static fn(int $id): bool => $id > 0 && get_post_status($id) === 'publish'));
+            if (!$ids) wp_send_json_error(['message'=>'This adventure no longer has any published stops.'], 400);
+            $existing = \TNG_Trip_Data::ids(get_current_user_id());
+            $confirmed = absint($_POST['confirm_replace'] ?? 0) === 1;
+            if ($existing && !$confirmed) wp_send_json_error(['code'=>'confirm_required','message'=>'Confirm replacing your current trip before starting this adventure.','current_count'=>count($existing)], 409);
+            $started = \TNG_Trip_Data::replace($ids, get_current_user_id(), ['kind'=>'saved_adventure','id'=>$plan_id,'title'=>(string)$library[$index]['title']]);
+            wp_send_json_success(['message'=>'Adventure loaded into Trips.','url'=>home_url('/trip-builder/'),'count'=>$started['count'],'replaced'=>$started['previousCount'],'progressReset'=>$started['progressReset']]);
+        } elseif ($operation === 'rename') {
             $title = sanitize_text_field(wp_unslash((string)($_POST['title'] ?? '')));
             if ($title === '') wp_send_json_error(['message'=>'Give this adventure a name.'], 400);
             $library[$index]['title'] = substr($title, 0, 100);

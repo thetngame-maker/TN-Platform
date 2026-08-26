@@ -1,3 +1,12 @@
+TN GAME OS 5.114.0 — ADVENTURE LAUNCH HANDOFF
+
+CURRENT MILESTONE
+- Starts any private Saved Adventure as the active Trips itinerary.
+- Requires explicit confirmation before replacing an existing trip.
+- Replaces instead of merging, preventing stops from two itineraries from silently mixing.
+- Resets only the replaced active route and stop progress; Saved Adventures remain untouched.
+- Carries the selected adventure title into Trips and opens the route builder for review.
+
 TN GAME OS 5.113.0 — SAVED ADVENTURE MAPS
 
 CURRENT MILESTONE

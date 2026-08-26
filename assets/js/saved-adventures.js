@@ -13,6 +13,25 @@
   };
 
   root.addEventListener('click', async (event) => {
+    const start = event.target.closest('[data-tng-plan-start]');
+    if (start) {
+      const card = start.closest('[data-plan-id]');
+      const currentCount = Number(root.dataset.currentTripCount || 0);
+      const confirmed = currentCount < 1 || window.confirm(`Start this adventure and replace your current ${currentCount}-stop trip? Current route and stop progress will reset. Your Saved Adventures will stay untouched.`);
+      if (!confirmed) return;
+      start.disabled = true;
+      start.textContent = 'Starting…';
+      try {
+        const data = await post({operation:'start',plan_id:card.dataset.planId || '',confirm_replace:currentCount > 0 ? '1' : '0'});
+        if (status) status.textContent = data.message;
+        window.location.assign(data.url);
+      } catch (error) {
+        start.disabled = false;
+        start.textContent = 'Start adventure';
+        if (status) status.textContent = error.message;
+      }
+      return;
+    }
     const button = event.target.closest('[data-tng-plan-duplicate]');
     if (!button) return;
     const card = button.closest('[data-plan-id]');
