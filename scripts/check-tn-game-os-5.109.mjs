@@ -11,8 +11,10 @@ const admin = read('app/Modules/Admin/class-admin.php');
 const smoke = read('app/Modules/Admin/class-production-smoke-tests.php');
 const css = read('assets/admin/production-smoke-tests.css');
 
-assert.match(bootstrap, /Version:\s*5\.109\.0/);
-assert.match(bootstrap, /define\('TNG_OS_VERSION','5\.109\.0'\)/);
+const version = bootstrap.match(/Version:\s*(\d+\.\d+\.\d+)/)?.[1] || '';
+const [major, minor] = version.split('.').map(Number);
+assert.ok(major > 5 || (major === 5 && minor >= 109), 'Production Smoke Tests require TN Game OS 5.109.0 or newer');
+assert.match(bootstrap, new RegExp(`define\\('TNG_OS_VERSION','${version.replaceAll('.', '\\.')}'\\)`));
 assert.match(core, /class-production-smoke-tests\.php/);
 assert.match(core, /Production_Smoke_Tests::class/);
 assert.match(router, /public static function routes\(\):array/);

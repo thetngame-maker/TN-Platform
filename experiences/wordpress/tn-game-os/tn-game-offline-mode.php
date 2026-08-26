@@ -9,7 +9,7 @@ if (!defined('ABSPATH')) exit;
 
 final class TNG_Offline_Mode {
     private const QUERY_VAR = 'tng_offline_asset';
-    private const SAFE_ROUTES = ['explore','play','games','map','trails','events','food','top-sights','destinations'];
+    private const SAFE_ROUTES = ['explore','play','games','map','offline','trails','events','food','top-sights','destinations'];
 
     public static function boot(): void {
         add_action('init', [self::class, 'rewrites'], 15);
@@ -51,6 +51,8 @@ final class TNG_Offline_Mode {
             'scope' => home_url('/'),
             'version' => TNG_OS_VERSION,
             'privateRoute' => is_user_logged_in() || !in_array(TNG_OS\Platform\App_Router::current_route(), self::SAFE_ROUTES, true),
+            'managerUrl' => home_url('/offline/'),
+            'packs' => self::packs(),
         ]);
     }
 
@@ -82,6 +84,8 @@ final class TNG_Offline_Mode {
             $plugin . 'assets/js/platform-ui.js',
             $plugin . 'assets/js/offline-mode.js',
         ];
+        $packs = [];
+        foreach (self::packs() as $id => $pack) $packs[$id] = array_values($pack['urls']);
         $offline_html = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b3d2e"><title>TN Game · Offline</title><style>html{background:#f6f1e7;color:#153c2c;font-family:system-ui,-apple-system,sans-serif}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:22px;box-sizing:border-box}.card{max-width:560px;padding:32px;border:1px solid #d9e2dc;border-radius:26px;background:#fff;box-shadow:0 18px 45px rgba(12,55,39,.12)}span{font-size:48px}h1{margin:12px 0 8px;font-size:42px;line-height:1}p{color:#63746b;line-height:1.6}button{min-height:48px;padding:0 18px;border:0;border-radius:999px;background:#176b45;color:#fff;font:inherit;font-weight:800}</style></head><body><main class="card"><span>◇</span><h1>Tennessee is still here.</h1><p>You are offline. Previously cached public Explore, Map, and Play screens may still open. Trips, XP, photos, and profile changes wait until you reconnect.</p><button onclick="location.reload()">Try again</button></main></body></html>';
         ?>
 const VERSION=<?php echo wp_json_encode('tng-os-' . $version); ?>;
@@ -90,6 +94,9 @@ const PAGE_CACHE=VERSION+'-public-pages';
 const PLUGIN_PREFIX=<?php echo wp_json_encode((string)wp_parse_url($plugin, PHP_URL_PATH)); ?>;
 const STATIC_ASSETS=<?php echo wp_json_encode($static); ?>;
 const OFFLINE_HTML=<?php echo wp_json_encode($offline_html); ?>;
+const PACKS=<?php echo wp_json_encode($packs); ?>;
+const PACK_PREFIX=VERSION+'-pack-';
+const PUBLIC_ROUTES=<?php echo wp_json_encode(self::SAFE_ROUTES); ?>;
 
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(STATIC_CACHE).then(cache=>Promise.allSettled(STATIC_ASSETS.map(url=>cache.add(url)))).then(()=>self.skipWaiting()));
@@ -119,6 +126,16 @@ self.addEventListener('fetch',event=>{
     }));
   }
 });
+
+self.addEventListener('message',event=>{
+  const data=event.data||{};
+  const reply=payload=>{if(event.ports&&event.ports[0])event.ports[0].postMessage(payload);else if(event.source)event.source.postMessage(payload);};
+  const safeUrl=value=>{try{const url=new URL(value,self.location.origin);const route=url.pathname.split('/').filter(Boolean)[0]||'';return url.origin===self.location.origin&&PUBLIC_ROUTES.includes(route)?url.toString():'';}catch(error){return'';}};
+  const status=async()=>{const installed={};for(const id of Object.keys(PACKS)){const cache=await caches.open(PACK_PREFIX+id);installed[id]=(await cache.keys()).length;}return installed;};
+  if(data.type==='TNG_OFFLINE_PACK_STATUS')event.waitUntil(status().then(installed=>reply({ok:true,installed})));
+  if(data.type==='TNG_OFFLINE_PACK_REMOVE')event.waitUntil((async()=>{const id=String(data.id||'');if(!Object.prototype.hasOwnProperty.call(PACKS,id)){reply({ok:false,error:'Unknown offline pack.'});return;}await caches.delete(PACK_PREFIX+id);reply({ok:true,id,installed:await status()});})());
+  if(data.type==='TNG_OFFLINE_PACK_SAVE')event.waitUntil((async()=>{const id=String(data.id||'');if(!Object.prototype.hasOwnProperty.call(PACKS,id)){reply({ok:false,error:'Unknown offline pack.'});return;}const cache=await caches.open(PACK_PREFIX+id);let saved=0;const failed=[];for(const value of PACKS[id]){const url=safeUrl(value);if(!url){failed.push(value);continue;}try{const response=await fetch(new Request(url,{credentials:'omit',cache:'reload'}));if(response.ok&&response.headers.get('X-TNG-Offline-Safe')==='1'){await cache.put(url,response.clone());saved++;}else failed.push(url);}catch(error){failed.push(url);}}reply({ok:failed.length===0,id,saved,failed:failed.length,installed:await status()});})());
+});
         <?php
         exit;
     }
@@ -143,6 +160,50 @@ self.addEventListener('fetch',event=>{
         if ($icon) $manifest['icons'] = [['src' => $icon, 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any maskable']];
         echo wp_json_encode($manifest, JSON_UNESCAPED_SLASHES);
         exit;
+    }
+
+    private static function packs(): array {
+        $manager = home_url('/offline/');
+        return [
+            'essentials' => [
+                'label' => 'TN Game Essentials',
+                'icon' => '◇',
+                'description' => 'Explore, Map, Play, Games, and the Offline Pack manager.',
+                'urls' => [$manager,home_url('/explore/'),home_url('/map/'),home_url('/play/'),home_url('/games/')],
+            ],
+            'places' => [
+                'label' => 'Tennessee Places',
+                'icon' => '⌖',
+                'description' => 'Trails, food, Top Sights, and destinations for discovery on the road.',
+                'urls' => [$manager,home_url('/trails/'),home_url('/food/'),home_url('/top-sights/'),home_url('/destinations/')],
+            ],
+            'events' => [
+                'label' => 'Events Pack',
+                'icon' => '◉',
+                'description' => 'The latest public Tennessee events screen for quick reference.',
+                'urls' => [$manager,home_url('/events/')],
+            ],
+        ];
+    }
+
+    public static function render_screen(): string {
+        $packs = self::packs();
+        ob_start(); ?>
+        <main class="tng-offline-screen tng-app-shell" data-tng-offline-manager>
+            <section class="tng-offline-hero"><div><span class="tng-eyebrow">Offline packs</span><h1>Take Tennessee with you.</h1><p>Download public discovery screens before the signal disappears. Packs stay on this device and can be refreshed or removed anytime.</p></div><span class="tng-offline-hero__mark">◇</span></section>
+            <section class="tng-offline-storage" aria-live="polite"><div><strong data-tng-storage-title>Checking device storage…</strong><small data-tng-storage-copy>Offline packs use your browser's private app storage.</small></div><a href="#tng-offline-packs">Manage packs</a></section>
+            <section class="tng-offline-packs" id="tng-offline-packs">
+                <?php foreach ($packs as $id => $pack): ?>
+                    <article class="tng-offline-pack" data-tng-pack="<?php echo esc_attr($id); ?>">
+                        <div class="tng-offline-pack__icon"><?php echo esc_html((string)$pack['icon']); ?></div>
+                        <div class="tng-offline-pack__copy"><span data-tng-pack-state>Not downloaded</span><h2><?php echo esc_html((string)$pack['label']); ?></h2><p><?php echo esc_html((string)$pack['description']); ?></p><small><?php echo esc_html(number_format_i18n(count($pack['urls']))); ?> public screens</small></div>
+                        <div class="tng-offline-pack__actions"><button type="button" class="tng-ui-button" data-tng-pack-save>Download</button><button type="button" class="tng-ui-button tng-ui-button--secondary" data-tng-pack-remove hidden>Remove</button></div>
+                    </article>
+                <?php endforeach; ?>
+            </section>
+            <section class="tng-offline-privacy"><span>🔒</span><div><h2>Private by design</h2><p>Trips, Profile, Recaps, Activity, XP, photo uploads, and account changes are never added to Offline Packs. The TN Game does not queue gameplay rewards or private writes while disconnected.</p></div></section>
+        </main>
+        <?php return (string)ob_get_clean();
     }
 }
 TNG_Offline_Mode::boot();
