@@ -115,7 +115,7 @@ final class Adventure_AI implements Module_Interface {
                             <h2 data-plan-title><?php echo esc_html((string)$plan['title']); ?></h2>
                             <p><?php echo esc_html(wp_trim_words((string)$plan['prompt'],18)); ?></p>
                             <div class="tng-adventure-card__stops"><?php foreach($ids as $id): ?><span><?php echo esc_html(get_the_title((int)$id) ?: '#'.(int)$id); ?></span><?php endforeach; ?></div>
-                            <div class="tng-adventure-card__actions"><a class="tng-ui-button" href="<?php echo esc_url(add_query_arg('plan',(string)$plan['id'],home_url('/adventure-ai/'))); ?>">Reopen</a><button class="tng-ui-button tng-ui-button--secondary" type="button" data-tng-plan-duplicate>Duplicate</button></div>
+                            <div class="tng-adventure-card__actions"><a class="tng-ui-button" href="<?php echo esc_url(add_query_arg('plan',(string)$plan['id'],home_url('/adventure-ai/'))); ?>">Reopen</a><a class="tng-ui-button tng-ui-button--secondary" href="<?php echo esc_url(add_query_arg('adventure',(string)$plan['id'],home_url('/map/'))); ?>">View map</a><button class="tng-ui-button tng-ui-button--secondary" type="button" data-tng-plan-duplicate>Duplicate</button></div>
                             <form class="tng-adventure-card__rename" data-tng-plan-rename><label>Rename plan<input name="title" maxlength="100" value="<?php echo esc_attr((string)$plan['title']); ?>"></label><button type="submit">Save name</button></form>
                         </article>
                     <?php endforeach; ?>
@@ -263,6 +263,25 @@ final class Adventure_AI implements Module_Interface {
         foreach($rows as &$row){$row['time']=$instance->clock($clock);$clock+=(int)$row['minutes']+$buffer;$id=(int)$row['id'];if(isset($coordinates[$id]))$row=array_merge($row,$coordinates[$id]);}unset($row);
         $total=array_sum(array_column($rows,'minutes'))+max(0,count($rows)-1)*$buffer;
         return ['id'=>(string)$saved['id'],'title'=>(string)$saved['title'],'prompt'=>(string)$saved['prompt'],'summary'=>'Reopened from your private Saved Adventures library.','tags'=>['Saved adventure',count($rows).' stops'],'stops'=>$rows,'start_minutes'=>$start,'buffer_minutes'=>$buffer,'total_minutes'=>$total];
+    }
+
+    public static function map_overlay(string $plan_id): array {
+        if (!is_user_logged_in()) return [];
+        $plans = self::library(get_current_user_id());
+        $index = self::plan_index($plans, sanitize_text_field($plan_id));
+        if ($index < 0) return [];
+        $plan = $plans[$index];
+        $dataset = class_exists(Universal_Map_Registry::class) ? Universal_Map_Registry::dataset() : [];
+        $mapped = [];
+        foreach ((array)($dataset['items'] ?? []) as $item) $mapped[(int)($item['id']??0)] = $item;
+        $stops = [];
+        foreach (array_slice(array_map('absint',(array)$plan['ids']),0,12) as $id) {
+            if (get_post_status($id) !== 'publish' || empty($mapped[$id])) continue;
+            $item = $mapped[$id];
+            if (!is_numeric($item['lat']??null) || !is_numeric($item['lng']??null)) continue;
+            $stops[] = ['id'=>$id,'title'=>(string)$item['title'],'lat'=>(float)$item['lat'],'lng'=>(float)$item['lng'],'url'=>(string)($item['url']??get_permalink($id))];
+        }
+        return $stops ? ['id'=>(string)$plan['id'],'title'=>(string)$plan['title'],'stops'=>$stops] : [];
     }
 
     private function interpret(string $prompt): array {

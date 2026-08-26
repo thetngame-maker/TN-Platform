@@ -1,3 +1,12 @@
+TN GAME OS 5.113.0 — SAVED ADVENTURE MAPS
+
+CURRENT MILESTONE
+- Opens a private Saved Adventure directly on the Universal Map.
+- Draws numbered itinerary stops and a connected route in saved order.
+- Fits the map to the adventure while retaining every Universal Map discovery layer.
+- Exposes plan coordinates only to the signed-in Explorer who owns the plan.
+- Adds a one-tap View Map action to every Saved Adventure card.
+
 TN GAME OS 5.112.0 — SAVED ADVENTURES
 
 CURRENT MILESTONE

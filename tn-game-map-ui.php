@@ -36,6 +36,8 @@ final class TNG_Map_UI {
         if (!self::is_map()) return;
         $dataset = self::dataset();
         $items = $dataset['items'];
+        $plan_id = sanitize_text_field(wp_unslash((string)($_GET['adventure'] ?? '')));
+        $adventure = class_exists('TNG_OS\\Modules\\Destinations\\Adventure_AI') ? TNG_OS\Modules\Destinations\Adventure_AI::map_overlay($plan_id) : [];
         wp_dequeue_style('tng-map-ui');
         wp_deregister_style('tng-map-ui');
         wp_enqueue_style('tng-leaflet', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css', [], '1.9.4');
@@ -48,7 +50,7 @@ final class TNG_Map_UI {
         wp_enqueue_script('tng-map-ui-live', TNG_OS_URL . 'assets/js/map-ui.js', ['tng-leaflet-markercluster','tng-trip-data'], TNG_OS_VERSION, true);
         wp_enqueue_script('tng-map-mobile-final', TNG_OS_URL . 'assets/js/map-mobile-final.js', ['tng-map-ui-live'], TNG_OS_VERSION, true);
         $center = $items ? [(float) $items[0]['lat'], (float) $items[0]['lng']] : [35.8601, -86.6602];
-        wp_localize_script('tng-map-ui-live', 'TNG_DISCOVERY_MAP', ['items' => $items, 'categories' => $dataset['categories'], 'coverage' => $dataset['coverage'], 'center' => $center, 'zoom' => 7]);
+        wp_localize_script('tng-map-ui-live', 'TNG_DISCOVERY_MAP', ['items' => $items, 'categories' => $dataset['categories'], 'coverage' => $dataset['coverage'], 'center' => $center, 'zoom' => 7, 'adventure' => $adventure]);
     }
 
     private static function cards(array $items): string {
@@ -76,6 +78,8 @@ final class TNG_Map_UI {
         $categories = $dataset['categories'];
         $coverage = $dataset['coverage'];
         $cards = self::cards($items);
+        $plan_id = sanitize_text_field(wp_unslash((string)($_GET['adventure'] ?? '')));
+        $adventure = class_exists('TNG_OS\\Modules\\Destinations\\Adventure_AI') ? TNG_OS\Modules\Destinations\Adventure_AI::map_overlay($plan_id) : [];
         ob_start(); ?>
         <main class="tng-map-screen tng-app-shell">
             <section class="tng-map-toolbar">
@@ -86,6 +90,7 @@ final class TNG_Map_UI {
                 <label class="tng-map-search"><span class="screen-reader-text">Search the map</span><b aria-hidden="true">⌕</b><input type="search" data-tng-map-search placeholder="Search places, towns, trails…" autocomplete="off"><button type="button" data-tng-map-search-clear aria-label="Clear map search" hidden>×</button></label>
                 <p><strong><?php echo number_format_i18n((int) $coverage['mapped']); ?></strong> mapped discoveries <span>across <?php echo number_format_i18n(count($categories)); ?> collections</span></p>
             </section>
+            <?php if ($adventure): ?><section class="tng-map-adventure-banner"><span>◇</span><div><small>Saved Adventure route</small><strong><?php echo esc_html((string)$adventure['title']); ?></strong><p><?php echo esc_html(count($adventure['stops']).' mapped stop'.(count($adventure['stops'])===1?'':'s').' shown in itinerary order'); ?></p></div><a href="<?php echo esc_url(home_url('/adventures/')); ?>">Saved Adventures</a></section><?php endif; ?>
             <section class="tng-map-filterbar" aria-label="Map filters">
                 <button class="is-active" data-tng-map-filter="all" type="button">All <span><?php echo number_format_i18n(count($items)); ?></span></button>
                 <?php foreach ($categories as $kind => $category): ?><button data-tng-map-filter="<?php echo esc_attr($kind); ?>" type="button"><?php echo esc_html($category['icon'] . ' ' . $category['label']); ?> <span><?php echo number_format_i18n((int) $category['count']); ?></span></button><?php endforeach; ?>
