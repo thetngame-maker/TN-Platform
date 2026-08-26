@@ -89,7 +89,7 @@ final class AI_Content_Manager implements Module_Interface {
 
             <section class="tng-ai-metrics">
                 <?php foreach ([
-                    ['Content records', $inventory['counts']['total']],
+                    ['Recent records scanned', $inventory['counts']['total']],
                     ['Drafts', $inventory['counts']['draft']],
                     ['Missing images', $inventory['counts']['missing_image']],
                     ['Missing excerpts', $inventory['counts']['missing_excerpt']],
