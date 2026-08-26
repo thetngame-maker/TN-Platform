@@ -1,3 +1,19 @@
+TN GAME OS 5.110.0 — OFFLINE PACKS
+
+CURRENT MILESTONE
+- Adds device-local Essentials, Tennessee Places, and Events packs.
+- Downloads only predefined public routes marked safe by TN Game OS.
+- Shows storage and saved-screen status with update and remove controls.
+- Keeps every private Explorer route and gameplay write network-only.
+
+TN GAME OS 5.109.0 — PRODUCTION SMOKE TESTS
+
+CURRENT MILESTONE
+- Adds a read-only production verification screen for routes, privacy, offline assets, and critical modules.
+- Understands Coming Soon mode and validates its expected public response.
+- Confirms public Explore caching and private route cache isolation.
+- Exports a support-friendly JSON report without changing site or Explorer data.
+
 TN GAME OS 5.108.0 — OFFLINE MODE
 
 CURRENT MILESTONE

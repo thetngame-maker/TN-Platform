@@ -387,6 +387,15 @@ final class Admin implements Module_Interface {
                 'keywords' => ['duplicate', 'hook', 'callback', 'menu', 'audit'],
             ],
             [
+                'label' => 'Production Smoke Tests',
+                'description' => 'Verify routes, offline endpoints, privacy boundaries, the launch gate, and critical modules.',
+                'workspace' => 'System',
+                'icon' => 'dashicons-shield-alt',
+                'capability' => 'manage_options',
+                'page' => 'tng-production-smoke-tests',
+                'keywords' => ['production', 'smoke', 'launch', 'offline', 'privacy', 'routes', 'health'],
+            ],
+            [
                 'label' => 'System Status',
                 'description' => 'Compatibility and integration readiness checks.',
                 'workspace' => 'System',

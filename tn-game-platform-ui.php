@@ -124,7 +124,7 @@ final class TNG_Platform_UI {
             'map' => ['map'],
             'play' => ['play','games','game-builder','game-play'],
             'trips' => ['trips','adventure-ai','saved','trip-builder','active-trip','trip-mode','past-trips','recaps'],
-            'profile' => ['profile','profile-settings','leaderboard','achievements','friends','activity','challenges','journal','explorer-journal','completed','my-photos'],
+            'profile' => ['profile','profile-settings','offline','leaderboard','achievements','friends','activity','challenges','journal','explorer-journal','completed','my-photos'],
         ];
         $items = [
             ['Explore','⌂',home_url('/explore/'),'explore'],

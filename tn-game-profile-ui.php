@@ -221,6 +221,7 @@ final class TNG_Profile_UI {
                         <a href="<?php echo esc_url(home_url('/profile/')); ?>"><span>⚡</span><div><strong>Reach Level <?php echo esc_html((string)($level + 1)); ?></strong><small><?php echo esc_html(number_format_i18n($xp_to_next)); ?> XP remaining</small><div class="tng-profile-goal-meter"><i style="width:<?php echo esc_attr((string)$level_progress); ?>%"></i></div></div></a>
                         <?php if ($next_achievement): ?><a href="<?php echo esc_url($next_achievement['url']); ?>"><span>🏆</span><div><strong><?php echo esc_html($next_achievement['title']); ?></strong><small><?php echo esc_html($next_achievement['description']); ?></small></div></a><?php else: ?><a href="<?php echo esc_url(home_url('/achievements/')); ?>"><span>🏆</span><div><strong>Achievement collection</strong><small>See every milestone you have unlocked.</small></div></a><?php endif; ?>
                         <a href="<?php echo esc_url(home_url('/play/')); ?>"><span>🎮</span><div><strong>Complete another adventure</strong><small><?php echo $completed_games ? esc_html($completed_games . ' game' . ($completed_games === 1 ? '' : 's') . ' completed so far') : 'Earn XP from checkpoints'; ?></small></div></a>
+                        <a href="<?php echo esc_url(home_url('/offline/')); ?>"><span>◇</span><div><strong>Offline Packs</strong><small>Download public Tennessee screens before the signal disappears.</small></div></a>
                     </div>
                 </article>
             </section>
