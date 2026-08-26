@@ -1,3 +1,12 @@
+TN GAME OS 5.108.0 — OFFLINE MODE
+
+CURRENT MILESTONE
+- Adds a root-scoped service worker and installable TN Game web app manifest.
+- Caches same-origin app assets and anonymous public discovery screens.
+- Provides a branded read-only offline fallback when the network disappears.
+- Keeps Trips, XP, uploads, profiles, and Adventure Recaps network-only for privacy and consistency.
+- Never queues gameplay rewards or mutations that could be duplicated after reconnecting.
+
 TN GAME OS 5.107.0 — ADVENTURE RECAPS
 
 CURRENT MILESTONE

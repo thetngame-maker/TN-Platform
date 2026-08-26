@@ -1,0 +1,148 @@
+<?php
+/**
+ * Plugin Name: TN Game Offline Mode
+ * Description: Privacy-safe PWA shell and public discovery caching for TN Game app routes.
+ * Version: 1.0.0
+ * Author: The TN Game
+ */
+if (!defined('ABSPATH')) exit;
+
+final class TNG_Offline_Mode {
+    private const QUERY_VAR = 'tng_offline_asset';
+    private const SAFE_ROUTES = ['explore','play','games','map','trails','events','food','top-sights','destinations'];
+
+    public static function boot(): void {
+        add_action('init', [self::class, 'rewrites'], 15);
+        add_filter('query_vars', [self::class, 'query_vars']);
+        add_action('template_redirect', [self::class, 'serve_asset'], -100);
+        add_action('send_headers', [self::class, 'public_cache_header']);
+        add_action('wp_enqueue_scripts', [self::class, 'assets'], 130);
+        add_action('wp_head', [self::class, 'head'], 3);
+    }
+
+    public static function rewrites(): void {
+        add_rewrite_rule('^tn-game-sw\.js$', 'index.php?' . self::QUERY_VAR . '=service-worker', 'top');
+        add_rewrite_rule('^tn-game\.webmanifest$', 'index.php?' . self::QUERY_VAR . '=manifest', 'top');
+    }
+
+    public static function query_vars(array $vars): array {
+        $vars[] = self::QUERY_VAR;
+        return $vars;
+    }
+
+    public static function serve_asset(): void {
+        $asset = sanitize_key((string)get_query_var(self::QUERY_VAR));
+        if ($asset === 'service-worker') self::service_worker();
+        if ($asset === 'manifest') self::manifest();
+    }
+
+    public static function public_cache_header(): void {
+        if (is_admin() || is_user_logged_in() || headers_sent()) return;
+        $route = self::request_route();
+        if (in_array($route, self::SAFE_ROUTES, true)) header('X-TNG-Offline-Safe: 1');
+    }
+
+    public static function assets(): void {
+        if (!class_exists('TNG_OS\\Platform\\App_Router') || !TNG_OS\Platform\App_Router::is_app_request()) return;
+        wp_enqueue_style('tng-offline-mode', TNG_OS_URL . 'assets/css/offline-mode.css', ['tng-ui-kit'], TNG_OS_VERSION);
+        wp_enqueue_script('tng-offline-mode', TNG_OS_URL . 'assets/js/offline-mode.js', [], TNG_OS_VERSION, true);
+        wp_localize_script('tng-offline-mode', 'TNGOfflineMode', [
+            'serviceWorkerUrl' => home_url('/tn-game-sw.js'),
+            'scope' => home_url('/'),
+            'version' => TNG_OS_VERSION,
+            'privateRoute' => is_user_logged_in() || !in_array(TNG_OS\Platform\App_Router::current_route(), self::SAFE_ROUTES, true),
+        ]);
+    }
+
+    public static function head(): void {
+        if (is_admin() || !class_exists('TNG_OS\\Platform\\App_Router') || !TNG_OS\Platform\App_Router::is_app_request()) return;
+        echo '<link rel="manifest" href="' . esc_url(home_url('/tn-game.webmanifest')) . '">';
+        echo '<meta name="theme-color" content="#0b3d2e">';
+        echo '<meta name="apple-mobile-web-app-capable" content="yes">';
+        echo '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">';
+    }
+
+    private static function request_route(): string {
+        $path = trim((string)wp_parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH), '/');
+        return sanitize_key(explode('/', $path)[0] ?? '');
+    }
+
+    private static function service_worker(): void {
+        nocache_headers();
+        header('Content-Type: application/javascript; charset=UTF-8');
+        header('Service-Worker-Allowed: /');
+        $version = sanitize_key(str_replace('.', '-', TNG_OS_VERSION));
+        $origin = home_url('/');
+        $plugin = TNG_OS_URL;
+        $static = [
+            $plugin . 'assets/css/ui-kit.css',
+            $plugin . 'assets/css/platform-ui.css',
+            $plugin . 'assets/css/app-router.css',
+            $plugin . 'assets/css/offline-mode.css',
+            $plugin . 'assets/js/platform-ui.js',
+            $plugin . 'assets/js/offline-mode.js',
+        ];
+        $offline_html = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b3d2e"><title>TN Game · Offline</title><style>html{background:#f6f1e7;color:#153c2c;font-family:system-ui,-apple-system,sans-serif}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:22px;box-sizing:border-box}.card{max-width:560px;padding:32px;border:1px solid #d9e2dc;border-radius:26px;background:#fff;box-shadow:0 18px 45px rgba(12,55,39,.12)}span{font-size:48px}h1{margin:12px 0 8px;font-size:42px;line-height:1}p{color:#63746b;line-height:1.6}button{min-height:48px;padding:0 18px;border:0;border-radius:999px;background:#176b45;color:#fff;font:inherit;font-weight:800}</style></head><body><main class="card"><span>◇</span><h1>Tennessee is still here.</h1><p>You are offline. Previously cached public Explore, Map, and Play screens may still open. Trips, XP, photos, and profile changes wait until you reconnect.</p><button onclick="location.reload()">Try again</button></main></body></html>';
+        ?>
+const VERSION=<?php echo wp_json_encode('tng-os-' . $version); ?>;
+const STATIC_CACHE=VERSION+'-static';
+const PAGE_CACHE=VERSION+'-public-pages';
+const PLUGIN_PREFIX=<?php echo wp_json_encode((string)wp_parse_url($plugin, PHP_URL_PATH)); ?>;
+const STATIC_ASSETS=<?php echo wp_json_encode($static); ?>;
+const OFFLINE_HTML=<?php echo wp_json_encode($offline_html); ?>;
+
+self.addEventListener('install',event=>{
+  event.waitUntil(caches.open(STATIC_CACHE).then(cache=>Promise.allSettled(STATIC_ASSETS.map(url=>cache.add(url)))).then(()=>self.skipWaiting()));
+});
+
+self.addEventListener('activate',event=>{
+  event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('tng-os-')&&!key.startsWith(VERSION)).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));
+});
+
+self.addEventListener('fetch',event=>{
+  const request=event.request;
+  if(request.method!=='GET')return;
+  const url=new URL(request.url);
+  if(url.origin!==self.location.origin)return;
+  if(url.pathname.startsWith('/wp-admin/')||url.pathname==='/wp-login.php'||url.pathname.includes('admin-ajax.php')||url.pathname.startsWith('/wp-json/'))return;
+  if(request.mode==='navigate'){
+    event.respondWith(fetch(request).then(response=>{
+      if(response.ok&&response.headers.get('X-TNG-Offline-Safe')==='1')caches.open(PAGE_CACHE).then(cache=>cache.put(request,response.clone()));
+      return response;
+    }).catch(async()=>await caches.match(request)||new Response(OFFLINE_HTML,{status:200,headers:{'Content-Type':'text/html; charset=UTF-8','X-TNG-Offline-Fallback':'1'}})));
+    return;
+  }
+  if(url.pathname.startsWith(PLUGIN_PREFIX)){
+    event.respondWith(caches.match(request,{ignoreSearch:true}).then(cached=>{
+      const network=fetch(request).then(response=>{if(response.ok)caches.open(STATIC_CACHE).then(cache=>cache.put(request,response.clone()));return response;});
+      return cached||network;
+    }));
+  }
+});
+        <?php
+        exit;
+    }
+
+    private static function manifest(): void {
+        nocache_headers();
+        header('Content-Type: application/manifest+json; charset=UTF-8');
+        $manifest = [
+            'name' => 'The TN Game',
+            'short_name' => 'TN Game',
+            'description' => 'Discover, play, and explore Tennessee.',
+            'id' => home_url('/explore/'),
+            'start_url' => home_url('/explore/?source=pwa'),
+            'scope' => home_url('/'),
+            'display' => 'standalone',
+            'background_color' => '#f6f1e7',
+            'theme_color' => '#0b3d2e',
+            'orientation' => 'portrait-primary',
+            'categories' => ['travel','games','lifestyle'],
+        ];
+        $icon = get_site_icon_url(512);
+        if ($icon) $manifest['icons'] = [['src' => $icon, 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any maskable']];
+        echo wp_json_encode($manifest, JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+}
+TNG_Offline_Mode::boot();

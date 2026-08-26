@@ -12,8 +12,10 @@ const recaps = read('tn-game-adventure-recaps.php');
 const css = read('assets/css/adventure-recaps.css');
 const js = read('assets/js/adventure-recaps.js');
 
-assert.match(bootstrap, /Version:\s*5\.107\.0/);
-assert.match(bootstrap, /define\('TNG_OS_VERSION','5\.107\.0'\)/);
+const version = bootstrap.match(/Version:\s*(\d+\.\d+\.\d+)/)?.[1] || '';
+const [major, minor] = version.split('.').map(Number);
+assert.ok(major > 5 || (major === 5 && minor >= 107), 'Adventure Recaps requires TN Game OS 5.107.0 or newer');
+assert.match(bootstrap, new RegExp(`define\\('TNG_OS_VERSION','${version.replaceAll('.', '\\.')}'\\)`));
 assert.match(appRouter, /TNG_Adventure_Recaps.*tn-game-adventure-recaps\.php/);
 assert.match(routes, /'recaps'/);
 assert.match(routes, /TNG_Adventure_Recaps::render/);
