@@ -15,9 +15,10 @@
     "test:entity": "php -d zend.assertions=1 -d assert.exception=1 packages/entity/tests/entity-foundation.test.php",
     "test:relationship": "php -d zend.assertions=1 -d assert.exception=1 packages/relationship/tests/relationship-engine.test.php",
     "test:graph": "php -d zend.assertions=1 -d assert.exception=1 packages/graph/tests/graph-engine.test.php",
-    "check": "npm run check:node && npm run check:php",
+    "check": "npm run check:node && npm run check:php && npm run check:tn-game-os",
     "check:node": "node --check services/platform-core-api/src/server.js && node --check scripts/build-releases.mjs",
     "check:php": "bash scripts/check-php.sh",
+    "check:tn-game-os": "node scripts/check-tn-game-os-5.106.mjs",
     "build": "node scripts/build-releases.mjs",
     "release": "npm run check && npm test && npm run build"
   },

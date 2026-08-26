@@ -1,3 +1,11 @@
+TN GAME OS 5.106.0 — AI ADMIN / CONTENT MANAGER
+
+CURRENT MILESTONE
+- Natural-language requests become reviewable content plans.
+- Every write requires explicit approval and is reversible.
+- No automatic publishing, permanent deletion or batch execution.
+- Optional structured OpenAI planning with an on-site fallback.
+
 TN GAME OS 2.1.0 — MODULAR REBUILD
 
 INSTALLATION
