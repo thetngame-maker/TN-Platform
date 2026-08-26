@@ -1,3 +1,12 @@
+TN GAME OS 5.111.0 — ADVENTURE AI V2
+
+CURRENT MILESTONE
+- Makes generated Tennessee itineraries editable before saving.
+- Adds stop reordering, removal, undo, and original-plan reset controls.
+- Recalculates arrivals and total duration when start time or travel buffer changes.
+- Draws a dependency-free route preview from Universal Map coordinates.
+- Saves only the explicitly approved stop order and timing preferences to the Explorer account.
+
 TN GAME OS 5.110.0 — OFFLINE PACKS
 
 CURRENT MILESTONE
