@@ -42,9 +42,16 @@ final class TNG_Past_Trips_UI {
         $completed = get_user_meta($user_id, 'tng_active_trip_completed', true);
         $completed = is_array($completed) ? array_map('absint', $completed) : [];
         if (count(array_intersect($saved_ids, $completed)) !== count($saved_ids)) wp_send_json_error(['code' => 'trip_incomplete'], 400);
+        $route = get_user_meta($user_id, 'tng_saved_trip_route', true);
+        $route = is_array($route) ? $route : [];
         $trip = [
             'id' => wp_generate_uuid4(),
+            'title' => 'Tennessee Day · ' . current_time('M j'),
             'completed_at' => current_time('mysql'),
+            'stats' => [
+                'distance_m' => absint($route['distance_m'] ?? 0),
+                'duration_s' => absint($route['duration_s'] ?? 0),
+            ],
             'items' => array_map(static function ($post): array {
                 return ['id'=>(int)$post->ID,'title'=>get_the_title($post),'url'=>get_permalink($post),'image'=>get_the_post_thumbnail_url($post->ID,'medium_large') ?: ''];
             }, $posts),
@@ -54,7 +61,10 @@ final class TNG_Past_Trips_UI {
         update_user_meta($user_id, self::META_KEY, array_slice($history, 0, 50));
         update_user_meta($user_id, 'tng_active_trip_completed', []);
         update_user_meta($user_id, 'tng_saved_trip_items', []);
-        wp_send_json_success(['redirect'=>home_url('/past-trips/'),'trip'=>$trip]);
+        delete_user_meta($user_id, 'tng_active_trip_skipped');
+        delete_user_meta($user_id, 'tng_saved_trip_route');
+        do_action('tng_os_trip_archived', $user_id, $trip);
+        wp_send_json_success(['redirect'=>add_query_arg('recap', $trip['id'], home_url('/recaps/')),'trip'=>$trip]);
     }
 
     public static function render(): string {
@@ -68,7 +78,7 @@ final class TNG_Past_Trips_UI {
                 <div class="tng-section__heading"><div><span class="tng-eyebrow">Your history</span><h2><?php echo $history ? 'Completed Tennessee days' : 'Your first trip is waiting'; ?></h2><p><?php echo $history ? 'Every archived itinerary stays connected to your Explorer account.' : 'Complete every stop in Trip Mode, then archive the day here.'; ?></p></div><a href="<?php echo esc_url(home_url('/explore/')); ?>">Plan another</a></div>
                 <?php if (!$logged_in): ?><div class="tng-past-trips-empty"><h3>Sign in to see past trips.</h3><a class="tng-ui-button" href="<?php echo esc_url(wp_login_url(home_url('/past-trips/'))); ?>">Sign in</a></div>
                 <?php elseif (!$history): ?><div class="tng-past-trips-empty"><span>↺</span><h3>No archived trips yet.</h3><p>Finish your active itinerary and it will appear here.</p><a class="tng-ui-button" href="<?php echo esc_url(home_url('/active-trip/')); ?>">Open trip mode</a></div>
-                <?php else: ?><div class="tng-past-trips-list"><?php foreach ($history as $index => $trip): $items = is_array($trip['items'] ?? null) ? $trip['items'] : []; ?><article class="tng-past-trip-card"><div class="tng-past-trip-card__head"><div><small><?php echo esc_html(mysql2date('M j, Y', (string)($trip['completed_at'] ?? ''))); ?></small><h3>Tennessee Trip <?php echo esc_html((string)(count($history)-$index)); ?></h3></div><strong><?php echo esc_html((string)count($items)); ?> stops</strong></div><div class="tng-past-trip-stops"><?php foreach ($items as $item): ?><a href="<?php echo esc_url((string)($item['url'] ?? '#')); ?>"><span<?php echo !empty($item['image']) ? ' style="background-image:url(' . esc_url((string)$item['image']) . ')"' : ''; ?>></span><b><?php echo esc_html((string)($item['title'] ?? 'Stop')); ?></b></a><?php endforeach; ?></div></article><?php endforeach; ?></div><?php endif; ?>
+                <?php else: ?><div class="tng-past-trips-list"><?php foreach ($history as $index => $trip): $items = is_array($trip['items'] ?? null) ? $trip['items'] : []; ?><article class="tng-past-trip-card"><div class="tng-past-trip-card__head"><div><small><?php echo esc_html(mysql2date('M j, Y', (string)($trip['completed_at'] ?? ''))); ?></small><h3><?php echo esc_html((string)($trip['title'] ?? 'Tennessee Trip ' . (count($history)-$index))); ?></h3></div><strong><?php echo esc_html((string)count($items)); ?> stops</strong></div><div class="tng-past-trip-stops"><?php foreach ($items as $item): ?><a href="<?php echo esc_url((string)($item['url'] ?? '#')); ?>"><span<?php echo !empty($item['image']) ? ' style="background-image:url(' . esc_url((string)$item['image']) . ')"' : ''; ?>></span><b><?php echo esc_html((string)($item['title'] ?? 'Stop')); ?></b></a><?php endforeach; ?></div><p><a href="<?php echo esc_url(add_query_arg('recap', (string)($trip['id'] ?? ''), home_url('/recaps/'))); ?>">Open adventure recap →</a></p></article><?php endforeach; ?></div><?php endif; ?>
             </section>
         </main>
         <?php return (string)ob_get_clean();

@@ -8,8 +8,10 @@ const bootstrap = read('tn-game-os.php');
 const core = read('app/Core/class-plugin.php');
 const manager = read('app/Modules/Admin/class-ai-content-manager.php');
 
-assert.match(bootstrap, /Version:\s*5\.106\.0/);
-assert.match(bootstrap, /define\('TNG_OS_VERSION','5\.106\.0'\)/);
+const version = bootstrap.match(/Version:\s*(\d+\.\d+\.\d+)/)?.[1] || '';
+const [major, minor] = version.split('.').map(Number);
+assert.ok(major > 5 || (major === 5 && minor >= 106), 'AI Admin requires TN Game OS 5.106.0 or newer');
+assert.match(bootstrap, new RegExp(`define\\('TNG_OS_VERSION','${version.replaceAll('.', '\\.')}'\\)`));
 assert.match(core, /class-ai-content-manager\.php/);
 assert.match(core, /AI_Content_Manager::class/);
 

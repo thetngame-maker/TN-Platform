@@ -1,3 +1,12 @@
+TN GAME OS 5.107.0 — ADVENTURE RECAPS
+
+CURRENT MILESTONE
+- Automatically creates private recaps from completed trips and games.
+- Saves stops, checkpoints, XP, route distance, time and approved Explorer photos.
+- Adds editable memory titles and notes plus native share/copy controls.
+- Connects Recaps to Trips, Past Trips and Completed Adventures.
+- Keeps every recap private to its signed-in Explorer account.
+
 TN GAME OS 5.106.0 — AI ADMIN / CONTENT MANAGER
 
 CURRENT MILESTONE

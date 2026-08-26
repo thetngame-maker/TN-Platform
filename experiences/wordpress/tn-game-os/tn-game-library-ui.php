@@ -36,7 +36,7 @@ final class TNG_Library_UI {
 
     private static function trip_recaps(int $user_id): array {
         if (!$user_id) return [];
-        foreach (['_tng_trip_recaps','tng_trip_recaps'] as $key) {
+        foreach (['_tng_adventure_recaps','_tng_trip_recaps','tng_trip_recaps'] as $key) {
             $value = get_user_meta($user_id, $key, true);
             if (is_array($value) && $value) return array_values(array_filter($value, 'is_array'));
         }
@@ -94,8 +94,8 @@ final class TNG_Library_UI {
                     <?php foreach ($items as $item): $image=get_the_post_thumbnail_url($item->ID,'large'); $game_url=add_query_arg(['game'=>$item->ID],home_url('/game-play/')); ?>
                         <a href="<?php echo esc_url($game_url); ?>" class="tng-completed-card"><span class="tng-completed-media"<?php echo $image?' style="background-image:url('.esc_url($image).')"':''; ?>><b>Completed</b></span><div><h3><?php echo esc_html(get_the_title($item)); ?></h3><p><?php echo esc_html(self::clean_excerpt((int)$item->ID,16)); ?></p><strong>Review adventure →</strong></div></a>
                     <?php endforeach; ?>
-                    <?php foreach ($recaps as $recap): $title=sanitize_text_field($recap['title']??'My Tennessee adventure'); $stops=absint($recap['stop_count']??0); $minutes=absint($recap['minutes']??0); $date=sanitize_text_field($recap['date']??''); ?>
-                        <a href="<?php echo esc_url(home_url('/past-trips/')); ?>" class="tng-completed-card"><span class="tng-completed-media"><b>Trip complete</b></span><div><h3><?php echo esc_html($title); ?></h3><p><?php echo esc_html(trim(($stops?$stops.' stops':'').($minutes?' · '.$minutes.' min':'').($date?' · '.$date:''))); ?></p><strong>View trip recap →</strong></div></a>
+                    <?php foreach ($recaps as $recap): $title=sanitize_text_field($recap['title']??'My Tennessee adventure'); $stats=is_array($recap['stats']??null)?$recap['stats']:[]; $stops=absint($recap['stop_count']??$stats['stops']??0); $minutes=absint($recap['minutes']??(!empty($stats['duration_s'])?round($stats['duration_s']/60):0)); $date=sanitize_text_field($recap['date']??$recap['completed_at']??''); $recap_url=!empty($recap['id'])?add_query_arg('recap',sanitize_text_field($recap['id']),home_url('/recaps/')):home_url('/recaps/'); ?>
+                        <a href="<?php echo esc_url($recap_url); ?>" class="tng-completed-card"><span class="tng-completed-media"<?php echo !empty($recap['cover'])?' style="background-image:url('.esc_url((string)$recap['cover']).')"':''; ?>><b><?php echo esc_html(($recap['kind']??'trip')==='game'?'Game complete':'Trip complete'); ?></b></span><div><h3><?php echo esc_html($title); ?></h3><p><?php echo esc_html(trim(($stops?$stops.' stops':'').($minutes?' · '.$minutes.' min':'').($date?' · '.mysql2date('M j, Y',$date):''))); ?></p><strong>View adventure recap →</strong></div></a>
                     <?php endforeach; ?>
                     <?php if (!$total): ?><div class="tng-library-empty tng-library-empty--wide"><span>🥾</span><h3>Your first completion is waiting.</h3><p>Finish a trail or game and it will appear in your adventure history.</p><a class="tng-ui-button" href="<?php echo esc_url(home_url('/play/')); ?>">Find an adventure</a></div><?php endif; ?>
                 </div>

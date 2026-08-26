@@ -11,7 +11,7 @@ if (!defined('ABSPATH')) exit;
 add_action('plugins_loaded',static function():void{
     if(!defined('TNG_OS_PATH')||!defined('TNG_OS_URL'))return;
     foreach([
-        'TNG_Launch_Gate'=>'tn-game-launch-gate.php','TNG_Platform_UI'=>'tn-game-platform-ui.php','TNG_Trip_Data'=>'tn-game-trip-data.php','TNG_Trip_Builder_UI'=>'tn-game-trip-builder-ui.php','TNG_Active_Trip_UI'=>'tn-game-active-trip-ui.php','TNG_Past_Trips_UI'=>'tn-game-past-trips-ui.php','TNG_Trip_Dock'=>'tn-game-trip-dock.php','TNG_Play_UI'=>'tn-game-play-ui.php','TNG_Games_UI'=>'tn-game-games-ui.php','TNG_Game_Builder_UI'=>'tn-game-builder-ui.php','TNG_Game_Visual_Builder'=>'tn-game-visual-builder.php','TNG_Game_Runtime_UI'=>'tn-game-runtime-ui.php','TNG_Game_Runtime_Map'=>'tn-game-runtime-map.php','TNG_Game_Developer_GPS'=>'tn-game-developer-gps.php','TNG_Game_Progression'=>'tn-game-game-progression.php','TNG_Map_UI'=>'tn-game-map-ui.php','TNG_Trips_UI'=>'tn-game-trips-ui.php','TNG_Profile_UI'=>'tn-game-profile-ui.php','TNG_Settings_UI'=>'tn-game-settings-ui.php','TNG_Search_UI'=>'tn-game-search-ui.php','TNG_Progress_UI'=>'tn-game-progress-ui.php','TNG_Social_UI'=>'tn-game-social-ui.php','TNG_Challenges_UI'=>'tn-game-challenges-ui.php','TNG_Library_UI'=>'tn-game-library-ui.php','TNG_Directory_UI'=>'tn-game-directory-ui.php','TNG_Trail_UI'=>'tn-game-trail-ui.php','TNG_Place_UI'=>'tn-game-place-ui.php','TNG_Event_UI'=>'tn-game-event-ui.php'
+        'TNG_Launch_Gate'=>'tn-game-launch-gate.php','TNG_Platform_UI'=>'tn-game-platform-ui.php','TNG_Trip_Data'=>'tn-game-trip-data.php','TNG_Trip_Builder_UI'=>'tn-game-trip-builder-ui.php','TNG_Active_Trip_UI'=>'tn-game-active-trip-ui.php','TNG_Past_Trips_UI'=>'tn-game-past-trips-ui.php','TNG_Adventure_Recaps'=>'tn-game-adventure-recaps.php','TNG_Trip_Dock'=>'tn-game-trip-dock.php','TNG_Play_UI'=>'tn-game-play-ui.php','TNG_Games_UI'=>'tn-game-games-ui.php','TNG_Game_Builder_UI'=>'tn-game-builder-ui.php','TNG_Game_Visual_Builder'=>'tn-game-visual-builder.php','TNG_Game_Runtime_UI'=>'tn-game-runtime-ui.php','TNG_Game_Runtime_Map'=>'tn-game-runtime-map.php','TNG_Game_Developer_GPS'=>'tn-game-developer-gps.php','TNG_Game_Progression'=>'tn-game-game-progression.php','TNG_Map_UI'=>'tn-game-map-ui.php','TNG_Trips_UI'=>'tn-game-trips-ui.php','TNG_Profile_UI'=>'tn-game-profile-ui.php','TNG_Settings_UI'=>'tn-game-settings-ui.php','TNG_Search_UI'=>'tn-game-search-ui.php','TNG_Progress_UI'=>'tn-game-progress-ui.php','TNG_Social_UI'=>'tn-game-social-ui.php','TNG_Challenges_UI'=>'tn-game-challenges-ui.php','TNG_Library_UI'=>'tn-game-library-ui.php','TNG_Directory_UI'=>'tn-game-directory-ui.php','TNG_Trail_UI'=>'tn-game-trail-ui.php','TNG_Place_UI'=>'tn-game-place-ui.php','TNG_Event_UI'=>'tn-game-event-ui.php'
     ] as$class=>$file){if(!class_exists($class)&&is_readable(TNG_OS_PATH.$file))require_once TNG_OS_PATH.$file;}
     if(!class_exists('TNG_OS\\Platform\\App_Router'))require_once TNG_OS_PATH.'app/Platform/class-app-router.php';
 },20);
@@ -27,11 +27,12 @@ add_action('wp_enqueue_scripts',static function():void{
     if($route==='game-builder')wp_enqueue_style('tng-game-builder-ui',TNG_OS_URL.'assets/css/game-builder-ui.css',['tng-ui-kit'],'0.5.0');
     if($route==='game-play')wp_enqueue_style('tng-game-runtime-ui',TNG_OS_URL.'assets/css/game-runtime-ui.css',['tng-ui-kit'],'0.2.0');
     if($route==='map')wp_enqueue_style('tng-map-ui',TNG_OS_URL.'assets/css/map-ui.css',['tng-ui-kit'],TNG_OS_VERSION);
-    if(in_array($route,['trips','saved','trip-builder','active-trip','trip-mode','past-trips'],true))wp_enqueue_style('tng-trips-ui',TNG_OS_URL.'assets/css/trips-ui.css',['tng-ui-kit'],'0.3.0');
+    if(in_array($route,['trips','saved','trip-builder','active-trip','trip-mode','past-trips','recaps'],true))wp_enqueue_style('tng-trips-ui',TNG_OS_URL.'assets/css/trips-ui.css',['tng-ui-kit'],'0.3.0');
     if($route==='adventure-ai')wp_enqueue_style('tng-adventure-ai',TNG_OS_URL.'assets/css/adventure-ai.css',['tng-ui-kit'],'1.0.0');
     if(in_array($route,['saved','trip-builder','active-trip','trip-mode','past-trips'],true))wp_enqueue_style('tng-trip-builder-ui',TNG_OS_URL.'assets/css/trip-builder-ui.css',['tng-trips-ui'],'0.3.0');
     if(in_array($route,['active-trip','trip-mode'],true))wp_enqueue_style('tng-active-trip-ui',TNG_OS_URL.'assets/css/active-trip-ui.css',['tng-trip-builder-ui','tng-active-trip-leaflet'],'0.3.0');
     if($route==='past-trips')wp_enqueue_style('tng-past-trips-ui',TNG_OS_URL.'assets/css/past-trips-ui.css',['tng-trip-builder-ui'],'0.1.1');
+    if($route==='recaps')wp_enqueue_style('tng-adventure-recaps',TNG_OS_URL.'assets/css/adventure-recaps.css',['tng-trips-ui'],TNG_OS_VERSION);
     if($route==='profile')wp_enqueue_style('tng-profile-ui',TNG_OS_URL.'assets/css/profile-ui.css',['tng-ui-kit'],TNG_OS_VERSION);
     if($route==='profile-settings')wp_enqueue_style('tng-settings-ui',TNG_OS_URL.'assets/css/settings-ui.css',['tng-ui-kit'],'0.1.4');
     if($route==='search')wp_enqueue_style('tng-search-ui',TNG_OS_URL.'assets/css/search-ui.css',['tng-ui-kit'],'0.1.9');
@@ -46,6 +47,7 @@ add_action('wp_enqueue_scripts',static function():void{
     if($route==='game-play')wp_enqueue_script('tng-game-runtime-ui',TNG_OS_URL.'assets/js/game-runtime-ui.js',[],'0.2.0',true);
     if($route==='trip-builder')wp_enqueue_script('tng-trip-builder',TNG_OS_URL.'assets/js/trip-builder.js',['tng-trip-data','tng-trip-builder-leaflet'],'0.5.0',true);
     if(in_array($route,['active-trip','trip-mode'],true))wp_enqueue_script('tng-active-trip',TNG_OS_URL.'assets/js/active-trip.js',['tng-trip-data','tng-active-trip-leaflet'],'0.3.0',true);
+    if($route==='recaps')wp_enqueue_script('tng-adventure-recaps',TNG_OS_URL.'assets/js/adventure-recaps.js',[],TNG_OS_VERSION,true);
 },100);
 add_action('wp_footer', static function (): void {
     if (is_admin()) return;

@@ -67,7 +67,7 @@ final class TNG_Trips_UI {
             <section class="tng-trip-actions" aria-label="Trip actions">
                 <a href="<?php echo esc_url(home_url('/active-trip/')); ?>"><span>▶</span><strong>Active trip</strong><small><?php echo $saved_count ? 'Continue your current route' : 'Plan your first route'; ?></small></a>
                 <a href="<?php echo esc_url(home_url('/saved/')); ?>"><span>♡</span><strong>Saved places<?php echo $saved_count?' · '.esc_html((string)$saved_count):''; ?></strong><small>Review places you bookmarked</small></a>
-                <a href="<?php echo esc_url(home_url('/past-trips/')); ?>"><span>↺</span><strong>Past trips</strong><small>Relive completed adventures</small></a>
+                <a href="<?php echo esc_url(home_url('/recaps/')); ?>"><span>✦</span><strong>Adventure recaps</strong><small>Relive completed adventures</small></a>
                 <a href="<?php echo esc_url($logged_in?home_url('/profile/'):wp_login_url(home_url('/trips/'))); ?>"><span>★</span><strong>Trip rewards</strong><small>See XP and achievements</small></a>
             </section>
             <?php if ($saved_posts): ?><section class="tng-trips-section"><div class="tng-section__heading"><div><span class="tng-eyebrow">Your route</span><h2>Saved for this trip</h2><p>These stops stay synced to your Explorer account.</p></div><a href="<?php echo esc_url(home_url('/saved/')); ?>">Manage all</a></div><?php echo self::cards(array_slice($saved_posts,0,6),true); ?></section><?php endif; ?>
