@@ -1,2 +1,0 @@
-import { chromium } from "playwright";
-export async function browserHealth(){ try { const browser=await chromium.launch({headless:true,args:["--disable-dev-shm-usage","--no-sandbox"]}); const ok=browser.isConnected(); await browser.close(); return {ok,engine:"chromium",playwright_version:"1.61.1",executable:chromium.executablePath()}; } catch(error){ return {ok:false,engine:"chromium",playwright_version:"1.61.1",executable:chromium.executablePath(),error:error.message}; }}
