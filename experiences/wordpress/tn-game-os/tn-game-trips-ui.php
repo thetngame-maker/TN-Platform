@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TN Game Trips UI
  * Description: Native TN Game trip planning dashboard for the app router.
- * Version: 0.4.0
+ * Version: 0.5.0
  * Author: The TN Game
  */
 if (!defined('ABSPATH')) exit;
@@ -31,18 +31,16 @@ final class TNG_Trips_UI {
     }
 
     private static function resume_panel(array $posts): string {
-        $total = count($posts);
-        $completed = is_user_logged_in() ? get_user_meta(get_current_user_id(), 'tng_active_trip_completed', true) : [];
-        $completed = is_array($completed) ? array_values(array_unique(array_map('absint', $completed))) : [];
-        $ids = array_map(static fn($post): int => (int)$post->ID, $posts);
-        $done = count(array_intersect($ids, $completed));
-        $percent = $total ? (int)round(($done / $total) * 100) : 0;
-        $source = is_user_logged_in() && class_exists('TNG_Trip_Data') ? TNG_Trip_Data::active_source(get_current_user_id()) : [];
+        $progress = is_user_logged_in() && class_exists('TNG_Trip_Data') ? TNG_Trip_Data::progress_summary(get_current_user_id()) : [];
+        $total = (int)($progress['total'] ?? count($posts));
+        $done = (int)($progress['completed'] ?? 0);
+        $skipped = (int)($progress['skipped'] ?? 0);
+        $remaining = (int)($progress['remaining'] ?? $total);
+        $percent = (int)($progress['percent'] ?? 0);
+        $source = is_array($progress['source'] ?? null) ? $progress['source'] : [];
         $source_title = sanitize_text_field((string)($source['title'] ?? ''));
-        $next = null;
-        foreach ($posts as $post) {
-            if (!in_array((int)$post->ID, $completed, true)) { $next = $post; break; }
-        }
+        $next_id = (int)($progress['next_id'] ?? 0);
+        $next = $next_id ? get_post($next_id) : null;
 
         ob_start();
         if (!$posts): ?>
@@ -52,8 +50,8 @@ final class TNG_Trips_UI {
             </section>
         <?php else: ?>
             <section class="tng-current-trip">
-                <div class="tng-current-trip__copy"><span class="tng-eyebrow"><?php echo $done === $total ? 'Trip ready to archive' : ($source_title !== '' ? 'Saved Adventure · Active trip' : 'Active trip'); ?></span><h2><?php echo esc_html($done === $total ? 'You completed every stop.' : ($source_title !== '' ? $source_title : ($next ? 'Next: '.get_the_title($next) : 'Your Tennessee day'))); ?></h2><p><?php echo esc_html($done.' of '.$total.' stops complete'.($source_title !== '' && $next ? ' · Next: '.get_the_title($next) : '')); ?></p><div class="tng-ui-progress"><span style="width:<?php echo esc_attr((string)$percent); ?>%"></span></div></div>
-                <div class="tng-current-trip__actions"><a class="tng-ui-button tng-ui-button--secondary" href="<?php echo esc_url(home_url('/trip-builder/')); ?>">Edit route</a><a class="tng-ui-button" href="<?php echo esc_url(home_url('/active-trip/')); ?>"><?php echo $done === $total ? 'Finish trip' : 'Trip mode'; ?></a></div>
+                <div class="tng-current-trip__copy"><span class="tng-eyebrow"><?php echo $remaining === 0 ? 'Trip ready to archive' : ($source_title !== '' ? 'Saved Adventure · Active trip' : 'Active trip'); ?></span><h2><?php echo esc_html($remaining === 0 ? 'Your adventure is ready to finish.' : ($source_title !== '' ? $source_title : ($next ? 'Next: '.get_the_title($next) : 'Your Tennessee day'))); ?></h2><p><?php echo esc_html($done.' completed'.($skipped ? ' · '.$skipped.' skipped' : '').' · '.$remaining.' remaining'.($next ? ' · Next: '.get_the_title($next) : '')); ?></p><div class="tng-ui-progress"><span style="width:<?php echo esc_attr((string)$percent); ?>%"></span></div></div>
+                <div class="tng-current-trip__actions"><a class="tng-ui-button tng-ui-button--secondary" href="<?php echo esc_url(home_url('/trip-builder/')); ?>">Edit route</a><a class="tng-ui-button" href="<?php echo esc_url(home_url('/active-trip/')); ?>"><?php echo $remaining === 0 ? 'Finish adventure' : 'Resume adventure'; ?></a></div>
             </section>
         <?php endif;
         return (string)ob_get_clean();

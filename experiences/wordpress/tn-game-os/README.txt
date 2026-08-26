@@ -1,3 +1,12 @@
+TN GAME OS 5.115.0 — ACTIVE ADVENTURE RESUME
+
+CURRENT MILESTONE
+- Marks the Saved Adventure currently loaded into Trips.
+- Shows completed, skipped, remaining, and overall resolved progress.
+- Resumes the active itinerary in one tap from Trips or Saved Adventures.
+- Prevents skipped stops from incorrectly becoming the next recommended stop.
+- Keeps progress private to the signed-in Explorer and does not add background writes.
+
 TN GAME OS 5.114.0 — ADVENTURE LAUNCH HANDOFF
 
 CURRENT MILESTONE
