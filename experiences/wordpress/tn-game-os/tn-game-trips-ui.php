@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TN Game Trips UI
  * Description: Native TN Game trip planning dashboard for the app router.
- * Version: 0.3.0
+ * Version: 0.4.0
  * Author: The TN Game
  */
 if (!defined('ABSPATH')) exit;
@@ -37,6 +37,8 @@ final class TNG_Trips_UI {
         $ids = array_map(static fn($post): int => (int)$post->ID, $posts);
         $done = count(array_intersect($ids, $completed));
         $percent = $total ? (int)round(($done / $total) * 100) : 0;
+        $source = is_user_logged_in() && class_exists('TNG_Trip_Data') ? TNG_Trip_Data::active_source(get_current_user_id()) : [];
+        $source_title = sanitize_text_field((string)($source['title'] ?? ''));
         $next = null;
         foreach ($posts as $post) {
             if (!in_array((int)$post->ID, $completed, true)) { $next = $post; break; }
@@ -50,7 +52,7 @@ final class TNG_Trips_UI {
             </section>
         <?php else: ?>
             <section class="tng-current-trip">
-                <div class="tng-current-trip__copy"><span class="tng-eyebrow"><?php echo $done === $total ? 'Trip ready to archive' : 'Active trip'; ?></span><h2><?php echo esc_html($done === $total ? 'You completed every stop.' : ($next ? 'Next: '.get_the_title($next) : 'Your Tennessee day')); ?></h2><p><?php echo esc_html($done.' of '.$total.' stops complete'); ?></p><div class="tng-ui-progress"><span style="width:<?php echo esc_attr((string)$percent); ?>%"></span></div></div>
+                <div class="tng-current-trip__copy"><span class="tng-eyebrow"><?php echo $done === $total ? 'Trip ready to archive' : ($source_title !== '' ? 'Saved Adventure · Active trip' : 'Active trip'); ?></span><h2><?php echo esc_html($done === $total ? 'You completed every stop.' : ($source_title !== '' ? $source_title : ($next ? 'Next: '.get_the_title($next) : 'Your Tennessee day'))); ?></h2><p><?php echo esc_html($done.' of '.$total.' stops complete'.($source_title !== '' && $next ? ' · Next: '.get_the_title($next) : '')); ?></p><div class="tng-ui-progress"><span style="width:<?php echo esc_attr((string)$percent); ?>%"></span></div></div>
                 <div class="tng-current-trip__actions"><a class="tng-ui-button tng-ui-button--secondary" href="<?php echo esc_url(home_url('/trip-builder/')); ?>">Edit route</a><a class="tng-ui-button" href="<?php echo esc_url(home_url('/active-trip/')); ?>"><?php echo $done === $total ? 'Finish trip' : 'Trip mode'; ?></a></div>
             </section>
         <?php endif;

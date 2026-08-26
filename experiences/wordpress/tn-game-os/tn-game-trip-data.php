@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TN Game Trip Data
  * Description: Persistent saved places and trip actions for The TN Game app.
- * Version: 0.4.0
+ * Version: 0.5.0
  * Author: The TN Game
  */
 if (!defined('ABSPATH')) exit;
@@ -12,6 +12,7 @@ final class TNG_Trip_Data {
     private const ROUTE_META_KEY = 'tng_saved_trip_route';
     private const COMPLETED_META_KEY = 'tng_active_trip_completed';
     private const SKIPPED_META_KEY = 'tng_active_trip_skipped';
+    private const SOURCE_META_KEY = 'tng_active_trip_source';
 
     public static function boot(): void {
         add_action('wp_ajax_tng_toggle_saved', [self::class, 'ajax_toggle']);
@@ -23,7 +24,7 @@ final class TNG_Trip_Data {
 
     public static function assets(): void {
         if (is_admin()) return;
-        wp_enqueue_script('tng-trip-data', TNG_OS_URL . 'assets/js/trip-data.js', [], '0.4.0', true);
+        wp_enqueue_script('tng-trip-data', TNG_OS_URL . 'assets/js/trip-data.js', [], '0.5.0', true);
         wp_localize_script('tng-trip-data', 'TNGTripData', [
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('tng_trip_data'),
@@ -52,8 +53,19 @@ final class TNG_Trip_Data {
         return is_array($data) ? $data : [];
     }
 
+    public static function active_source(int $user_id = 0): array {
+        $user_id = $user_id ?: get_current_user_id();
+        if (!$user_id) return [];
+        $source = get_user_meta($user_id, self::SOURCE_META_KEY, true);
+        return is_array($source) ? $source : [];
+    }
+
     private static function clear_route(int $user_id): void {
         delete_user_meta($user_id, self::ROUTE_META_KEY);
+    }
+
+    private static function clear_source(int $user_id): void {
+        delete_user_meta($user_id, self::SOURCE_META_KEY);
     }
 
     private static function clear_stop_progress(int $user_id, int $post_id): void {
@@ -82,6 +94,7 @@ final class TNG_Trip_Data {
         update_user_meta($user_id, self::META_KEY, $ids);
         self::clear_stop_progress($user_id, $post_id);
         self::clear_route($user_id);
+        self::clear_source($user_id);
         return ['postId' => $post_id, 'saved' => !$saved, 'count' => count($ids), 'ids' => $ids, 'progressReset' => true];
     }
 
@@ -91,7 +104,27 @@ final class TNG_Trip_Data {
         $ids = array_slice(array_values(array_unique(array_merge($incoming, $existing))), 0, 100);
         update_user_meta($user_id, self::META_KEY, $ids);
         self::clear_route($user_id);
+        self::clear_source($user_id);
         return ['count'=>count($ids),'added'=>count(array_diff($incoming, $existing)),'ids'=>$ids];
+    }
+
+    public static function replace(array $post_ids, int $user_id, array $source = []): array {
+        $incoming = array_values(array_filter(array_unique(array_map('absint', $post_ids)), static fn($id) => $id > 0 && get_post_status($id) === 'publish'));
+        $ids = array_slice($incoming, 0, 100);
+        $previous = self::ids($user_id);
+        update_user_meta($user_id, self::META_KEY, $ids);
+        delete_user_meta($user_id, self::ROUTE_META_KEY);
+        delete_user_meta($user_id, self::COMPLETED_META_KEY);
+        delete_user_meta($user_id, self::SKIPPED_META_KEY);
+        if ($source) {
+            update_user_meta($user_id, self::SOURCE_META_KEY, [
+                'kind' => sanitize_key((string)($source['kind'] ?? 'saved_adventure')),
+                'id' => sanitize_text_field((string)($source['id'] ?? '')),
+                'title' => substr(sanitize_text_field((string)($source['title'] ?? 'Tennessee adventure')), 0, 100),
+                'started_at' => time(),
+            ]);
+        } else self::clear_source($user_id);
+        return ['count'=>count($ids),'ids'=>$ids,'previousCount'=>count($previous),'progressReset'=>true];
     }
 
     public static function ajax_toggle(): void {
@@ -157,6 +190,7 @@ final class TNG_Trip_Data {
         delete_user_meta($user_id, self::ROUTE_META_KEY);
         delete_user_meta($user_id, self::COMPLETED_META_KEY);
         delete_user_meta($user_id, self::SKIPPED_META_KEY);
+        delete_user_meta($user_id, self::SOURCE_META_KEY);
         return ['reset' => true, 'previousCount' => count($previous), 'count' => 0, 'ids' => []];
     }
 
