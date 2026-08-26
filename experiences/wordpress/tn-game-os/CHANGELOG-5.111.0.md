@@ -18,3 +18,8 @@
 - Generation remains read-only and works without an external AI key.
 - Server persistence still requires a signed-in Explorer and an explicit Save action.
 - Saved plans contain published stop IDs, sanitized prompt/title text, and bounded timing preferences only.
+
+## Release validation
+
+- Keeps the complete TN Game OS 5.106–5.111 milestone check chain in the release command.
+- Uses the plugin release version for Adventure AI asset cache invalidation.
