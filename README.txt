@@ -1,3 +1,12 @@
+TN GAME OS 5.117.0 — COMPLETED SAVED ADVENTURES
+
+CURRENT MILESTONE
+- Marks Saved Adventures that have been completed and archived.
+- Links each completed plan to its latest private Adventure Recap.
+- Offers Start Again without changing or deleting the previous recap.
+- Keeps Active, Completed, and reusable plan states visually distinct.
+- Derives status from existing private trip history without background writes.
+
 TN GAME OS 5.116.0 — ADVENTURE FINISH HANDOFF
 
 CURRENT MILESTONE
