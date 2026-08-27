@@ -15,7 +15,7 @@ assert.match(adventure,/\$operation === 'schedule'/);
 assert.match(adventure,/checkdate\(/);
 assert.match(adventure,/\$planned_date < wp_date\('Y-m-d'\)/);
 assert.match(adventure,/Restore this adventure before scheduling it/);
-assert.match(adventure,/unset\(\$copy\['archived_at'\], \$copy\['planned_date'\]\)/);
+assert.match(adventure,/unset\(\$copy\['archived_at'\], \$copy\['planned_date'\]/);
 assert.match(client,/operation:'schedule'/);
 assert.match(client,/data-tng-plan-clear-date/);
 assert.match(css,/tng-adventure-card__planned/);
