@@ -3,6 +3,33 @@
   const root = document.querySelector('[data-tng-adventure-library]');
   if (!root) return;
   const status = root.querySelector('[data-tng-library-status]');
+  const search = root.querySelector('[data-tng-adventure-search]');
+  const filters = [...root.querySelectorAll('[data-tng-adventure-filter]')];
+  const cards = [...root.querySelectorAll('[data-plan-id]')];
+  const filterStatus = root.querySelector('[data-tng-filter-status]');
+  const filterEmpty = root.querySelector('[data-tng-filter-empty]');
+  let selectedFilter = 'all';
+
+  const applyFilters = () => {
+    const query = search?.value.trim().toLocaleLowerCase() || '';
+    let visible = 0;
+    cards.forEach((card) => {
+      const matchesState = selectedFilter === 'all' || card.dataset.planState === selectedFilter;
+      const matchesQuery = !query || card.textContent.toLocaleLowerCase().includes(query);
+      card.hidden = !(matchesState && matchesQuery);
+      if (!card.hidden) visible += 1;
+    });
+    if (filterStatus) filterStatus.textContent = `${visible} of ${cards.length} adventure${cards.length === 1 ? '' : 's'} shown`;
+    if (filterEmpty) filterEmpty.hidden = visible !== 0;
+  };
+
+  search?.addEventListener('input', applyFilters);
+  filters.forEach((button) => button.addEventListener('click', () => {
+    selectedFilter = button.dataset.tngAdventureFilter || 'all';
+    filters.forEach((item) => item.setAttribute('aria-pressed', String(item === button)));
+    applyFilters();
+  }));
+  applyFilters();
 
   const post = async (fields) => {
     const body = new URLSearchParams({action:'tng_adventure_library_action',nonce:root.dataset.nonce || '',...fields});
@@ -77,6 +104,7 @@
     try {
       const data = await post({operation:'rename',plan_id:card.dataset.planId || '',title});
       card.querySelector('[data-plan-title]').textContent = title;
+      applyFilters();
       if (status) status.textContent = data.message;
     } catch (error) {
       if (status) status.textContent = error.message;

@@ -112,10 +112,20 @@ final class Adventure_AI implements Module_Interface {
             <?php elseif (!$plans): ?>
                 <section class="tng-adventure-library__empty"><span>✦</span><h2>Your first plan starts with a sentence.</h2><p>Describe a Tennessee day in Adventure AI, edit it, and press Save Adventure.</p><a class="tng-ui-button" href="<?php echo esc_url(home_url('/adventure-ai/')); ?>">Open Adventure AI</a></section>
             <?php else: ?>
+                <section class="tng-adventure-library__organizer" aria-label="Organize saved adventures">
+                    <label><span>Find a plan</span><input type="search" placeholder="Search plans or stops" data-tng-adventure-search></label>
+                    <div class="tng-adventure-library__filters" aria-label="Filter by status">
+                        <button type="button" data-tng-adventure-filter="all" aria-pressed="true">All</button>
+                        <button type="button" data-tng-adventure-filter="active" aria-pressed="false">Active</button>
+                        <button type="button" data-tng-adventure-filter="ready" aria-pressed="false">Ready</button>
+                        <button type="button" data-tng-adventure-filter="completed" aria-pressed="false">Completed</button>
+                    </div>
+                    <p data-tng-filter-status aria-live="polite"></p>
+                </section>
                 <p class="tng-adventure-library__status" data-tng-library-status aria-live="polite"><?php echo esc_html(count($plans).' saved adventure'.(count($plans)===1?'':'s')); ?></p>
                 <section class="tng-adventure-library__grid">
-                    <?php foreach ($plans as $plan): $ids=array_slice((array)$plan['ids'],0,4);$plan_id=(string)$plan['id'];$is_active=$active_plan_id!==''&&hash_equals($active_plan_id,$plan_id);$completed_trip=$completed_plans[$plan_id]??null; ?>
-                        <article class="tng-adventure-card<?php echo $is_active?' is-active':($completed_trip?' is-completed':''); ?>" data-plan-id="<?php echo esc_attr($plan_id); ?>">
+                    <?php foreach ($plans as $plan): $ids=array_slice((array)$plan['ids'],0,4);$plan_id=(string)$plan['id'];$is_active=$active_plan_id!==''&&hash_equals($active_plan_id,$plan_id);$completed_trip=$completed_plans[$plan_id]??null;$plan_state=$is_active?'active':($completed_trip?'completed':'ready'); ?>
+                        <article class="tng-adventure-card<?php echo $is_active?' is-active':($completed_trip?' is-completed':''); ?>" data-plan-id="<?php echo esc_attr($plan_id); ?>" data-plan-state="<?php echo esc_attr($plan_state); ?>">
                             <div class="tng-adventure-card__top"><span><?php echo $is_active?'● Active adventure':($completed_trip?'✓ Completed':esc_html(number_format_i18n(count($plan['ids'])).' stops')); ?></span><time datetime="<?php echo esc_attr(gmdate('c',(int)$plan['updated_at'])); ?>"><?php echo esc_html(human_time_diff((int)$plan['updated_at'],time()).' ago'); ?></time></div>
                             <h2 data-plan-title><?php echo esc_html((string)$plan['title']); ?></h2>
                             <p><?php echo esc_html(wp_trim_words((string)$plan['prompt'],18)); ?></p>
@@ -127,6 +137,7 @@ final class Adventure_AI implements Module_Interface {
                         </article>
                     <?php endforeach; ?>
                 </section>
+                <section class="tng-adventure-library__no-results" data-tng-filter-empty hidden><span>⌕</span><h2>No matching adventures.</h2><p>Try another search or choose a different status.</p></section>
             <?php endif; ?>
         </main>
         <?php return (string)ob_get_clean();

@@ -1,3 +1,12 @@
+TN GAME OS 5.119.0 — SAVED ADVENTURE ORGANIZER
+
+CURRENT MILESTONE
+- Searches private Saved Adventures by visible plan and stop names.
+- Filters plans by Active, Ready, and Completed status.
+- Updates results instantly on the Explorer's device without a server request.
+- Adds a clear no-results state and mobile-friendly filter controls.
+- Creates no database writes, new public data, or background activity.
+
 TN GAME OS 5.118.0 — PRIVATE-SAFE ADVENTURE SHARING
 
 CURRENT MILESTONE
