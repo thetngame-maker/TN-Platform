@@ -13,6 +13,22 @@
   };
 
   root.addEventListener('click', async (event) => {
+    const share = event.target.closest('[data-tng-plan-share]');
+    if (share) {
+      const card = share.closest('[data-plan-id]');
+      const title = card.querySelector('[data-plan-title]')?.textContent?.trim() || 'Tennessee adventure';
+      const stops = [...card.querySelectorAll('.tng-adventure-card__stops span')].map((node) => node.textContent.trim()).filter(Boolean);
+      const text = `${title}${stops.length ? ` — ${stops.join(', ')}` : ''}. Plan your own Tennessee adventure with The TN Game: ${window.location.origin}/`;
+      try {
+        if (navigator.share) await navigator.share({title, text});
+        else if (navigator.clipboard) await navigator.clipboard.writeText(text);
+        else throw new Error('share_unavailable');
+        if (status) status.textContent = navigator.share ? 'Adventure shared.' : 'Adventure summary copied.';
+      } catch (error) {
+        if (error?.name !== 'AbortError' && status) status.textContent = 'Sharing is not available in this browser.';
+      }
+      return;
+    }
     const start = event.target.closest('[data-tng-plan-start]');
     if (start) {
       const card = start.closest('[data-plan-id]');
