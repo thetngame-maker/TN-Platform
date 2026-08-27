@@ -12,6 +12,7 @@ final class Adventure_AI implements Module_Interface {
     private const LAST_PLAN_META = 'tng_last_adventure_ai_plan';
     private const PLAN_LIBRARY_META = 'tng_adventure_ai_plan_library';
     private const PLAN_LIBRARY_LIMIT = 12;
+    private const PLAN_ARCHIVE_LIMIT = 24;
 
     public function id(): string { return 'adventure_ai'; }
 
@@ -104,6 +105,8 @@ final class Adventure_AI implements Module_Interface {
         $active_source = is_array($progress['source'] ?? null) ? $progress['source'] : [];
         $active_plan_id = ($active_source['kind'] ?? '') === 'saved_adventure' ? (string)($active_source['id'] ?? '') : '';
         $completed_plans = $logged_in ? self::completed_plans(get_current_user_id()) : [];
+        $active_plan_count = self::active_plan_count($plans);
+        $archived_plan_count = self::archived_plan_count($plans);
         ob_start(); ?>
         <main class="tng-adventure-library tng-native-screen tng-app-shell" data-tng-adventure-library data-ajax-url="<?php echo esc_url(admin_url('admin-ajax.php')); ?>" data-nonce="<?php echo esc_attr(wp_create_nonce(self::NONCE)); ?>" data-current-trip-count="<?php echo esc_attr((string)$current_trip_count); ?>">
             <section class="tng-adventure-library__hero"><div><span class="tng-eyebrow">Saved Adventures</span><h1>Your Tennessee plans.</h1><p>Reopen an Adventure AI itinerary, adjust the timing, or make a copy for a different day.</p></div><a class="tng-ui-button" href="<?php echo esc_url(home_url('/adventure-ai/')); ?>">＋ Build another</a></section>
@@ -124,6 +127,7 @@ final class Adventure_AI implements Module_Interface {
                     </div>
                     <p data-tng-filter-status aria-live="polite"></p>
                 </section>
+                <section class="tng-adventure-library__capacity" aria-label="Saved Adventure capacity"><div><strong><?php echo esc_html($active_plan_count.' of '.self::PLAN_LIBRARY_LIMIT.' active plans'); ?></strong><span><?php echo esc_html($archived_plan_count.' archived'); ?></span></div><div class="tng-ui-progress"><span style="width:<?php echo esc_attr((string)round(($active_plan_count/self::PLAN_LIBRARY_LIMIT)*100)); ?>%"></span></div><p>Archive a plan to make room without deleting it.</p></section>
                 <p class="tng-adventure-library__status" data-tng-library-status aria-live="polite"><?php echo esc_html(count($plans).' saved adventure'.(count($plans)===1?'':'s')); ?></p>
                 <section class="tng-adventure-library__grid">
                     <?php foreach ($plans as $plan): $ids=array_slice((array)$plan['ids'],0,4);$plan_id=(string)$plan['id'];$is_active=$active_plan_id!==''&&hash_equals($active_plan_id,$plan_id);$completed_trip=$completed_plans[$plan_id]??null;$is_archived=!empty($plan['archived_at']);$plan_state=$is_archived?'archived':($is_active?'active':($completed_trip?'completed':'ready')); ?>
@@ -184,7 +188,6 @@ final class Adventure_AI implements Module_Interface {
         if (!$ids) wp_send_json_error(['message'=>'This itinerary does not contain any saveable stops.'], 400);
         if (!class_exists('TNG_Trip_Data')) wp_send_json_error(['message'=>'Trips is temporarily unavailable.'], 503);
 
-        $saved = \TNG_Trip_Data::merge($ids, get_current_user_id());
         $prompt = sanitize_textarea_field(wp_unslash((string)($_POST['prompt'] ?? '')));
         $title = sanitize_text_field(wp_unslash((string)($_POST['title'] ?? 'Tennessee adventure')));
         $plan_id = sanitize_text_field(wp_unslash((string)($_POST['plan_id'] ?? '')));
@@ -202,6 +205,8 @@ final class Adventure_AI implements Module_Interface {
         ];
         $library = self::library(get_current_user_id());
         $existing_index = self::plan_index($library, $plan_id);
+        if ($existing_index < 0 && self::active_plan_count($library) >= self::PLAN_LIBRARY_LIMIT) wp_send_json_error(['code'=>'library_full','message'=>'Saved Adventures is full. Archive one active plan before saving another.','library_url'=>home_url('/adventures/')], 409);
+        $saved = \TNG_Trip_Data::merge($ids, get_current_user_id());
         if ($existing_index >= 0) {
             $record['id'] = (string)$library[$existing_index]['id'];
             $record['created_at'] = (int)$library[$existing_index]['created_at'];
@@ -209,7 +214,6 @@ final class Adventure_AI implements Module_Interface {
         } else $record['id'] = wp_generate_uuid4();
         $record['updated_at'] = time();
         array_unshift($library, $record);
-        $library = array_slice($library, 0, self::PLAN_LIBRARY_LIMIT);
         update_user_meta(get_current_user_id(), self::PLAN_LIBRARY_META, $library);
         update_user_meta(get_current_user_id(), self::LAST_PLAN_META, $record);
         wp_send_json_success(['count'=>$saved['count'],'added'=>$saved['added'],'plan_id'=>$record['id'],'library_url'=>home_url('/adventures/'),'url'=>home_url('/trips/')]);
@@ -238,20 +242,22 @@ final class Adventure_AI implements Module_Interface {
             $library[$index]['title'] = substr($title, 0, 100);
             $library[$index]['updated_at'] = time();
         } elseif ($operation === 'duplicate') {
+            if (self::active_plan_count($library) >= self::PLAN_LIBRARY_LIMIT) wp_send_json_error(['message'=>'Saved Adventures is full. Archive an active plan before making a copy.'], 409);
             $copy = $library[$index];
             unset($copy['archived_at']);
             $copy['id'] = wp_generate_uuid4();
             $copy['title'] = substr('Copy of '.(string)$copy['title'], 0, 100);
             $copy['created_at'] = $copy['updated_at'] = time();
             array_unshift($library, $copy);
-            $library = array_slice($library, 0, self::PLAN_LIBRARY_LIMIT);
         } elseif ($operation === 'archive') {
             $trip_progress = class_exists('TNG_Trip_Data') ? \TNG_Trip_Data::progress_summary(get_current_user_id()) : [];
             $source = is_array($trip_progress['source'] ?? null) ? $trip_progress['source'] : [];
             if (($source['kind'] ?? '') === 'saved_adventure' && hash_equals((string)($source['id'] ?? ''), $plan_id)) wp_send_json_error(['message'=>'Finish or replace the active adventure before archiving it.'], 409);
+            if (self::archived_plan_count($library) >= self::PLAN_ARCHIVE_LIMIT) wp_send_json_error(['message'=>'The archive is full. Restore an archived plan before adding another.'], 409);
             $library[$index]['archived_at'] = time();
             $library[$index]['updated_at'] = time();
         } elseif ($operation === 'restore') {
+            if (self::active_plan_count($library) >= self::PLAN_LIBRARY_LIMIT) wp_send_json_error(['message'=>'Active Saved Adventures is full. Archive one plan before restoring this one.'], 409);
             unset($library[$index]['archived_at']);
             $library[$index]['updated_at'] = time();
         } else wp_send_json_error(['message'=>'That plan action is not supported.'], 400);
@@ -296,6 +302,14 @@ final class Adventure_AI implements Module_Interface {
         if ($plan_id === '') return -1;
         foreach ($plans as $index=>$plan) if (hash_equals((string)($plan['id']??''), $plan_id)) return (int)$index;
         return -1;
+    }
+
+    private static function active_plan_count(array $plans): int {
+        return count(array_filter($plans, static fn($plan): bool => is_array($plan) && empty($plan['archived_at'])));
+    }
+
+    private static function archived_plan_count(array $plans): int {
+        return count(array_filter($plans, static fn($plan): bool => is_array($plan) && !empty($plan['archived_at'])));
     }
 
     private static function requested_plan(): array {
