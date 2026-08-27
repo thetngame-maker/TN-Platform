@@ -118,9 +118,10 @@ final class Adventure_AI implements Module_Interface {
             <?php else: ?>
                 <section class="tng-adventure-library__organizer" aria-label="Organize saved adventures">
                     <label><span>Find a plan</span><input type="search" placeholder="Search plans or stops" data-tng-adventure-search></label>
-                    <label class="tng-adventure-library__sort"><span>Sort plans</span><select data-tng-adventure-sort><option value="recent">Recently updated</option><option value="title">Plan title</option><option value="status">Adventure status</option></select></label>
+                    <label class="tng-adventure-library__sort"><span>Sort plans</span><select data-tng-adventure-sort><option value="recent">Recently updated</option><option value="date">Adventure date</option><option value="title">Plan title</option><option value="status">Adventure status</option></select></label>
                     <div class="tng-adventure-library__filters" aria-label="Filter by status">
                         <button type="button" data-tng-adventure-filter="all" aria-pressed="true">All</button>
+                        <button type="button" data-tng-adventure-filter="upcoming" aria-pressed="false">Upcoming</button>
                         <button type="button" data-tng-adventure-filter="active" aria-pressed="false">Active</button>
                         <button type="button" data-tng-adventure-filter="ready" aria-pressed="false">Ready</button>
                         <button type="button" data-tng-adventure-filter="completed" aria-pressed="false">Completed</button>

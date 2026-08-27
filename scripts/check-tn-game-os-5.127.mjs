@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const root=new URL('../experiences/wordpress/tn-game-os/',import.meta.url);
+const read=path=>fs.readFileSync(new URL(path,root),'utf8');
+const bootstrap=read('tn-game-os.php');
+const adventure=read('app/Modules/Destinations/class-adventure-ai.php');
+const client=read('assets/js/saved-adventures.js');
+assert.match(bootstrap,/Version:\s*5\.127\.0/);
+assert.match(bootstrap,/define\('TNG_OS_VERSION','5\.127\.0'\)/);
+assert.match(adventure,/data-tng-adventure-filter="upcoming"/);
+assert.match(adventure,/<option value="date">Adventure date<\/option>/);
+assert.match(client,/selectedFilter === 'upcoming'/);
+assert.match(client,/card\.dataset\.planDate >= todayKey/);
+assert.match(client,/sort\?\.value === 'date'/);
+assert.match(client,/aDate >= todayKey/);
+assert.match(client,/bDate >= todayKey/);
+assert.doesNotMatch(client,/operation:'upcoming'|operation:'date_sort'/);
+console.log('TN Game OS 5.127.0 Upcoming Adventure Organizer checks passed');

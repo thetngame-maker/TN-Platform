@@ -1,3 +1,12 @@
+TN GAME OS 5.127.0 — UPCOMING ADVENTURE ORGANIZER
+
+CURRENT MILESTONE
+- Adds an Upcoming filter for scheduled adventures dated today or later.
+- Sorts by Adventure Date with upcoming plans first.
+- Places recently passed dates after upcoming plans and unscheduled plans last.
+- Combines date organization with existing search and private plan states.
+- Runs entirely in the browser with no server request or database write.
+
 TN GAME OS 5.126.0 — PRIVATE CALENDAR EXPORT
 
 CURRENT MILESTONE
