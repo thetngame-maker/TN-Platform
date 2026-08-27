@@ -81,6 +81,20 @@
   window.addEventListener('afterprint', cleanupPrint);
 
   root.addEventListener('click', async (event) => {
+    const clearDate = event.target.closest('[data-tng-plan-clear-date]');
+    if (clearDate) {
+      const card = clearDate.closest('[data-plan-id]');
+      clearDate.disabled = true;
+      try {
+        const data = await post({operation:'schedule',plan_id:card.dataset.planId || '',planned_date:''});
+        if (status) status.textContent = data.message;
+        window.location.reload();
+      } catch (error) {
+        clearDate.disabled = false;
+        if (status) status.textContent = error.message;
+      }
+      return;
+    }
     const print = event.target.closest('[data-tng-plan-print]');
     if (print) {
       cleanupPrint();
@@ -160,6 +174,24 @@
   });
 
   root.addEventListener('submit', async (event) => {
+    const schedule = event.target.closest('[data-tng-plan-schedule]');
+    if (schedule) {
+      event.preventDefault();
+      const card = schedule.closest('[data-plan-id]');
+      const input = schedule.querySelector('input[name="planned_date"]');
+      const button = schedule.querySelector('button[type="submit"]');
+      if (!input.value) { input.focus(); return; }
+      button.disabled = true;
+      try {
+        const data = await post({operation:'schedule',plan_id:card.dataset.planId || '',planned_date:input.value});
+        if (status) status.textContent = data.message;
+        window.location.reload();
+      } catch (error) {
+        button.disabled = false;
+        if (status) status.textContent = error.message;
+      }
+      return;
+    }
     const form = event.target.closest('[data-tng-plan-rename]');
     if (!form) return;
     event.preventDefault();

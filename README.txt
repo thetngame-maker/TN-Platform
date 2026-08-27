@@ -1,3 +1,12 @@
+TN GAME OS 5.125.0 — PRIVATE ADVENTURE SCHEDULING
+
+CURRENT MILESTONE
+- Adds an optional date to any active Saved Adventure.
+- Supports explicit save, change, and clear actions.
+- Validates dates server-side and accepts only today or a future date.
+- Includes the chosen date in the printable itinerary.
+- Keeps scheduling private with no automatic calendar event, reminder, or background write.
+
 TN GAME OS 5.124.0 — PRINTABLE SAVED ADVENTURES
 
 CURRENT MILESTONE
