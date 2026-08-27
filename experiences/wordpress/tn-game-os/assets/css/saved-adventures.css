@@ -35,6 +35,7 @@
 .tng-adventure-card__completed strong{white-space:nowrap}
 .tng-adventure-card__actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:auto}
 .tng-adventure-card__actions .tng-ui-button{width:100%}
+.tng-adventure-card__calendar{width:100%}
 .tng-adventure-card__rename,.tng-adventure-card__schedule{display:flex;gap:7px;padding-top:13px;border-top:1px solid var(--tng-border)}
 .tng-adventure-card__rename label,.tng-adventure-card__schedule label{display:grid;min-width:0;flex:1;gap:5px;color:var(--tng-muted);font-size:9px;font-weight:850;letter-spacing:.06em;text-transform:uppercase}
 .tng-adventure-card__rename input,.tng-adventure-card__schedule input{width:100%;min-height:44px;border:1px solid var(--tng-border);border-radius:12px;padding:8px 10px;color:var(--tng-ink);font:inherit;font-size:13px;font-weight:750;text-transform:none}

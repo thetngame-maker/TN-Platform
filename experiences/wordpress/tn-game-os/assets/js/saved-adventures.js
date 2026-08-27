@@ -80,7 +80,32 @@
   };
   window.addEventListener('afterprint', cleanupPrint);
 
+  const calendarStamp = (date) => `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2,'0')}${String(date.getDate()).padStart(2,'0')}T${String(date.getHours()).padStart(2,'0')}${String(date.getMinutes()).padStart(2,'0')}00`;
+  const calendarEscape = (value) => String(value).replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');
+
   root.addEventListener('click', async (event) => {
+    const calendar = event.target.closest('[data-tng-plan-calendar]');
+    if (calendar) {
+      const card = calendar.closest('[data-plan-id]');
+      const parts = (card.dataset.planDate || '').split('-').map(Number);
+      const startMinutes = Number(card.dataset.planStart || 600);
+      const durationMinutes = Math.max(30, Number(card.dataset.planDuration || 240));
+      if (parts.length !== 3 || parts.some((part) => !Number.isFinite(part))) return;
+      const starts = new Date(parts[0],parts[1]-1,parts[2],Math.floor(startMinutes/60),startMinutes%60,0);
+      const ends = new Date(starts.getTime()+durationMinutes*60000);
+      const title = card.querySelector('[data-plan-title]')?.textContent?.trim() || 'Tennessee adventure';
+      const stops = [...card.querySelectorAll('.tng-adventure-card__print li')].map((node) => node.textContent.trim()).filter(Boolean);
+      const stamp = new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}Z$/,'Z');
+      const content = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//The TN Game//Saved Adventure//EN','CALSCALE:GREGORIAN','BEGIN:VEVENT',`UID:tn-game-${Date.now()}@thetngame.com`,`DTSTAMP:${stamp}`,`DTSTART:${calendarStamp(starts)}`,`DTEND:${calendarStamp(ends)}`,`SUMMARY:${calendarEscape(title)}`,`DESCRIPTION:${calendarEscape(`Stops: ${stops.join(' → ')}\nConfirm hours, tickets, trail conditions, and driving time before leaving.`)}`,`URL:${window.location.origin}/`,'END:VEVENT','END:VCALENDAR'].join('\r\n');
+      const url = URL.createObjectURL(new Blob([content],{type:'text/calendar;charset=utf-8'}));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${title.toLocaleLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || 'tn-game-adventure'}.ics`;
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      if (status) status.textContent = 'Calendar file downloaded. Open it to confirm the event.';
+      return;
+    }
     const clearDate = event.target.closest('[data-tng-plan-clear-date]');
     if (clearDate) {
       const card = clearDate.closest('[data-plan-id]');
