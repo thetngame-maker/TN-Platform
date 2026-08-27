@@ -10,7 +10,22 @@
   const cards = [...root.querySelectorAll('[data-plan-id]')];
   const filterStatus = root.querySelector('[data-tng-filter-status]');
   const filterEmpty = root.querySelector('[data-tng-filter-empty]');
+  const resetView = root.querySelector('[data-tng-adventure-reset]');
+  const preferenceKey = 'tng_saved_adventure_view_v1';
+  const allowedFilters = ['all','active','ready','completed','archived'];
+  const allowedSorts = ['recent','title','status'];
   let selectedFilter = 'all';
+
+  try {
+    const preferences = JSON.parse(window.localStorage.getItem(preferenceKey) || '{}');
+    if (allowedFilters.includes(preferences.filter)) selectedFilter = preferences.filter;
+    if (sort && allowedSorts.includes(preferences.sort)) sort.value = preferences.sort;
+  } catch (error) { /* Private browsing can disable local storage. */ }
+
+  const savePreferences = () => {
+    try { window.localStorage.setItem(preferenceKey, JSON.stringify({filter:selectedFilter,sort:sort?.value || 'recent'})); }
+    catch (error) { /* The organizer remains usable without storage. */ }
+  };
 
   const applyFilters = () => {
     const stateOrder = {active:0,ready:1,completed:2,archived:3};
@@ -33,12 +48,22 @@
   };
 
   search?.addEventListener('input', applyFilters);
-  sort?.addEventListener('change', applyFilters);
+  sort?.addEventListener('change', () => { savePreferences(); applyFilters(); });
   filters.forEach((button) => button.addEventListener('click', () => {
     selectedFilter = button.dataset.tngAdventureFilter || 'all';
     filters.forEach((item) => item.setAttribute('aria-pressed', String(item === button)));
+    savePreferences();
     applyFilters();
   }));
+  resetView?.addEventListener('click', () => {
+    selectedFilter = 'all';
+    if (sort) sort.value = 'recent';
+    if (search) search.value = '';
+    filters.forEach((item) => item.setAttribute('aria-pressed', String(item.dataset.tngAdventureFilter === 'all')));
+    try { window.localStorage.removeItem(preferenceKey); } catch (error) { /* No storage to reset. */ }
+    applyFilters();
+  });
+  filters.forEach((item) => item.setAttribute('aria-pressed', String(item.dataset.tngAdventureFilter === selectedFilter)));
   applyFilters();
 
   const post = async (fields) => {

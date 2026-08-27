@@ -1,3 +1,12 @@
+TN GAME OS 5.123.0 — DEVICE VIEW PREFERENCES
+
+CURRENT MILESTONE
+- Remembers the selected Saved Adventure status filter and sort order on the device.
+- Restores the preferred organizer view on the next visit.
+- Adds one-tap Reset View to return to All and Recently Updated.
+- Stores only generic view names, never plan, account, stop, or progress data.
+- Falls back cleanly when private browsing blocks local storage.
+
 TN GAME OS 5.122.0 — SAVED ADVENTURE CAPACITY SAFETY
 
 CURRENT MILESTONE

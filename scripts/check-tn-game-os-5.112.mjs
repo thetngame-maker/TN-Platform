@@ -42,7 +42,8 @@ assert.match(editor, /data-tng-ai-initial/);
 assert.match(library, /tng_adventure_library_action/);
 assert.match(library, /operation:'rename'/);
 assert.match(library, /operation:'duplicate'/);
-assert.doesNotMatch(library, /localStorage|sessionStorage/);
+const storageLines = library.split('\n').filter((line) => /localStorage|sessionStorage/.test(line)).join('\n');
+assert.doesNotMatch(storageLines, /planId|plan_id|account|user|stops|progress/i);
 assert.match(css, /@media\(max-width:390px\)/);
 
 console.log('TN Game OS 5.112.0 Saved Adventures safety checks passed');
