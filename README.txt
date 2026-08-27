@@ -1,3 +1,12 @@
+TN GAME OS 5.122.0 — SAVED ADVENTURE CAPACITY SAFETY
+
+CURRENT MILESTONE
+- Shows active and archived Saved Adventure capacity before the library fills.
+- Blocks new saves and duplicates at the active-plan limit instead of silently dropping an older plan.
+- Lets archiving free an active slot while keeping up to 24 reversible archived plans.
+- Blocks restores when all active slots are occupied and explains how to make room.
+- Performs every capacity check on the server before changing Trips or plan data.
+
 TN GAME OS 5.121.0 — REVERSIBLE ADVENTURE ARCHIVE
 
 CURRENT MILESTONE

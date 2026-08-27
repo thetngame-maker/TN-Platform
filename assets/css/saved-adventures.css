@@ -10,6 +10,9 @@
 .tng-adventure-library__filters button{min-height:40px;border:1px solid var(--tng-border);border-radius:999px;background:#fff;padding:0 13px;color:var(--tng-muted);font:inherit;font-size:11px;font-weight:850;cursor:pointer}
 .tng-adventure-library__filters button[aria-pressed="true"]{border-color:var(--tng-green-700);background:var(--tng-green-100);color:var(--tng-green-800)}
 .tng-adventure-library__organizer>p{grid-column:1/-1;margin:0;color:var(--tng-muted);font-size:11px;font-weight:750}
+.tng-adventure-library__capacity{display:grid;gap:8px;padding:13px 15px;border-radius:16px;background:var(--tng-green-50,#f3f8f4)}
+.tng-adventure-library__capacity>div:first-child{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px}.tng-adventure-library__capacity>div:first-child span{color:var(--tng-muted)}
+.tng-adventure-library__capacity p{margin:0;color:var(--tng-muted);font-size:10px;font-weight:750}
 .tng-adventure-library__grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .tng-adventure-card{display:flex;min-width:0;flex-direction:column;gap:13px;padding:22px;border:1px solid var(--tng-border);border-radius:22px;background:#fff;box-shadow:0 10px 30px rgba(20,55,39,.06)}
 .tng-adventure-card.is-active{border-color:var(--tng-orange);box-shadow:0 14px 34px rgba(224,107,38,.13)}
