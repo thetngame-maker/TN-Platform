@@ -4,6 +4,8 @@
   if (!root) return;
   const status = root.querySelector('[data-tng-library-status]');
   const search = root.querySelector('[data-tng-adventure-search]');
+  const sort = root.querySelector('[data-tng-adventure-sort]');
+  const grid = root.querySelector('.tng-adventure-library__grid');
   const filters = [...root.querySelectorAll('[data-tng-adventure-filter]')];
   const cards = [...root.querySelectorAll('[data-plan-id]')];
   const filterStatus = root.querySelector('[data-tng-filter-status]');
@@ -11,6 +13,13 @@
   let selectedFilter = 'all';
 
   const applyFilters = () => {
+    const stateOrder = {active:0,ready:1,completed:2};
+    const sorted = [...cards].sort((a, b) => {
+      if (sort?.value === 'title') return (a.querySelector('[data-plan-title]')?.textContent || '').localeCompare(b.querySelector('[data-plan-title]')?.textContent || '', undefined, {sensitivity:'base'});
+      if (sort?.value === 'status') return (stateOrder[a.dataset.planState] ?? 9) - (stateOrder[b.dataset.planState] ?? 9) || Number(b.dataset.planUpdated || 0) - Number(a.dataset.planUpdated || 0);
+      return Number(b.dataset.planUpdated || 0) - Number(a.dataset.planUpdated || 0);
+    });
+    if (grid) sorted.forEach((card) => grid.append(card));
     const query = search?.value.trim().toLocaleLowerCase() || '';
     let visible = 0;
     cards.forEach((card) => {
@@ -24,6 +33,7 @@
   };
 
   search?.addEventListener('input', applyFilters);
+  sort?.addEventListener('change', applyFilters);
   filters.forEach((button) => button.addEventListener('click', () => {
     selectedFilter = button.dataset.tngAdventureFilter || 'all';
     filters.forEach((item) => item.setAttribute('aria-pressed', String(item === button)));

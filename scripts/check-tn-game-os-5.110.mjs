@@ -11,8 +11,8 @@ const client = read('assets/js/offline-mode.js');
 const css = read('assets/css/offline-mode.css');
 const profile = read('tn-game-profile-ui.php');
 
-assert.match(bootstrap, /Version:\s*5\.(?:11[0-9]|[2-9][0-9]{2})\.\d+/);
-assert.match(bootstrap, /define\('TNG_OS_VERSION','5\.(?:11[0-9]|[2-9][0-9]{2})\.\d+'\)/);
+assert.match(bootstrap, /Version:\s*5\.(?:11[0-9]|1[2-9][0-9]|[2-9][0-9]{2})\.\d+/);
+assert.match(bootstrap, /define\('TNG_OS_VERSION','5\.(?:11[0-9]|1[2-9][0-9]|[2-9][0-9]{2})\.\d+'\)/);
 assert.match(router, /'offline'/);
 assert.match(router, /TNG_Offline_Mode::render_screen/);
 
