@@ -15,6 +15,7 @@
   const allowedFilters = ['all','upcoming','active','ready','completed','archived'];
   const allowedSorts = ['recent','date','title','status'];
   let selectedFilter = 'all';
+  let nextCard = null;
   const now = new Date();
   const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
 
@@ -76,6 +77,28 @@
   });
   filters.forEach((item) => item.setAttribute('aria-pressed', String(item.dataset.tngAdventureFilter === selectedFilter)));
   applyFilters();
+
+  const nextBanner = root.querySelector('[data-tng-next-adventure]');
+  nextCard = cards.filter((card) => card.dataset.planState !== 'archived' && card.dataset.planDate >= todayKey).sort((a, b) => a.dataset.planDate.localeCompare(b.dataset.planDate))[0] || null;
+  if (nextBanner && nextCard) {
+    const parts = nextCard.dataset.planDate.split('-').map(Number);
+    const targetDate = new Date(parts[0],parts[1]-1,parts[2],12,0,0);
+    const today = new Date(now.getFullYear(),now.getMonth(),now.getDate(),12,0,0);
+    const daysAway = Math.max(0,Math.round((targetDate-today)/86400000));
+    nextBanner.querySelector('[data-tng-next-title]').textContent = nextCard.querySelector('[data-plan-title]')?.textContent?.trim() || 'Tennessee adventure';
+    nextBanner.querySelector('[data-tng-next-countdown]').textContent = daysAway === 0 ? 'Today' : (daysAway === 1 ? 'Tomorrow' : `In ${daysAway} days`);
+    nextBanner.querySelector('[data-tng-next-date]').textContent = targetDate.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'});
+    nextBanner.hidden = false;
+    nextCard.classList.add('is-next-up');
+    nextBanner.querySelector('[data-tng-next-jump]')?.addEventListener('click', () => {
+      selectedFilter = 'all';
+      filters.forEach((item) => item.setAttribute('aria-pressed', String(item.dataset.tngAdventureFilter === 'all')));
+      savePreferences();
+      applyFilters();
+      nextCard.scrollIntoView({behavior:'smooth',block:'center'});
+      window.setTimeout(() => nextCard.querySelector('button,a')?.focus({preventScroll:true}), 450);
+    });
+  }
 
   const post = async (fields) => {
     const body = new URLSearchParams({action:'tng_adventure_library_action',nonce:root.dataset.nonce || '',...fields});
@@ -242,6 +265,7 @@
       card.querySelector('[data-plan-title]').textContent = title;
       const printTitle = card.querySelector('[data-plan-print-title]');
       if (printTitle) printTitle.textContent = title;
+      if (card === nextCard) root.querySelector('[data-tng-next-title]').textContent = title;
       applyFilters();
       if (status) status.textContent = data.message;
     } catch (error) {

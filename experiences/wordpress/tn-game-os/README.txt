@@ -1,3 +1,12 @@
+TN GAME OS 5.128.0 — NEXT ADVENTURE DASHBOARD
+
+CURRENT MILESTONE
+- Highlights the nearest upcoming Saved Adventure above the private library.
+- Shows Today, Tomorrow, or an exact days-away countdown.
+- Displays the scheduled weekday and date using the Explorer's device locale.
+- Jumps directly to the plan and restores a visible filter if needed.
+- Runs entirely on already-rendered private data with no server or background write.
+
 TN GAME OS 5.127.0 — UPCOMING ADVENTURE ORGANIZER
 
 CURRENT MILESTONE
