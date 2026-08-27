@@ -12,9 +12,11 @@
   const filterEmpty = root.querySelector('[data-tng-filter-empty]');
   const resetView = root.querySelector('[data-tng-adventure-reset]');
   const preferenceKey = 'tng_saved_adventure_view_v1';
-  const allowedFilters = ['all','active','ready','completed','archived'];
-  const allowedSorts = ['recent','title','status'];
+  const allowedFilters = ['all','upcoming','active','ready','completed','archived'];
+  const allowedSorts = ['recent','date','title','status'];
   let selectedFilter = 'all';
+  const now = new Date();
+  const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
 
   try {
     const preferences = JSON.parse(window.localStorage.getItem(preferenceKey) || '{}');
@@ -32,13 +34,22 @@
     const sorted = [...cards].sort((a, b) => {
       if (sort?.value === 'title') return (a.querySelector('[data-plan-title]')?.textContent || '').localeCompare(b.querySelector('[data-plan-title]')?.textContent || '', undefined, {sensitivity:'base'});
       if (sort?.value === 'status') return (stateOrder[a.dataset.planState] ?? 9) - (stateOrder[b.dataset.planState] ?? 9) || Number(b.dataset.planUpdated || 0) - Number(a.dataset.planUpdated || 0);
+      if (sort?.value === 'date') {
+        const aDate = a.dataset.planDate || '';
+        const bDate = b.dataset.planDate || '';
+        const aRank = !aDate ? 2 : (aDate >= todayKey ? 0 : 1);
+        const bRank = !bDate ? 2 : (bDate >= todayKey ? 0 : 1);
+        if (aRank !== bRank) return aRank - bRank;
+        if (aRank === 0) return aDate.localeCompare(bDate);
+        if (aRank === 1) return bDate.localeCompare(aDate);
+      }
       return Number(b.dataset.planUpdated || 0) - Number(a.dataset.planUpdated || 0);
     });
     if (grid) sorted.forEach((card) => grid.append(card));
     const query = search?.value.trim().toLocaleLowerCase() || '';
     let visible = 0;
     cards.forEach((card) => {
-      const matchesState = selectedFilter === 'all' ? card.dataset.planState !== 'archived' : card.dataset.planState === selectedFilter;
+      const matchesState = selectedFilter === 'all' ? card.dataset.planState !== 'archived' : (selectedFilter === 'upcoming' ? card.dataset.planState !== 'archived' && card.dataset.planDate >= todayKey : card.dataset.planState === selectedFilter);
       const matchesQuery = !query || card.textContent.toLocaleLowerCase().includes(query);
       card.hidden = !(matchesState && matchesQuery);
       if (!card.hidden) visible += 1;
