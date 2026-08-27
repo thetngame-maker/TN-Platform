@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TN Game Active Trip UI
  * Description: Live itinerary and stop progress for saved TN Game trips.
- * Version: 0.4.0
+ * Version: 0.5.0
  * Author: The TN Game
  */
 if (!defined('ABSPATH')) exit;
@@ -199,7 +199,7 @@ final class TNG_Active_Trip_UI {
         ]);
         ob_start(); ?>
         <main class="tng-active-trip-screen tng-app-shell">
-            <section class="tng-active-trip-hero"><div><span class="tng-eyebrow">Trip mode</span><h1><?php echo $total&&$resolved===$total?($skip_count?'Trip finished.':'Trip complete!'):'Your Tennessee day.'; ?></h1><p>Follow your saved route, confirm arrival, complete each stop, and keep the day moving.</p></div><div class="tng-active-trip-score"><strong data-tng-trip-progress><?php echo esc_html($done.'/'.$total); ?></strong><small>Stops complete<?php echo $skip_count?' · '.esc_html((string)$skip_count).' skipped':''; ?></small></div></section>
+            <section class="tng-active-trip-hero"><div><span class="tng-eyebrow">Trip mode</span><h1><?php echo $total&&$resolved===$total?($skip_count?'Trip finished.':'Trip complete!'):'Your Tennessee day.'; ?></h1><p>Follow your saved route, confirm arrival, complete each stop, and keep the day moving.</p></div><div class="tng-active-trip-score"><strong data-tng-trip-progress data-resolved="<?php echo esc_attr((string)$resolved); ?>" data-total="<?php echo esc_attr((string)$total); ?>"><?php echo esc_html($done.'/'.$total); ?></strong><small>Stops complete<?php echo $skip_count?' · '.esc_html((string)$skip_count).' skipped':''; ?></small></div></section>
             <nav class="tng-trip-tabs" aria-label="Trip planning"><a href="<?php echo esc_url(home_url('/trips/')); ?>">🗺 Trips</a><a href="<?php echo esc_url(home_url('/saved/')); ?>">♡ Saved places</a><a href="<?php echo esc_url(home_url('/trip-builder/')); ?>">☰ Trip builder</a><a class="is-active" href="<?php echo esc_url(home_url('/active-trip/')); ?>">▶ Trip mode</a></nav>
             <?php if(!$logged_in): ?>
                 <section class="tng-active-trip-empty"><h2>Sign in to start trip mode.</h2><p>Your itinerary and progress will stay synced to your Explorer account.</p><a class="tng-ui-button" href="<?php echo esc_url(wp_login_url(home_url('/active-trip/'))); ?>">Sign in</a></section>

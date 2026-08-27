@@ -1,3 +1,12 @@
+TN GAME OS 5.116.0 — ADVENTURE FINISH HANDOFF
+
+CURRENT MILESTONE
+- Finishes an adventure when every stop is completed or intentionally skipped.
+- Preserves the Saved Adventure title and source identity in history and recaps.
+- Records whether each archived stop was completed or skipped.
+- Clears the finished active trip through the canonical reset path after the recap is captured.
+- Keeps Saved Adventures reusable and does not delete plan-library records.
+
 TN GAME OS 5.115.0 — ACTIVE ADVENTURE RESUME
 
 CURRENT MILESTONE

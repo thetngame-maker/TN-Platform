@@ -68,9 +68,16 @@ final class TNG_Adventure_Recaps {
         $items = is_array($trip['items'] ?? null) ? array_values(array_filter($trip['items'], 'is_array')) : [];
         $stats = is_array($trip['stats'] ?? null) ? $trip['stats'] : [];
         $xp = 0;
+        $completed_count = 0;
+        $skipped_count = 0;
         foreach ($items as &$item) {
             $id = absint($item['id'] ?? 0);
-            $reward = self::post_xp($id);
+            $status = sanitize_key((string)($item['status'] ?? 'completed'));
+            if (!in_array($status, ['completed','skipped'], true)) $status = 'completed';
+            $item['status'] = $status;
+            if ($status === 'skipped') $skipped_count++;
+            else $completed_count++;
+            $reward = $status === 'completed' ? self::post_xp($id) : 0;
             $item['xp'] = $reward;
             $item['type'] = $id ? sanitize_key((string)get_post_type($id)) : 'stop';
             $xp += $reward;
@@ -78,6 +85,8 @@ final class TNG_Adventure_Recaps {
         unset($item);
         $stats = [
             'stops' => count($items),
+            'completed' => $completed_count,
+            'skipped' => $skipped_count,
             'xp' => $xp,
             'distance_m' => absint($stats['distance_m'] ?? 0),
             'duration_s' => absint($stats['duration_s'] ?? 0),
@@ -120,6 +129,8 @@ final class TNG_Adventure_Recaps {
             'items' => array_slice(is_array($recap['items'] ?? null) ? $recap['items'] : [], 0, 50),
             'stats' => [
                 'stops' => absint($stats['stops'] ?? 0),
+                'completed' => absint($stats['completed'] ?? $stats['stops'] ?? 0),
+                'skipped' => absint($stats['skipped'] ?? 0),
                 'xp' => absint($stats['xp'] ?? 0),
                 'distance_m' => absint($stats['distance_m'] ?? 0),
                 'duration_s' => absint($stats['duration_s'] ?? 0),
@@ -144,10 +155,12 @@ final class TNG_Adventure_Recaps {
     }
 
     private static function trip_story(array $stats): string {
-        $stops = absint($stats['stops'] ?? 0);
+        $stops = absint($stats['completed'] ?? $stats['stops'] ?? 0);
+        $skipped = absint($stats['skipped'] ?? 0);
         $xp = absint($stats['xp'] ?? 0);
         $miles = self::miles(absint($stats['distance_m'] ?? 0));
         $parts = [sprintf('%d Tennessee stop%s completed', $stops, $stops === 1 ? '' : 's')];
+        if ($skipped > 0) $parts[] = sprintf('%d intentionally skipped', $skipped);
         if ($miles > 0) $parts[] = number_format_i18n($miles, 1) . ' route miles';
         if ($xp > 0) $parts[] = $xp . ' Explorer XP';
         return implode(' · ', $parts) . '. One complete Tennessee day, saved to your Explorer story.';
