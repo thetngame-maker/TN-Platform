@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TN Game Trip Data
  * Description: Persistent saved places and trip actions for The TN Game app.
- * Version: 0.5.0
+ * Version: 0.6.0
  * Author: The TN Game
  */
 if (!defined('ABSPATH')) exit;
@@ -24,7 +24,7 @@ final class TNG_Trip_Data {
 
     public static function assets(): void {
         if (is_admin()) return;
-        wp_enqueue_script('tng-trip-data', TNG_OS_URL . 'assets/js/trip-data.js', [], '0.5.0', true);
+        wp_enqueue_script('tng-trip-data', TNG_OS_URL . 'assets/js/trip-data.js', [], '0.6.0', true);
         wp_localize_script('tng-trip-data', 'TNGTripData', [
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('tng_trip_data'),
@@ -58,6 +58,35 @@ final class TNG_Trip_Data {
         if (!$user_id) return [];
         $source = get_user_meta($user_id, self::SOURCE_META_KEY, true);
         return is_array($source) ? $source : [];
+    }
+
+    public static function progress_summary(int $user_id = 0): array {
+        $user_id = $user_id ?: get_current_user_id();
+        $ids = $user_id ? self::ids($user_id) : [];
+        $completed = $user_id ? get_user_meta($user_id, self::COMPLETED_META_KEY, true) : [];
+        $completed = is_array($completed) ? array_values(array_unique(array_map('absint', $completed))) : [];
+        $skipped_raw = $user_id ? get_user_meta($user_id, self::SKIPPED_META_KEY, true) : [];
+        $skipped_ids = is_array($skipped_raw) ? array_values(array_unique(array_map('absint', array_keys($skipped_raw)))) : [];
+        $done_ids = array_values(array_intersect($ids, $completed));
+        $skip_ids = array_values(array_intersect($ids, $skipped_ids));
+        $resolved_ids = array_values(array_unique(array_merge($done_ids, $skip_ids)));
+        $remaining_ids = array_values(array_diff($ids, $resolved_ids));
+        $total = count($ids);
+        $resolved = count($resolved_ids);
+        return [
+            'ids' => $ids,
+            'completed_ids' => $done_ids,
+            'skipped_ids' => $skip_ids,
+            'remaining_ids' => $remaining_ids,
+            'completed' => count($done_ids),
+            'skipped' => count($skip_ids),
+            'resolved' => $resolved,
+            'remaining' => count($remaining_ids),
+            'total' => $total,
+            'percent' => $total ? (int) round(($resolved / $total) * 100) : 0,
+            'next_id' => $remaining_ids ? (int) $remaining_ids[0] : 0,
+            'source' => self::active_source($user_id),
+        ];
     }
 
     private static function clear_route(int $user_id): void {

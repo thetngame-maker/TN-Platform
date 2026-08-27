@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TN Game Past Trips UI
  * Description: Archived Explorer trip history and completed itinerary summaries.
- * Version: 0.1.1
+ * Version: 0.2.0
  * Author: The TN Game
  */
 if (!defined('ABSPATH')) exit;
@@ -17,7 +17,7 @@ final class TNG_Past_Trips_UI {
 
     public static function assets(): void {
         if (is_admin()) return;
-        wp_enqueue_script('tng-past-trips', TNG_OS_URL . 'assets/js/past-trips.js', [], '0.1.0', true);
+        wp_enqueue_script('tng-past-trips', TNG_OS_URL . 'assets/js/past-trips.js', [], '0.2.0', true);
         wp_localize_script('tng-past-trips', 'TNGPastTrips', [
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('tng_archive_trip'),
@@ -38,32 +38,39 @@ final class TNG_Past_Trips_UI {
         $user_id = get_current_user_id();
         $posts = class_exists('TNG_Trip_Data') ? TNG_Trip_Data::posts($user_id) : [];
         if (!$posts) wp_send_json_error(['code' => 'empty_trip'], 400);
-        $saved_ids = array_map(static fn($post) => (int)$post->ID, $posts);
-        $completed = get_user_meta($user_id, 'tng_active_trip_completed', true);
-        $completed = is_array($completed) ? array_map('absint', $completed) : [];
-        if (count(array_intersect($saved_ids, $completed)) !== count($saved_ids)) wp_send_json_error(['code' => 'trip_incomplete'], 400);
+        $progress = TNG_Trip_Data::progress_summary($user_id);
+        if ((int)$progress['total'] < 1 || (int)$progress['remaining'] > 0) wp_send_json_error(['code' => 'trip_incomplete','remaining'=>(int)$progress['remaining']], 400);
+        $completed = array_map('absint', (array)$progress['completed_ids']);
+        $skipped = array_map('absint', (array)$progress['skipped_ids']);
+        $skipped_raw = get_user_meta($user_id, 'tng_active_trip_skipped', true);
+        $skipped_raw = is_array($skipped_raw) ? $skipped_raw : [];
+        $source = is_array($progress['source'] ?? null) ? $progress['source'] : [];
         $route = get_user_meta($user_id, 'tng_saved_trip_route', true);
         $route = is_array($route) ? $route : [];
         $trip = [
             'id' => wp_generate_uuid4(),
-            'title' => 'Tennessee Day · ' . current_time('M j'),
+            'title' => sanitize_text_field((string)($source['title'] ?? '')) ?: 'Tennessee Day · ' . current_time('M j'),
+            'source' => [
+                'kind' => sanitize_key((string)($source['kind'] ?? 'trip')),
+                'id' => sanitize_text_field((string)($source['id'] ?? '')),
+            ],
             'completed_at' => current_time('mysql'),
             'stats' => [
                 'distance_m' => absint($route['distance_m'] ?? 0),
                 'duration_s' => absint($route['duration_s'] ?? 0),
             ],
-            'items' => array_map(static function ($post): array {
-                return ['id'=>(int)$post->ID,'title'=>get_the_title($post),'url'=>get_permalink($post),'image'=>get_the_post_thumbnail_url($post->ID,'medium_large') ?: ''];
+            'items' => array_map(static function ($post) use ($completed, $skipped, $skipped_raw): array {
+                $id = (int)$post->ID;
+                $status = in_array($id, $completed, true) ? 'completed' : (in_array($id, $skipped, true) ? 'skipped' : 'unresolved');
+                $skip_entry = is_array($skipped_raw[$id] ?? null) ? $skipped_raw[$id] : [];
+                return ['id'=>$id,'title'=>get_the_title($post),'url'=>get_permalink($post),'image'=>get_the_post_thumbnail_url($id,'medium_large') ?: '','status'=>$status,'skip_reason'=>sanitize_key((string)($skip_entry['reason'] ?? ''))];
             }, $posts),
         ];
         $history = self::history($user_id);
         array_unshift($history, $trip);
         update_user_meta($user_id, self::META_KEY, array_slice($history, 0, 50));
-        update_user_meta($user_id, 'tng_active_trip_completed', []);
-        update_user_meta($user_id, 'tng_saved_trip_items', []);
-        delete_user_meta($user_id, 'tng_active_trip_skipped');
-        delete_user_meta($user_id, 'tng_saved_trip_route');
         do_action('tng_os_trip_archived', $user_id, $trip);
+        TNG_Trip_Data::reset($user_id);
         wp_send_json_success(['redirect'=>add_query_arg('recap', $trip['id'], home_url('/recaps/')),'trip'=>$trip]);
     }
 

@@ -4,15 +4,16 @@
     const progress = document.querySelector('[data-tng-trip-progress]');
     const aside = document.querySelector('.tng-active-trip-next');
     if (!progress || !aside) return;
-    const [done, total] = (progress.textContent || '').split('/').map(Number);
+    const total = Number(progress.dataset.total || 0);
+    const resolved = Number(progress.dataset.resolved || 0);
     let button = aside.querySelector('[data-tng-archive-trip]');
-    if (total > 0 && done === total) {
+    if (total > 0 && resolved === total) {
       if (!button) {
         button = document.createElement('button');
         button.type = 'button';
         button.className = 'tng-ui-button tng-finish-trip-button';
         button.dataset.tngArchiveTrip = '';
-        button.textContent = 'Finish and archive trip';
+        button.textContent = 'Finish adventure';
         aside.appendChild(button);
       }
       button.hidden = false;
@@ -31,7 +32,7 @@
       window.location.assign(json.data.redirect || cfg.historyUrl || '/past-trips/');
     } catch (error) {
       button.disabled = false;
-      button.textContent = 'Finish and archive trip';
+      button.textContent = 'Finish adventure';
       window.alert('The trip could not be archived. Please try again.');
     }
   });
