@@ -1,3 +1,12 @@
+TN GAME OS 5.124.0 — PRINTABLE SAVED ADVENTURES
+
+CURRENT MILESTONE
+- Prints or saves one Saved Adventure as a clean PDF from the browser.
+- Includes the full saved stop list, start time, and travel buffer.
+- Excludes account controls, other plans, progress, and private identifiers.
+- Opens only after an explicit Explorer action and performs no server write.
+- Restores the normal library view automatically after printing.
+
 TN GAME OS 5.123.0 — DEVICE VIEW PREFERENCES
 
 CURRENT MILESTONE
