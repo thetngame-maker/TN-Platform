@@ -1,3 +1,12 @@
+TN GAME OS 5.129.0 — NEXT ADVENTURE QUICK ACTIONS
+
+CURRENT MILESTONE
+- Adds View Route directly to the Next Adventure dashboard.
+- Offers Start Today's Adventure when the scheduled date is today.
+- Offers Resume Adventure when that plan is already active.
+- Reuses the existing trip-replacement confirmation and server-side safeguards.
+- Adds no automatic start, background action, or new write endpoint.
+
 TN GAME OS 5.128.0 — NEXT ADVENTURE DASHBOARD
 
 CURRENT MILESTONE
