@@ -74,7 +74,22 @@
     return json.data;
   };
 
+  const cleanupPrint = () => {
+    document.body.classList.remove('tng-printing-adventure');
+    cards.forEach((card) => card.classList.remove('is-print-target'));
+  };
+  window.addEventListener('afterprint', cleanupPrint);
+
   root.addEventListener('click', async (event) => {
+    const print = event.target.closest('[data-tng-plan-print]');
+    if (print) {
+      cleanupPrint();
+      print.closest('[data-plan-id]')?.classList.add('is-print-target');
+      document.body.classList.add('tng-printing-adventure');
+      window.print();
+      window.setTimeout(cleanupPrint, 1000);
+      return;
+    }
     const archive = event.target.closest('[data-tng-plan-archive]');
     if (archive) {
       const card = archive.closest('[data-plan-id]');
@@ -157,6 +172,8 @@
     try {
       const data = await post({operation:'rename',plan_id:card.dataset.planId || '',title});
       card.querySelector('[data-plan-title]').textContent = title;
+      const printTitle = card.querySelector('[data-plan-print-title]');
+      if (printTitle) printTitle.textContent = title;
       applyFilters();
       if (status) status.textContent = data.message;
     } catch (error) {
