@@ -114,26 +114,28 @@ final class Adventure_AI implements Module_Interface {
             <?php else: ?>
                 <section class="tng-adventure-library__organizer" aria-label="Organize saved adventures">
                     <label><span>Find a plan</span><input type="search" placeholder="Search plans or stops" data-tng-adventure-search></label>
+                    <label class="tng-adventure-library__sort"><span>Sort plans</span><select data-tng-adventure-sort><option value="recent">Recently updated</option><option value="title">Plan title</option><option value="status">Adventure status</option></select></label>
                     <div class="tng-adventure-library__filters" aria-label="Filter by status">
                         <button type="button" data-tng-adventure-filter="all" aria-pressed="true">All</button>
                         <button type="button" data-tng-adventure-filter="active" aria-pressed="false">Active</button>
                         <button type="button" data-tng-adventure-filter="ready" aria-pressed="false">Ready</button>
                         <button type="button" data-tng-adventure-filter="completed" aria-pressed="false">Completed</button>
+                        <button type="button" data-tng-adventure-filter="archived" aria-pressed="false">Archived</button>
                     </div>
                     <p data-tng-filter-status aria-live="polite"></p>
                 </section>
                 <p class="tng-adventure-library__status" data-tng-library-status aria-live="polite"><?php echo esc_html(count($plans).' saved adventure'.(count($plans)===1?'':'s')); ?></p>
                 <section class="tng-adventure-library__grid">
-                    <?php foreach ($plans as $plan): $ids=array_slice((array)$plan['ids'],0,4);$plan_id=(string)$plan['id'];$is_active=$active_plan_id!==''&&hash_equals($active_plan_id,$plan_id);$completed_trip=$completed_plans[$plan_id]??null;$plan_state=$is_active?'active':($completed_trip?'completed':'ready'); ?>
-                        <article class="tng-adventure-card<?php echo $is_active?' is-active':($completed_trip?' is-completed':''); ?>" data-plan-id="<?php echo esc_attr($plan_id); ?>" data-plan-state="<?php echo esc_attr($plan_state); ?>">
-                            <div class="tng-adventure-card__top"><span><?php echo $is_active?'● Active adventure':($completed_trip?'✓ Completed':esc_html(number_format_i18n(count($plan['ids'])).' stops')); ?></span><time datetime="<?php echo esc_attr(gmdate('c',(int)$plan['updated_at'])); ?>"><?php echo esc_html(human_time_diff((int)$plan['updated_at'],time()).' ago'); ?></time></div>
+                    <?php foreach ($plans as $plan): $ids=array_slice((array)$plan['ids'],0,4);$plan_id=(string)$plan['id'];$is_active=$active_plan_id!==''&&hash_equals($active_plan_id,$plan_id);$completed_trip=$completed_plans[$plan_id]??null;$is_archived=!empty($plan['archived_at']);$plan_state=$is_archived?'archived':($is_active?'active':($completed_trip?'completed':'ready')); ?>
+                        <article class="tng-adventure-card<?php echo $is_archived?' is-archived':($is_active?' is-active':($completed_trip?' is-completed':'')); ?>" data-plan-id="<?php echo esc_attr($plan_id); ?>" data-plan-state="<?php echo esc_attr($plan_state); ?>" data-plan-updated="<?php echo esc_attr((string)(int)$plan['updated_at']); ?>">
+                            <div class="tng-adventure-card__top"><span><?php echo $is_archived?'↶ Archived':($is_active?'● Active adventure':($completed_trip?'✓ Completed':esc_html(number_format_i18n(count($plan['ids'])).' stops'))); ?></span><time datetime="<?php echo esc_attr(gmdate('c',(int)$plan['updated_at'])); ?>"><?php echo esc_html(human_time_diff((int)$plan['updated_at'],time()).' ago'); ?></time></div>
                             <h2 data-plan-title><?php echo esc_html((string)$plan['title']); ?></h2>
                             <p><?php echo esc_html(wp_trim_words((string)$plan['prompt'],18)); ?></p>
                             <?php if($is_active): ?><div class="tng-adventure-card__progress"><div><strong><?php echo esc_html((string)($progress['resolved']??0)); ?> of <?php echo esc_html((string)($progress['total']??0)); ?> resolved</strong><span><?php echo esc_html((string)($progress['remaining']??0)); ?> remaining<?php echo !empty($progress['skipped'])?' · '.esc_html((string)$progress['skipped']).' skipped':''; ?></span></div><div class="tng-ui-progress"><span style="width:<?php echo esc_attr((string)($progress['percent']??0)); ?>%"></span></div></div><?php endif; ?>
                             <?php if(!$is_active&&$completed_trip): ?><a class="tng-adventure-card__completed" href="<?php echo esc_url(add_query_arg('recap',(string)$completed_trip['id'],home_url('/recaps/'))); ?>"><span>Last completed <?php echo esc_html(human_time_diff(strtotime((string)$completed_trip['completed_at']),time()).' ago'); ?></span><strong>View recap →</strong></a><?php endif; ?>
                             <div class="tng-adventure-card__stops"><?php foreach($ids as $id): ?><span><?php echo esc_html(get_the_title((int)$id) ?: '#'.(int)$id); ?></span><?php endforeach; ?></div>
-                            <div class="tng-adventure-card__actions"><?php if($is_active): ?><a class="tng-ui-button" href="<?php echo esc_url(home_url('/active-trip/')); ?>">Resume adventure</a><?php else: ?><button class="tng-ui-button" type="button" data-tng-plan-start><?php echo $completed_trip?'Start again':'Start adventure'; ?></button><?php endif; ?><a class="tng-ui-button tng-ui-button--secondary" href="<?php echo esc_url(add_query_arg('plan',$plan_id,home_url('/adventure-ai/'))); ?>">Reopen</a><a class="tng-ui-button tng-ui-button--secondary" href="<?php echo esc_url(add_query_arg('adventure',$plan_id,home_url('/map/'))); ?>">View map</a><button class="tng-ui-button tng-ui-button--secondary" type="button" data-tng-plan-share>Share plan</button><button class="tng-ui-button tng-ui-button--secondary" type="button" data-tng-plan-duplicate>Duplicate</button></div>
-                            <form class="tng-adventure-card__rename" data-tng-plan-rename><label>Rename plan<input name="title" maxlength="100" value="<?php echo esc_attr((string)$plan['title']); ?>"></label><button type="submit">Save name</button></form>
+                            <div class="tng-adventure-card__actions"><?php if($is_archived): ?><button class="tng-ui-button" type="button" data-tng-plan-archive="restore">Restore adventure</button><button class="tng-ui-button tng-ui-button--secondary" type="button" data-tng-plan-share>Share plan</button><?php else: ?><?php if($is_active): ?><a class="tng-ui-button" href="<?php echo esc_url(home_url('/active-trip/')); ?>">Resume adventure</a><?php else: ?><button class="tng-ui-button" type="button" data-tng-plan-start><?php echo $completed_trip?'Start again':'Start adventure'; ?></button><?php endif; ?><a class="tng-ui-button tng-ui-button--secondary" href="<?php echo esc_url(add_query_arg('plan',$plan_id,home_url('/adventure-ai/'))); ?>">Reopen</a><a class="tng-ui-button tng-ui-button--secondary" href="<?php echo esc_url(add_query_arg('adventure',$plan_id,home_url('/map/'))); ?>">View map</a><button class="tng-ui-button tng-ui-button--secondary" type="button" data-tng-plan-share>Share plan</button><button class="tng-ui-button tng-ui-button--secondary" type="button" data-tng-plan-duplicate>Duplicate</button><button class="tng-ui-button tng-ui-button--secondary" type="button" data-tng-plan-archive="archive">Archive</button><?php endif; ?></div>
+                            <?php if(!$is_archived): ?><form class="tng-adventure-card__rename" data-tng-plan-rename><label>Rename plan<input name="title" maxlength="100" value="<?php echo esc_attr((string)$plan['title']); ?>"></label><button type="submit">Save name</button></form><?php endif; ?>
                         </article>
                     <?php endforeach; ?>
                 </section>
@@ -237,14 +239,25 @@ final class Adventure_AI implements Module_Interface {
             $library[$index]['updated_at'] = time();
         } elseif ($operation === 'duplicate') {
             $copy = $library[$index];
+            unset($copy['archived_at']);
             $copy['id'] = wp_generate_uuid4();
             $copy['title'] = substr('Copy of '.(string)$copy['title'], 0, 100);
             $copy['created_at'] = $copy['updated_at'] = time();
             array_unshift($library, $copy);
             $library = array_slice($library, 0, self::PLAN_LIBRARY_LIMIT);
+        } elseif ($operation === 'archive') {
+            $trip_progress = class_exists('TNG_Trip_Data') ? \TNG_Trip_Data::progress_summary(get_current_user_id()) : [];
+            $source = is_array($trip_progress['source'] ?? null) ? $trip_progress['source'] : [];
+            if (($source['kind'] ?? '') === 'saved_adventure' && hash_equals((string)($source['id'] ?? ''), $plan_id)) wp_send_json_error(['message'=>'Finish or replace the active adventure before archiving it.'], 409);
+            $library[$index]['archived_at'] = time();
+            $library[$index]['updated_at'] = time();
+        } elseif ($operation === 'restore') {
+            unset($library[$index]['archived_at']);
+            $library[$index]['updated_at'] = time();
         } else wp_send_json_error(['message'=>'That plan action is not supported.'], 400);
         update_user_meta(get_current_user_id(), self::PLAN_LIBRARY_META, array_values($library));
-        wp_send_json_success(['message'=>$operation==='rename'?'Adventure renamed.':'Adventure duplicated.','url'=>home_url('/adventures/')]);
+        $messages = ['rename'=>'Adventure renamed.','duplicate'=>'Adventure duplicated.','archive'=>'Adventure archived.','restore'=>'Adventure restored.'];
+        wp_send_json_success(['message'=>$messages[$operation] ?? 'Adventure updated.','url'=>home_url('/adventures/')]);
     }
 
     private static function library(int $user_id): array {
