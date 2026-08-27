@@ -90,14 +90,29 @@
     nextBanner.querySelector('[data-tng-next-date]').textContent = targetDate.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'});
     nextBanner.hidden = false;
     nextCard.classList.add('is-next-up');
-    nextBanner.querySelector('[data-tng-next-jump]')?.addEventListener('click', () => {
+    const revealNextCard = () => {
       selectedFilter = 'all';
       filters.forEach((item) => item.setAttribute('aria-pressed', String(item.dataset.tngAdventureFilter === 'all')));
       savePreferences();
       applyFilters();
       nextCard.scrollIntoView({behavior:'smooth',block:'center'});
       window.setTimeout(() => nextCard.querySelector('button,a')?.focus({preventScroll:true}), 450);
-    });
+    };
+    const routeLink = nextCard.querySelector('a[href*="adventure="]');
+    const bannerRoute = nextBanner.querySelector('[data-tng-next-map]');
+    if (routeLink && bannerRoute) { bannerRoute.href = routeLink.href; bannerRoute.hidden = false; }
+    const activeLink = nextCard.querySelector('a[href*="/active-trip/"]');
+    const startButton = nextCard.querySelector('[data-tng-plan-start]');
+    const bannerAction = nextBanner.querySelector('[data-tng-next-action]');
+    if (bannerAction) {
+      if (activeLink) bannerAction.textContent = 'Resume adventure';
+      else if (daysAway === 0 && startButton) bannerAction.textContent = "Start today's adventure";
+      bannerAction.addEventListener('click', () => {
+        if (activeLink) window.location.assign(activeLink.href);
+        else if (daysAway === 0 && startButton) startButton.click();
+        else revealNextCard();
+      });
+    }
   }
 
   const post = async (fields) => {
