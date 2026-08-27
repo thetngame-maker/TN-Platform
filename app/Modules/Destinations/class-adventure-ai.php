@@ -116,6 +116,7 @@ final class Adventure_AI implements Module_Interface {
             <?php elseif (!$plans): ?>
                 <section class="tng-adventure-library__empty"><span>✦</span><h2>Your first plan starts with a sentence.</h2><p>Describe a Tennessee day in Adventure AI, edit it, and press Save Adventure.</p><a class="tng-ui-button" href="<?php echo esc_url(home_url('/adventure-ai/')); ?>">Open Adventure AI</a></section>
             <?php else: ?>
+                <section class="tng-adventure-library__next" data-tng-next-adventure hidden><div><span class="tng-eyebrow">Next adventure</span><h2 data-tng-next-title></h2><p><strong data-tng-next-countdown></strong><span data-tng-next-date></span></p></div><button class="tng-ui-button" type="button" data-tng-next-jump>View plan</button></section>
                 <section class="tng-adventure-library__organizer" aria-label="Organize saved adventures">
                     <label><span>Find a plan</span><input type="search" placeholder="Search plans or stops" data-tng-adventure-search></label>
                     <label class="tng-adventure-library__sort"><span>Sort plans</span><select data-tng-adventure-sort><option value="recent">Recently updated</option><option value="date">Adventure date</option><option value="title">Plan title</option><option value="status">Adventure status</option></select></label>
