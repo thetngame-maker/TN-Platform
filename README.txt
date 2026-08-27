@@ -1,3 +1,12 @@
+TN GAME OS 5.126.0 — PRIVATE CALENDAR EXPORT
+
+CURRENT MILESTONE
+- Downloads a scheduled Saved Adventure as a standard .ics calendar file.
+- Includes its local start time, estimated end time, title, and full stop list.
+- Works with Apple Calendar, Google Calendar imports, Outlook, and compatible apps.
+- Requires an explicit Explorer download and calendar confirmation.
+- Creates no external connection, account permission, server write, or background event.
+
 TN GAME OS 5.125.0 — PRIVATE ADVENTURE SCHEDULING
 
 CURRENT MILESTONE
