@@ -1,3 +1,12 @@
+TN GAME OS 5.118.0 — PRIVATE-SAFE ADVENTURE SHARING
+
+CURRENT MILESTONE
+- Shares a Saved Adventure only after an explicit Explorer action.
+- Uses the native device share sheet when available and clipboard fallback otherwise.
+- Includes only the plan title, visible stop names, and public TN Game homepage.
+- Excludes account IDs, plan IDs, private recap links, progress, and profile data.
+- Performs no server write and creates no public copy of the private plan.
+
 TN GAME OS 5.117.0 — COMPLETED SAVED ADVENTURES
 
 CURRENT MILESTONE
