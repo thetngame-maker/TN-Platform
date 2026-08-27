@@ -13,7 +13,7 @@
   let selectedFilter = 'all';
 
   const applyFilters = () => {
-    const stateOrder = {active:0,ready:1,completed:2};
+    const stateOrder = {active:0,ready:1,completed:2,archived:3};
     const sorted = [...cards].sort((a, b) => {
       if (sort?.value === 'title') return (a.querySelector('[data-plan-title]')?.textContent || '').localeCompare(b.querySelector('[data-plan-title]')?.textContent || '', undefined, {sensitivity:'base'});
       if (sort?.value === 'status') return (stateOrder[a.dataset.planState] ?? 9) - (stateOrder[b.dataset.planState] ?? 9) || Number(b.dataset.planUpdated || 0) - Number(a.dataset.planUpdated || 0);
@@ -23,7 +23,7 @@
     const query = search?.value.trim().toLocaleLowerCase() || '';
     let visible = 0;
     cards.forEach((card) => {
-      const matchesState = selectedFilter === 'all' || card.dataset.planState === selectedFilter;
+      const matchesState = selectedFilter === 'all' ? card.dataset.planState !== 'archived' : card.dataset.planState === selectedFilter;
       const matchesQuery = !query || card.textContent.toLocaleLowerCase().includes(query);
       card.hidden = !(matchesState && matchesQuery);
       if (!card.hidden) visible += 1;
@@ -50,6 +50,24 @@
   };
 
   root.addEventListener('click', async (event) => {
+    const archive = event.target.closest('[data-tng-plan-archive]');
+    if (archive) {
+      const card = archive.closest('[data-plan-id]');
+      const operation = archive.dataset.tngPlanArchive === 'restore' ? 'restore' : 'archive';
+      if (operation === 'archive' && !window.confirm('Archive this Saved Adventure? You can restore it later from the Archived filter.')) return;
+      archive.disabled = true;
+      archive.textContent = operation === 'archive' ? 'Archiving…' : 'Restoring…';
+      try {
+        const data = await post({operation,plan_id:card.dataset.planId || ''});
+        if (status) status.textContent = data.message;
+        window.location.reload();
+      } catch (error) {
+        archive.disabled = false;
+        archive.textContent = operation === 'archive' ? 'Archive' : 'Restore adventure';
+        if (status) status.textContent = error.message;
+      }
+      return;
+    }
     const share = event.target.closest('[data-tng-plan-share]');
     if (share) {
       const card = share.closest('[data-plan-id]');

@@ -16,6 +16,8 @@
 .tng-adventure-card.is-active .tng-adventure-card__top>span{color:var(--tng-orange)}
 .tng-adventure-card.is-completed{border-color:#a9d1b6;background:linear-gradient(180deg,#fff,#f8fcf9)}
 .tng-adventure-card.is-completed .tng-adventure-card__top>span{color:var(--tng-green-700)}
+.tng-adventure-card.is-archived{border-style:dashed;background:#f7f7f4;box-shadow:none;opacity:.88}
+.tng-adventure-card.is-archived .tng-adventure-card__top>span{color:var(--tng-muted)}
 .tng-adventure-card__top{display:flex;justify-content:space-between;gap:10px;color:var(--tng-muted);font-size:10px;font-weight:850;letter-spacing:.05em;text-transform:uppercase}
 .tng-adventure-card h2{margin:0;font-size:25px;line-height:1.08}
 .tng-adventure-card>p{margin:0;color:var(--tng-muted);font-size:13px;line-height:1.5}

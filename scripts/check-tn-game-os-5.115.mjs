@@ -16,7 +16,8 @@ assert.match(tripData,/'next_id' => \$remaining_ids \? \(int\) \$remaining_ids\[
 assert.match(adventure,/\$active_plan_id/);
 assert.match(adventure,/hash_equals\(\$active_plan_id,(?:\(string\)\$plan\['id'\]|\$plan_id)\)/);
 assert.match(adventure,/>Resume adventure</);
-assert.match(adventure,/class="tng-adventure-card<\?php echo \$is_active\?' is-active'/);
+assert.match(adventure,/class="tng-adventure-card/);
+assert.match(adventure,/\$is_active\?' is-active'/);
 assert.match(trips,/TNG_Trip_Data::progress_summary/);
 assert.match(trips,/\$remaining === 0 \? 'Finish adventure' : 'Resume adventure'/);
 assert.match(css,/\.tng-adventure-card\.is-active/);

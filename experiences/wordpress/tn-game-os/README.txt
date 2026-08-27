@@ -1,3 +1,12 @@
+TN GAME OS 5.121.0 — REVERSIBLE ADVENTURE ARCHIVE
+
+CURRENT MILESTONE
+- Archives Saved Adventures without permanently deleting them.
+- Restores archived plans from a dedicated Archived filter.
+- Prevents the currently active adventure from being archived.
+- Keeps archived plans private and removes them from the default library view.
+- Requires explicit Explorer actions and performs no bulk or background changes.
+
 TN GAME OS 5.120.0 — SAVED ADVENTURE SORTING
 
 CURRENT MILESTONE
