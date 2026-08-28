@@ -30,6 +30,7 @@
 .tng-adventure-card h2{margin:0;font-size:25px;line-height:1.08}
 .tng-adventure-card>p{margin:0;color:var(--tng-muted);font-size:13px;line-height:1.5}
 .tng-adventure-card>.tng-adventure-card__planned{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border-radius:12px;background:#fff5ea;color:var(--tng-ink);font-size:11px;font-weight:800}.tng-adventure-card__planned span{color:var(--tng-orange)}
+.tng-adventure-card__timing{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;overflow:hidden;border:1px solid var(--tng-border);border-radius:13px;background:var(--tng-border)}.tng-adventure-card__timing>span{display:grid;gap:3px;min-width:0;padding:10px 8px;background:#fff;text-align:center}.tng-adventure-card__timing small{color:var(--tng-muted);font-size:8px;font-weight:850;letter-spacing:.05em;text-transform:uppercase}.tng-adventure-card__timing strong{overflow:hidden;color:var(--tng-ink);font-size:10px;text-overflow:ellipsis;white-space:nowrap}
 .tng-adventure-card__stops{display:flex;min-height:32px;flex-wrap:wrap;gap:6px}
 .tng-adventure-card__stops span{display:inline-flex;max-width:100%;align-items:center;overflow:hidden;padding:6px 9px;border-radius:999px;background:var(--tng-green-100);color:var(--tng-green-800);font-size:10px;font-weight:800;text-overflow:ellipsis;white-space:nowrap}
 .tng-adventure-card__progress{display:grid;gap:8px;padding:12px;border-radius:14px;background:var(--tng-green-50,#f3f8f4)}

@@ -1,3 +1,12 @@
+TN GAME OS 5.132.0 — ADVENTURE TIMING SUMMARY
+
+CURRENT MILESTONE
+- Shows the planned start, estimated finish, and total duration on every Saved Adventure.
+- Adds the same timing line to the Next Adventure dashboard.
+- Uses the itinerary's existing stop durations and travel buffer.
+- Identifies estimated finishes that cross into the next day.
+- Runs entirely from already-rendered private plan data with no new endpoint or write.
+
 TN GAME OS 5.131.0 — PRIVATE ADVENTURE PLANNING NOTES
 
 CURRENT MILESTONE
