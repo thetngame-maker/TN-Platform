@@ -1,3 +1,12 @@
+TN GAME OS 5.131.0 — PRIVATE ADVENTURE PLANNING NOTES
+
+CURRENT MILESTONE
+- Adds a collapsed Planning Notes panel to every active Saved Adventure.
+- Stores parking details, meeting places, and packing reminders privately per Explorer.
+- Limits notes to 600 characters and supports explicit update or clearing.
+- Excludes notes from public sharing, calendar files, maps, and printed itineraries.
+- Clears notes from duplicated plans and performs no automatic or background write.
+
 TN GAME OS 5.130.0 — ADVENTURE READINESS CHECKLIST
 
 CURRENT MILESTONE

@@ -148,6 +148,7 @@ final class Adventure_AI implements Module_Interface {
                             <div class="tng-adventure-card__actions"><?php if($is_archived): ?><button class="tng-ui-button" type="button" data-tng-plan-archive="restore">Restore adventure</button><button class="tng-ui-button tng-ui-button--secondary" type="button" data-tng-plan-share>Share plan</button><button class="tng-ui-button tng-ui-button--secondary" type="button" data-tng-plan-print>Print / save PDF</button><?php else: ?><?php if($is_active): ?><a class="tng-ui-button" href="<?php echo esc_url(home_url('/active-trip/')); ?>">Resume adventure</a><?php else: ?><button class="tng-ui-button" type="button" data-tng-plan-start><?php echo $completed_trip?'Start again':'Start adventure'; ?></button><?php endif; ?><a class="tng-ui-button tng-ui-button--secondary" href="<?php echo esc_url(add_query_arg('plan',$plan_id,home_url('/adventure-ai/'))); ?>">Reopen</a><a class="tng-ui-button tng-ui-button--secondary" href="<?php echo esc_url(add_query_arg('adventure',$plan_id,home_url('/map/'))); ?>">View map</a><button class="tng-ui-button tng-ui-button--secondary" type="button" data-tng-plan-share>Share plan</button><button class="tng-ui-button tng-ui-button--secondary" type="button" data-tng-plan-print>Print / save PDF</button><button class="tng-ui-button tng-ui-button--secondary" type="button" data-tng-plan-duplicate>Duplicate</button><button class="tng-ui-button tng-ui-button--secondary" type="button" data-tng-plan-archive="archive">Archive</button><?php endif; ?></div>
                             <?php if(!$is_archived&&$planned_date!==''): ?><button class="tng-ui-button tng-ui-button--secondary tng-adventure-card__calendar" type="button" data-tng-plan-calendar>Add to calendar (.ics)</button><?php endif; ?>
                             <?php if(!$is_archived): ?><form class="tng-adventure-card__schedule" data-tng-plan-schedule><label>Adventure date<input type="date" name="planned_date" min="<?php echo esc_attr(wp_date('Y-m-d')); ?>" value="<?php echo esc_attr($planned_date); ?>"></label><button type="submit">Save date</button><?php if($planned_date!==''): ?><button type="button" data-tng-plan-clear-date>Clear</button><?php endif; ?></form><?php endif; ?>
+                            <?php if(!$is_archived): $notes=(string)($plan['notes']??'');$notes_length=function_exists('mb_strlen')?mb_strlen($notes):strlen($notes); ?><details class="tng-adventure-card__notes<?php echo $notes!==''?' has-notes':''; ?>" data-tng-plan-notes-panel><summary>Planning notes <span data-tng-notes-state><?php echo $notes!==''?'Saved':'Optional'; ?></span></summary><form data-tng-plan-notes><label><span>Private notes</span><textarea name="notes" maxlength="600" placeholder="Parking details, meeting place, or packing reminders."><?php echo esc_textarea($notes); ?></textarea></label><div><small data-tng-notes-count><?php echo esc_html($notes_length.' of 600'); ?></small><button type="submit">Save notes</button></div><p>Private to your Explorer account. Do not store passwords or payment details.</p></form></details><?php endif; ?>
                             <?php if(!$is_archived): ?><form class="tng-adventure-card__rename" data-tng-plan-rename><label>Rename plan<input name="title" maxlength="100" value="<?php echo esc_attr((string)$plan['title']); ?>"></label><button type="submit">Save name</button></form><?php endif; ?>
                             <section class="tng-adventure-card__print" aria-hidden="true"><span>The TN Game · Saved Adventure</span><h2 data-plan-print-title><?php echo esc_html((string)$plan['title']); ?></h2><p><?php echo esc_html(($planned_label!==''?'Planned '.$planned_label.' · ':'').'Start '.date_i18n('g:i A',strtotime('today')+min(1439,max(0,absint($plan['start_minutes']??600)))*60).' · '.absint($plan['buffer_minutes']??20).'-minute travel buffer'); ?></p><ol><?php foreach($print_ids as $id): ?><li><?php echo esc_html(get_the_title((int)$id) ?: '#'.(int)$id); ?></li><?php endforeach; ?></ol><small>Confirm operating hours, tickets, trail conditions, and driving time before leaving.</small></section>
                         </article>
@@ -276,10 +277,17 @@ final class Adventure_AI implements Module_Interface {
                 $library[$index]['readiness'] = $readiness;
                 $library[$index]['readiness_updated_at'] = time();
             } else unset($library[$index]['readiness'], $library[$index]['readiness_updated_at']);
+        } elseif ($operation === 'notes') {
+            if (!empty($library[$index]['archived_at'])) wp_send_json_error(['message'=>'Restore this adventure before updating its notes.'], 409);
+            $notes = sanitize_textarea_field(wp_unslash((string)($_POST['notes'] ?? '')));
+            $notes = function_exists('mb_substr') ? mb_substr($notes, 0, 600) : substr($notes, 0, 600);
+            if ($notes === '') unset($library[$index]['notes']);
+            else $library[$index]['notes'] = $notes;
+            $library[$index]['updated_at'] = time();
         } elseif ($operation === 'duplicate') {
             if (self::active_plan_count($library) >= self::PLAN_LIBRARY_LIMIT) wp_send_json_error(['message'=>'Saved Adventures is full. Archive an active plan before making a copy.'], 409);
             $copy = $library[$index];
-            unset($copy['archived_at'], $copy['planned_date'], $copy['readiness'], $copy['readiness_updated_at']);
+            unset($copy['archived_at'], $copy['planned_date'], $copy['readiness'], $copy['readiness_updated_at'], $copy['notes']);
             $copy['id'] = wp_generate_uuid4();
             $copy['title'] = substr('Copy of '.(string)$copy['title'], 0, 100);
             $copy['created_at'] = $copy['updated_at'] = time();
@@ -297,7 +305,7 @@ final class Adventure_AI implements Module_Interface {
             $library[$index]['updated_at'] = time();
         } else wp_send_json_error(['message'=>'That plan action is not supported.'], 400);
         update_user_meta(get_current_user_id(), self::PLAN_LIBRARY_META, array_values($library));
-        $messages = ['rename'=>'Adventure renamed.','schedule'=>'Adventure date updated.','readiness'=>'Adventure readiness updated.','duplicate'=>'Adventure duplicated.','archive'=>'Adventure archived.','restore'=>'Adventure restored.'];
+        $messages = ['rename'=>'Adventure renamed.','schedule'=>'Adventure date updated.','readiness'=>'Adventure readiness updated.','notes'=>'Planning notes updated.','duplicate'=>'Adventure duplicated.','archive'=>'Adventure archived.','restore'=>'Adventure restored.'];
         wp_send_json_success(['message'=>$messages[$operation] ?? 'Adventure updated.','url'=>home_url('/adventures/')]);
     }
 

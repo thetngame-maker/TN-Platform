@@ -60,6 +60,12 @@
   };
 
   search?.addEventListener('input', applyFilters);
+  root.addEventListener('input', (event) => {
+    const notes = event.target.closest('[data-tng-plan-notes] textarea');
+    if (!notes) return;
+    const count = notes.closest('[data-tng-plan-notes]').querySelector('[data-tng-notes-count]');
+    if (count) count.textContent = notes.value.length + ' of 600';
+  });
   sort?.addEventListener('change', () => { savePreferences(); applyFilters(); });
   filters.forEach((button) => button.addEventListener('click', () => {
     selectedFilter = button.dataset.tngAdventureFilter || 'all';
@@ -269,6 +275,24 @@
   });
 
   root.addEventListener('submit', async (event) => {
+    const notesForm = event.target.closest('[data-tng-plan-notes]');
+    if (notesForm) {
+      event.preventDefault();
+      const card = notesForm.closest('[data-plan-id]');
+      const panel = notesForm.closest('[data-tng-plan-notes-panel]');
+      const notes = notesForm.querySelector('textarea[name="notes"]');
+      const button = notesForm.querySelector('button[type="submit"]');
+      button.disabled = true;
+      try {
+        const data = await post({operation:'notes',plan_id:card.dataset.planId || '',notes:notes.value});
+        panel.classList.toggle('has-notes', notes.value.trim() !== '');
+        panel.querySelector('[data-tng-notes-state]').textContent = notes.value.trim() === '' ? 'Optional' : 'Saved';
+        if (status) status.textContent = data.message;
+      } catch (error) {
+        if (status) status.textContent = error.message;
+      } finally { button.disabled = false; }
+      return;
+    }
     const schedule = event.target.closest('[data-tng-plan-schedule]');
     if (schedule) {
       event.preventDefault();
