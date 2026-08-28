@@ -108,6 +108,7 @@ final class Adventure_AI implements Module_Interface {
         $active_plan_count = self::active_plan_count($plans);
         $archived_plan_count = self::archived_plan_count($plans);
         $planner = new self();
+        $readiness_labels = ['conditions'=>'Hours & conditions checked','reservations'=>'Reservations or tickets ready','route'=>'Route and directions ready','gear'=>'Gear and supplies packed'];
         ob_start(); ?>
         <main class="tng-adventure-library tng-native-screen tng-app-shell" data-tng-adventure-library data-ajax-url="<?php echo esc_url(admin_url('admin-ajax.php')); ?>" data-nonce="<?php echo esc_attr(wp_create_nonce(self::NONCE)); ?>" data-current-trip-count="<?php echo esc_attr((string)$current_trip_count); ?>">
             <section class="tng-adventure-library__hero"><div><span class="tng-eyebrow">Saved Adventures</span><h1>Your Tennessee plans.</h1><p>Reopen an Adventure AI itinerary, adjust the timing, or make a copy for a different day.</p></div><a class="tng-ui-button" href="<?php echo esc_url(home_url('/adventure-ai/')); ?>">＋ Build another</a></section>
@@ -116,7 +117,7 @@ final class Adventure_AI implements Module_Interface {
             <?php elseif (!$plans): ?>
                 <section class="tng-adventure-library__empty"><span>✦</span><h2>Your first plan starts with a sentence.</h2><p>Describe a Tennessee day in Adventure AI, edit it, and press Save Adventure.</p><a class="tng-ui-button" href="<?php echo esc_url(home_url('/adventure-ai/')); ?>">Open Adventure AI</a></section>
             <?php else: ?>
-                <section class="tng-adventure-library__next" data-tng-next-adventure hidden><div><span class="tng-eyebrow">Next adventure</span><h2 data-tng-next-title></h2><p><strong data-tng-next-countdown></strong><span data-tng-next-date></span></p></div><div class="tng-adventure-library__next-actions"><a class="tng-ui-button tng-ui-button--secondary" data-tng-next-map hidden>View route</a><button class="tng-ui-button" type="button" data-tng-next-jump data-tng-next-action>View plan</button></div></section>
+                <section class="tng-adventure-library__next" data-tng-next-adventure hidden><div><span class="tng-eyebrow">Next adventure</span><h2 data-tng-next-title></h2><p><strong data-tng-next-countdown></strong><span data-tng-next-date></span></p><small data-tng-next-readiness></small></div><div class="tng-adventure-library__next-actions"><a class="tng-ui-button tng-ui-button--secondary" data-tng-next-map hidden>View route</a><button class="tng-ui-button" type="button" data-tng-next-jump data-tng-next-action>View plan</button></div></section>
                 <section class="tng-adventure-library__organizer" aria-label="Organize saved adventures">
                     <label><span>Find a plan</span><input type="search" placeholder="Search plans or stops" data-tng-adventure-search></label>
                     <label class="tng-adventure-library__sort"><span>Sort plans</span><select data-tng-adventure-sort><option value="recent">Recently updated</option><option value="date">Adventure date</option><option value="title">Plan title</option><option value="status">Adventure status</option></select></label>
@@ -134,12 +135,13 @@ final class Adventure_AI implements Module_Interface {
                 <section class="tng-adventure-library__capacity" aria-label="Saved Adventure capacity"><div><strong><?php echo esc_html($active_plan_count.' of '.self::PLAN_LIBRARY_LIMIT.' active plans'); ?></strong><span><?php echo esc_html($archived_plan_count.' archived'); ?></span></div><div class="tng-ui-progress"><span style="width:<?php echo esc_attr((string)round(($active_plan_count/self::PLAN_LIBRARY_LIMIT)*100)); ?>%"></span></div><p>Archive a plan to make room without deleting it.</p></section>
                 <p class="tng-adventure-library__status" data-tng-library-status aria-live="polite"><?php echo esc_html(count($plans).' saved adventure'.(count($plans)===1?'':'s')); ?></p>
                 <section class="tng-adventure-library__grid">
-                    <?php foreach ($plans as $plan): $print_ids=array_slice((array)$plan['ids'],0,12);$ids=array_slice($print_ids,0,4);$plan_id=(string)$plan['id'];$is_active=$active_plan_id!==''&&hash_equals($active_plan_id,$plan_id);$completed_trip=$completed_plans[$plan_id]??null;$is_archived=!empty($plan['archived_at']);$plan_state=$is_archived?'archived':($is_active?'active':($completed_trip?'completed':'ready'));$planned_date=preg_match('/^\d{4}-\d{2}-\d{2}$/',(string)($plan['planned_date']??''))?(string)$plan['planned_date']:'';$planned_label=$planned_date!==''?date_i18n(get_option('date_format'),strtotime($planned_date.' 12:00:00')):'';$plan_start=min(1439,max(0,absint($plan['start_minutes']??600)));$plan_buffer=absint($plan['buffer_minutes']??20);$plan_duration=array_sum(array_map(static fn($id):int=>$planner->visit_minutes((int)$id),$print_ids))+max(0,count($print_ids)-1)*$plan_buffer; ?>
-                        <article class="tng-adventure-card<?php echo $is_archived?' is-archived':($is_active?' is-active':($completed_trip?' is-completed':'')); ?>" data-plan-id="<?php echo esc_attr($plan_id); ?>" data-plan-state="<?php echo esc_attr($plan_state); ?>" data-plan-updated="<?php echo esc_attr((string)(int)$plan['updated_at']); ?>" data-plan-date="<?php echo esc_attr($planned_date); ?>" data-plan-start="<?php echo esc_attr((string)$plan_start); ?>" data-plan-duration="<?php echo esc_attr((string)$plan_duration); ?>">
+                    <?php foreach ($plans as $plan): $print_ids=array_slice((array)$plan['ids'],0,12);$ids=array_slice($print_ids,0,4);$plan_id=(string)$plan['id'];$is_active=$active_plan_id!==''&&hash_equals($active_plan_id,$plan_id);$completed_trip=$completed_plans[$plan_id]??null;$is_archived=!empty($plan['archived_at']);$plan_state=$is_archived?'archived':($is_active?'active':($completed_trip?'completed':'ready'));$planned_date=preg_match('/^\d{4}-\d{2}-\d{2}$/',(string)($plan['planned_date']??''))?(string)$plan['planned_date']:'';$planned_label=$planned_date!==''?date_i18n(get_option('date_format'),strtotime($planned_date.' 12:00:00')):'';$plan_start=min(1439,max(0,absint($plan['start_minutes']??600)));$plan_buffer=absint($plan['buffer_minutes']??20);$plan_duration=array_sum(array_map(static fn($id):int=>$planner->visit_minutes((int)$id),$print_ids))+max(0,count($print_ids)-1)*$plan_buffer;$readiness=is_array($plan['readiness']??null)?array_intersect_key($plan['readiness'],$readiness_labels):[];$ready_count=count(array_filter($readiness)); ?>
+                        <article class="tng-adventure-card<?php echo $is_archived?' is-archived':($is_active?' is-active':($completed_trip?' is-completed':'')); ?>" data-plan-id="<?php echo esc_attr($plan_id); ?>" data-plan-state="<?php echo esc_attr($plan_state); ?>" data-plan-updated="<?php echo esc_attr((string)(int)$plan['updated_at']); ?>" data-plan-date="<?php echo esc_attr($planned_date); ?>" data-plan-start="<?php echo esc_attr((string)$plan_start); ?>" data-plan-duration="<?php echo esc_attr((string)$plan_duration); ?>" data-plan-ready-count="<?php echo esc_attr((string)$ready_count); ?>">
                             <div class="tng-adventure-card__top"><span><?php echo $is_archived?'↶ Archived':($is_active?'● Active adventure':($completed_trip?'✓ Completed':esc_html(number_format_i18n(count($plan['ids'])).' stops'))); ?></span><time datetime="<?php echo esc_attr(gmdate('c',(int)$plan['updated_at'])); ?>"><?php echo esc_html(human_time_diff((int)$plan['updated_at'],time()).' ago'); ?></time></div>
                             <h2 data-plan-title><?php echo esc_html((string)$plan['title']); ?></h2>
                             <p><?php echo esc_html(wp_trim_words((string)$plan['prompt'],18)); ?></p>
                             <?php if($planned_label!==''): ?><p class="tng-adventure-card__planned"><span>◷ Planned adventure</span><strong><?php echo esc_html($planned_label); ?></strong></p><?php endif; ?>
+                            <?php if(!$is_archived&&$planned_date!==''): ?><fieldset class="tng-adventure-card__readiness" data-tng-plan-readiness><legend><span>Adventure readiness</span><strong data-tng-readiness-count><?php echo esc_html($ready_count.' of '.count($readiness_labels).' ready'); ?></strong></legend><?php foreach($readiness_labels as $key=>$label): ?><label><input type="checkbox" data-tng-readiness-key="<?php echo esc_attr($key); ?>"<?php checked(!empty($readiness[$key])); ?>><span><?php echo esc_html($label); ?></span></label><?php endforeach; ?></fieldset><?php endif; ?>
                             <?php if($is_active): ?><div class="tng-adventure-card__progress"><div><strong><?php echo esc_html((string)($progress['resolved']??0)); ?> of <?php echo esc_html((string)($progress['total']??0)); ?> resolved</strong><span><?php echo esc_html((string)($progress['remaining']??0)); ?> remaining<?php echo !empty($progress['skipped'])?' · '.esc_html((string)$progress['skipped']).' skipped':''; ?></span></div><div class="tng-ui-progress"><span style="width:<?php echo esc_attr((string)($progress['percent']??0)); ?>%"></span></div></div><?php endif; ?>
                             <?php if(!$is_active&&$completed_trip): ?><a class="tng-adventure-card__completed" href="<?php echo esc_url(add_query_arg('recap',(string)$completed_trip['id'],home_url('/recaps/'))); ?>"><span>Last completed <?php echo esc_html(human_time_diff(strtotime((string)$completed_trip['completed_at']),time()).' ago'); ?></span><strong>View recap →</strong></a><?php endif; ?>
                             <div class="tng-adventure-card__stops"><?php foreach($ids as $id): ?><span><?php echo esc_html(get_the_title((int)$id) ?: '#'.(int)$id); ?></span><?php endforeach; ?></div>
@@ -251,6 +253,7 @@ final class Adventure_AI implements Module_Interface {
             $library[$index]['updated_at'] = time();
         } elseif ($operation === 'schedule') {
             if (!empty($library[$index]['archived_at'])) wp_send_json_error(['message'=>'Restore this adventure before scheduling it.'], 409);
+            $previous_date = (string)($library[$index]['planned_date'] ?? '');
             $planned_date = sanitize_text_field(wp_unslash((string)($_POST['planned_date'] ?? '')));
             if ($planned_date === '') unset($library[$index]['planned_date']);
             else {
@@ -258,11 +261,25 @@ final class Adventure_AI implements Module_Interface {
                 if ($planned_date < wp_date('Y-m-d')) wp_send_json_error(['message'=>'Choose today or a future date.'], 400);
                 $library[$index]['planned_date'] = $planned_date;
             }
+            if ($planned_date !== $previous_date) unset($library[$index]['readiness'], $library[$index]['readiness_updated_at']);
             $library[$index]['updated_at'] = time();
+        } elseif ($operation === 'readiness') {
+            if (!empty($library[$index]['archived_at'])) wp_send_json_error(['message'=>'Restore this adventure before updating readiness.'], 409);
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)($library[$index]['planned_date'] ?? ''))) wp_send_json_error(['message'=>'Schedule this adventure before using the readiness checklist.'], 409);
+            $key = sanitize_key((string)($_POST['readiness_key'] ?? ''));
+            $allowed = ['conditions','reservations','route','gear'];
+            if (!in_array($key, $allowed, true)) wp_send_json_error(['message'=>'That readiness check is not supported.'], 400);
+            $readiness = is_array($library[$index]['readiness'] ?? null) ? array_intersect_key($library[$index]['readiness'], array_flip($allowed)) : [];
+            if (absint($_POST['checked'] ?? 0) === 1) $readiness[$key] = 1;
+            else unset($readiness[$key]);
+            if ($readiness) {
+                $library[$index]['readiness'] = $readiness;
+                $library[$index]['readiness_updated_at'] = time();
+            } else unset($library[$index]['readiness'], $library[$index]['readiness_updated_at']);
         } elseif ($operation === 'duplicate') {
             if (self::active_plan_count($library) >= self::PLAN_LIBRARY_LIMIT) wp_send_json_error(['message'=>'Saved Adventures is full. Archive an active plan before making a copy.'], 409);
             $copy = $library[$index];
-            unset($copy['archived_at'], $copy['planned_date']);
+            unset($copy['archived_at'], $copy['planned_date'], $copy['readiness'], $copy['readiness_updated_at']);
             $copy['id'] = wp_generate_uuid4();
             $copy['title'] = substr('Copy of '.(string)$copy['title'], 0, 100);
             $copy['created_at'] = $copy['updated_at'] = time();
@@ -280,7 +297,7 @@ final class Adventure_AI implements Module_Interface {
             $library[$index]['updated_at'] = time();
         } else wp_send_json_error(['message'=>'That plan action is not supported.'], 400);
         update_user_meta(get_current_user_id(), self::PLAN_LIBRARY_META, array_values($library));
-        $messages = ['rename'=>'Adventure renamed.','schedule'=>'Adventure date updated.','duplicate'=>'Adventure duplicated.','archive'=>'Adventure archived.','restore'=>'Adventure restored.'];
+        $messages = ['rename'=>'Adventure renamed.','schedule'=>'Adventure date updated.','readiness'=>'Adventure readiness updated.','duplicate'=>'Adventure duplicated.','archive'=>'Adventure archived.','restore'=>'Adventure restored.'];
         wp_send_json_success(['message'=>$messages[$operation] ?? 'Adventure updated.','url'=>home_url('/adventures/')]);
     }
 

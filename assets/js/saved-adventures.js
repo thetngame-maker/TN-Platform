@@ -88,6 +88,7 @@
     nextBanner.querySelector('[data-tng-next-title]').textContent = nextCard.querySelector('[data-plan-title]')?.textContent?.trim() || 'Tennessee adventure';
     nextBanner.querySelector('[data-tng-next-countdown]').textContent = daysAway === 0 ? 'Today' : (daysAway === 1 ? 'Tomorrow' : `In ${daysAway} days`);
     nextBanner.querySelector('[data-tng-next-date]').textContent = targetDate.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'});
+    nextBanner.querySelector('[data-tng-next-readiness]').textContent = Number(nextCard.dataset.planReadyCount || 0) + ' of 4 readiness checks complete';
     nextBanner.hidden = false;
     nextCard.classList.add('is-next-up');
     const revealNextCard = () => {
@@ -128,6 +129,26 @@
     cards.forEach((card) => card.classList.remove('is-print-target'));
   };
   window.addEventListener('afterprint', cleanupPrint);
+
+  root.addEventListener('change', async (event) => {
+    const checkbox = event.target.closest('[data-tng-readiness-key]');
+    if (!checkbox) return;
+    const card = checkbox.closest('[data-plan-id]');
+    const fieldset = checkbox.closest('[data-tng-plan-readiness]');
+    const previous = !checkbox.checked;
+    checkbox.disabled = true;
+    try {
+      const data = await post({operation:'readiness',plan_id:card.dataset.planId || '',readiness_key:checkbox.dataset.tngReadinessKey || '',checked:checkbox.checked ? '1' : '0'});
+      const count = [...fieldset.querySelectorAll('[data-tng-readiness-key]')].filter((item) => item.checked).length;
+      card.dataset.planReadyCount = String(count);
+      fieldset.querySelector('[data-tng-readiness-count]').textContent = count + ' of 4 ready';
+      if (card === nextCard) root.querySelector('[data-tng-next-readiness]').textContent = count + ' of 4 readiness checks complete';
+      if (status) status.textContent = data.message;
+    } catch (error) {
+      checkbox.checked = previous;
+      if (status) status.textContent = error.message;
+    } finally { checkbox.disabled = false; }
+  });
 
   const calendarStamp = (date) => `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2,'0')}${String(date.getDate()).padStart(2,'0')}T${String(date.getHours()).padStart(2,'0')}${String(date.getMinutes()).padStart(2,'0')}00`;
   const calendarEscape = (value) => String(value).replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');

@@ -1,3 +1,12 @@
+TN GAME OS 5.130.0 — ADVENTURE READINESS CHECKLIST
+
+CURRENT MILESTONE
+- Adds four explicit preparation checks to each scheduled Saved Adventure.
+- Tracks conditions, reservations, route readiness, and gear privately per Explorer.
+- Shows readiness progress on both the plan card and Next Adventure dashboard.
+- Resets readiness whenever the scheduled date changes so stale preparation is not carried forward.
+- Uses only owner actions with no automatic completion, reminder, public data, or background write.
+
 TN GAME OS 5.129.0 — NEXT ADVENTURE QUICK ACTIONS
 
 CURRENT MILESTONE
