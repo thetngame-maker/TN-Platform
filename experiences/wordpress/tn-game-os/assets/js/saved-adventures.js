@@ -12,6 +12,7 @@
   const filterEmpty = root.querySelector('[data-tng-filter-empty]');
   const conflictSummary = root.querySelector('[data-tng-conflict-summary]');
   const prepOverview = root.querySelector('[data-tng-prep-overview]');
+  const prepFocus = prepOverview?.querySelector('[data-tng-prep-focus]');
   const upcomingCalendar = root.querySelector('[data-tng-upcoming-calendar]');
   const resetView = root.querySelector('[data-tng-adventure-reset]');
   const preferenceKey = 'tng_saved_adventure_view_v1';
@@ -19,6 +20,7 @@
   const allowedSorts = ['recent','date','title','status'];
   let selectedFilter = 'all';
   let nextCard = null;
+  let priorityPrep = null;
   const now = new Date();
   const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
 
@@ -73,6 +75,7 @@
   };
 
   const launchCountFor = (card) => Math.min(10,Math.max(0,Number(card.dataset.planReadyCount || 0) + Number(card.dataset.planPackedCount || 0)));
+  const nextIncompleteCheckFor = (card) => [...card.querySelectorAll('[data-tng-readiness-key],[data-tng-packing-key]')].find((item) => !item.checked) || null;
   const updatePrepOverview = () => {
     if (!prepOverview) return;
     const upcoming = cards.filter((card) => card.dataset.planState !== 'archived' && card.dataset.planDate >= todayKey);
@@ -87,7 +90,20 @@
       const title = priority.querySelector('[data-plan-title]')?.textContent?.trim() || 'Your next adventure';
       const remaining = 10 - launchCountFor(priority);
       priorityText.textContent = `${title} is the closest plan needing attention · ${remaining} check${remaining === 1 ? '' : 's'} remaining.`;
-    } else priorityText.textContent = upcoming.length ? 'Every upcoming adventure has all launch checks complete.' : '';
+      const checkbox = nextIncompleteCheckFor(priority);
+      priorityPrep = checkbox ? {card:priority,checkbox} : null;
+      if (prepFocus) {
+        if (priorityPrep) {
+          const label = checkbox.closest('label')?.querySelector('span')?.textContent?.trim() || 'next launch check';
+          prepFocus.textContent = `Review: ${label}`;
+          prepFocus.hidden = false;
+        } else prepFocus.hidden = true;
+      }
+    } else {
+      priorityPrep = null;
+      priorityText.textContent = upcoming.length ? 'Every upcoming adventure has all launch checks complete.' : '';
+      if (prepFocus) prepFocus.hidden = true;
+    }
     prepOverview.hidden = upcoming.length === 0;
   };
 
@@ -155,6 +171,20 @@
       filter.click();
       root.querySelector('.tng-adventure-library__organizer')?.scrollIntoView({behavior:'smooth',block:'start'});
     }
+  });
+  prepFocus?.addEventListener('click', () => {
+    if (!priorityPrep) return;
+    if (search) search.value = '';
+    selectedFilter = 'needs-prep';
+    filters.forEach((item) => item.setAttribute('aria-pressed', String(item.dataset.tngAdventureFilter === selectedFilter)));
+    savePreferences();
+    applyFilters();
+    priorityPrep.card.classList.add('is-prep-focus');
+    priorityPrep.card.scrollIntoView({behavior:'smooth',block:'center'});
+    window.setTimeout(() => {
+      priorityPrep?.checkbox.focus({preventScroll:true});
+      priorityPrep?.card.classList.remove('is-prep-focus');
+    },450);
   });
 
   const adventurePacks = cards.map((card) => {
