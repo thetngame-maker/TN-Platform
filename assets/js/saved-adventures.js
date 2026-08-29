@@ -11,6 +11,7 @@
   const filterStatus = root.querySelector('[data-tng-filter-status]');
   const filterEmpty = root.querySelector('[data-tng-filter-empty]');
   const conflictSummary = root.querySelector('[data-tng-conflict-summary]');
+  const upcomingCalendar = root.querySelector('[data-tng-upcoming-calendar]');
   const resetView = root.querySelector('[data-tng-adventure-reset]');
   const preferenceKey = 'tng_saved_adventure_view_v1';
   const allowedFilters = ['all','upcoming','active','ready','completed','archived'];
@@ -28,6 +29,7 @@
     return {card,start,end:start + Math.max(1,Number(card.dataset.planDuration || 1)) * 60000,title:card.querySelector('[data-plan-title]')?.textContent?.trim() || 'another adventure'};
   }).filter(Boolean);
   const conflicts = new Map();
+  if (upcomingCalendar) upcomingCalendar.hidden = scheduleWindows.length === 0;
   scheduleWindows.forEach((plan, index) => scheduleWindows.slice(index + 1).forEach((other) => {
     if (plan.start >= other.end || other.start >= plan.end) return;
     if (!conflicts.has(plan.card)) conflicts.set(plan.card,new Set());
@@ -190,6 +192,24 @@
   const calendarEscape = (value) => String(value).replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');
 
   root.addEventListener('click', async (event) => {
+    const exportUpcoming = event.target.closest('[data-tng-upcoming-calendar]');
+    if (exportUpcoming) {
+      const stamp = new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}Z$/,'Z');
+      const events = scheduleWindows.flatMap((plan, index) => {
+        const title = plan.card.querySelector('[data-plan-title]')?.textContent?.trim() || 'Tennessee adventure';
+        const stops = [...plan.card.querySelectorAll('.tng-adventure-card__print li')].map((node) => node.textContent.trim()).filter(Boolean);
+        return ['BEGIN:VEVENT',`UID:tn-game-upcoming-${index}-${plan.start}@thetngame.com`,`DTSTAMP:${stamp}`,`DTSTART:${calendarStamp(new Date(plan.start))}`,`DTEND:${calendarStamp(new Date(plan.end))}`,`SUMMARY:${calendarEscape(title)}`,`DESCRIPTION:${calendarEscape(`Stops: ${stops.join(' → ')}\nConfirm hours, tickets, trail conditions, and driving time before leaving.`)}`,`URL:${window.location.origin}/`,'END:VEVENT'];
+      });
+      const content = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//The TN Game//Upcoming Adventures//EN','CALSCALE:GREGORIAN',...events,'END:VCALENDAR'].join('\r\n');
+      const url = URL.createObjectURL(new Blob([content],{type:'text/calendar;charset=utf-8'}));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'tn-game-upcoming-adventures.ics';
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      if (status) status.textContent = `${scheduleWindows.length} upcoming adventure${scheduleWindows.length === 1 ? '' : 's'} exported. Open the file to confirm the events.`;
+      return;
+    }
     const calendar = event.target.closest('[data-tng-plan-calendar]');
     if (calendar) {
       const card = calendar.closest('[data-plan-id]');
