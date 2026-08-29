@@ -1,3 +1,12 @@
+TN GAME OS 5.154.0 — ACTIVE PREP FILTER STATE
+
+CURRENT MILESTONE
+- Keeps the private prep overview metrics synchronized with the organizer's active filter.
+- Exposes the selected Upcoming, Need Prep, or Launch Ready metric through aria-pressed state.
+- Adds a clear active style without introducing another filter or duplicate query path.
+- Centralizes filter-state updates across saved preferences, reset, prep focus, and next-plan reveal actions.
+- Uses only owner-rendered controls with no new storage, request, notification, automation, or public output.
+
 TN GAME OS 5.153.0 — LIVE PREP PRIORITY REFRESH
 
 CURRENT MILESTONE
