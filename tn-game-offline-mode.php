@@ -47,6 +47,7 @@ final class TNG_Offline_Mode {
     public static function assets(): void {
         if (!class_exists('TNG_OS\\Platform\\App_Router') || !TNG_OS\Platform\App_Router::is_app_request()) return;
         wp_enqueue_style('tng-offline-mode', TNG_OS_URL . 'assets/css/offline-mode.css', ['tng-ui-kit'], TNG_OS_VERSION);
+        wp_enqueue_style('tng-offline-adventure-manager', TNG_OS_URL . 'assets/css/offline-adventure-manager.css', ['tng-offline-mode'], TNG_OS_VERSION);
         wp_enqueue_script('tng-offline-mode', TNG_OS_URL . 'assets/js/offline-mode.js', [], TNG_OS_VERSION, true);
         wp_localize_script('tng-offline-mode', 'TNGOfflineMode', [
             'serviceWorkerUrl' => home_url('/tn-game-sw.js'),
@@ -83,6 +84,7 @@ final class TNG_Offline_Mode {
             $plugin . 'assets/css/platform-ui.css',
             $plugin . 'assets/css/app-router.css',
             $plugin . 'assets/css/offline-mode.css',
+            $plugin . 'assets/css/offline-adventure-manager.css',
             $plugin . 'assets/js/platform-ui.js',
             $plugin . 'assets/js/offline-mode.js',
         ];

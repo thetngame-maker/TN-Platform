@@ -100,11 +100,30 @@
         const article = document.createElement('article');
         article.className = 'tng-offline-adventure';
         const heading = document.createElement('div');
+        heading.className = 'tng-offline-adventure__summary';
+        const headingCopy = document.createElement('div');
         const title = document.createElement('h3');
         title.textContent = `Saved Adventure ${packIndex + 1}`;
         const detail = document.createElement('small');
-        detail.textContent = `${links.length} public stop screen${links.length === 1 ? '' : 's'} · device only`;
-        heading.append(title,detail);
+        const verifiedDate = pack?.verifiedAt ? new Date(pack.verifiedAt) : null;
+        const verifiedLabel = verifiedDate && Number.isFinite(verifiedDate.getTime()) ? ` · verified ${Date.now()-verifiedDate.getTime()<86400000?'today':verifiedDate.toLocaleDateString(undefined,{month:'short',day:'numeric'})}` : '';
+        detail.textContent = `${links.length} public stop screen${links.length === 1 ? '' : 's'} · device only${verifiedLabel}`;
+        headingCopy.append(title,detail);
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.textContent = 'Remove from device';
+        remove.setAttribute('data-tng-device-adventure-remove','');
+        remove.addEventListener('click', async () => {
+          if (!window.confirm('Remove these cached public stop screens from this device? Your Saved Adventure will remain in your Explorer account.')) return;
+          remove.disabled = true; remove.textContent = 'Removing…';
+          try {
+            const result = await messageWorker({type:'TNG_ADVENTURE_PACK_REMOVE',id:pack.id});
+            if (!result.ok) throw new Error('Remove failed');
+            const response = await messageWorker({type:'TNG_ADVENTURE_PACK_LIBRARY'});
+            renderAdventureLibrary(response.ok ? response.packs || [] : []);
+          } catch (error) { remove.disabled = false; remove.textContent = 'Could not remove'; }
+        });
+        heading.append(headingCopy,remove);
         const nav = document.createElement('nav');
         nav.setAttribute('aria-label',title.textContent);
         links.forEach((item) => { const link=document.createElement('a');link.href=item.value;link.textContent=item.label;nav.append(link); });

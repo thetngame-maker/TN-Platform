@@ -1,0 +1,4 @@
+.tng-offline-adventure__summary{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.tng-offline-adventure__summary button{min-height:40px;flex:0 0 auto;border:1px solid #dce5df;border-radius:999px;background:#fff;color:#7a4935;padding:0 11px;font:inherit;font-size:10px;font-weight:850;cursor:pointer}
+.tng-offline-adventure__summary button:disabled{cursor:wait;opacity:.6}
+@media(max-width:620px){.tng-offline-adventure__summary{align-items:flex-start;flex-direction:column}.tng-offline-adventure__summary button{min-height:44px}}
