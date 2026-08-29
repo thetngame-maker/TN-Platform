@@ -1,3 +1,12 @@
+TN GAME OS 5.150.0 — PRIVATE ADVENTURE PREP OVERVIEW
+
+CURRENT MILESTONE
+- Summarizes upcoming, needs-prep, and launch-ready Saved Adventures in one private overview.
+- Identifies the closest upcoming plan with incomplete launch checks and its remaining count.
+- Turns each overview metric into a shortcut to the existing safe organizer filter.
+- Updates totals and priority immediately after explicit readiness or packing changes.
+- Derives everything from owner-only rendered cards with no new storage, request, notification, launch block, or public data.
+
 TN GAME OS 5.149.0 — ADVENTURE PREP ORGANIZER
 
 CURRENT MILESTONE

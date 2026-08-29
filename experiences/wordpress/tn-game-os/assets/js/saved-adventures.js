@@ -11,6 +11,7 @@
   const filterStatus = root.querySelector('[data-tng-filter-status]');
   const filterEmpty = root.querySelector('[data-tng-filter-empty]');
   const conflictSummary = root.querySelector('[data-tng-conflict-summary]');
+  const prepOverview = root.querySelector('[data-tng-prep-overview]');
   const upcomingCalendar = root.querySelector('[data-tng-upcoming-calendar]');
   const resetView = root.querySelector('[data-tng-adventure-reset]');
   const preferenceKey = 'tng_saved_adventure_view_v1';
@@ -71,6 +72,25 @@
     panel.classList.toggle('is-complete',complete === 10);
   };
 
+  const launchCountFor = (card) => Math.min(10,Math.max(0,Number(card.dataset.planReadyCount || 0) + Number(card.dataset.planPackedCount || 0)));
+  const updatePrepOverview = () => {
+    if (!prepOverview) return;
+    const upcoming = cards.filter((card) => card.dataset.planState !== 'archived' && card.dataset.planDate >= todayKey);
+    const needsPrep = upcoming.filter((card) => launchCountFor(card) < 10);
+    const launchReady = upcoming.filter((card) => launchCountFor(card) === 10);
+    prepOverview.querySelector('[data-tng-prep-upcoming]').textContent = String(upcoming.length);
+    prepOverview.querySelector('[data-tng-prep-needed]').textContent = String(needsPrep.length);
+    prepOverview.querySelector('[data-tng-prep-ready]').textContent = String(launchReady.length);
+    const priority = [...needsPrep].sort((a,b) => a.dataset.planDate.localeCompare(b.dataset.planDate) || launchCountFor(a)-launchCountFor(b))[0] || null;
+    const priorityText = prepOverview.querySelector('[data-tng-prep-priority]');
+    if (priority) {
+      const title = priority.querySelector('[data-plan-title]')?.textContent?.trim() || 'Your next adventure';
+      const remaining = 10 - launchCountFor(priority);
+      priorityText.textContent = `${title} is the closest plan needing attention · ${remaining} check${remaining === 1 ? '' : 's'} remaining.`;
+    } else priorityText.textContent = upcoming.length ? 'Every upcoming adventure has all launch checks complete.' : '';
+    prepOverview.hidden = upcoming.length === 0;
+  };
+
   const applyFilters = () => {
     const stateOrder = {active:0,ready:1,completed:2,archived:3};
     const sorted = [...cards].sort((a, b) => {
@@ -91,7 +111,7 @@
     const query = search?.value.trim().toLocaleLowerCase() || '';
     let visible = 0;
     cards.forEach((card) => {
-      const launchCount = Math.min(10,Math.max(0,Number(card.dataset.planReadyCount || 0) + Number(card.dataset.planPackedCount || 0)));
+      const launchCount = launchCountFor(card);
       const upcoming = card.dataset.planState !== 'archived' && card.dataset.planDate >= todayKey;
       const matchesState = selectedFilter === 'all' ? card.dataset.planState !== 'archived' : (selectedFilter === 'upcoming' ? upcoming : (selectedFilter === 'needs-prep' ? upcoming && launchCount < 10 : (selectedFilter === 'launch-ready' ? upcoming && launchCount === 10 : card.dataset.planState === selectedFilter)));
       const matchesQuery = !query || card.textContent.toLocaleLowerCase().includes(query);
@@ -126,6 +146,16 @@
   });
   filters.forEach((item) => item.setAttribute('aria-pressed', String(item.dataset.tngAdventureFilter === selectedFilter)));
   applyFilters();
+  updatePrepOverview();
+  prepOverview?.addEventListener('click', (event) => {
+    const trigger = event.target.closest('[data-tng-prep-filter]');
+    if (!trigger) return;
+    const filter = filters.find((item) => item.dataset.tngAdventureFilter === trigger.dataset.tngPrepFilter);
+    if (filter) {
+      filter.click();
+      root.querySelector('.tng-adventure-library__organizer')?.scrollIntoView({behavior:'smooth',block:'start'});
+    }
+  });
 
   const adventurePacks = cards.map((card) => {
     const panel = card.querySelector('[data-tng-adventure-offline]');
@@ -281,6 +311,7 @@
         const printCount = card.querySelector('[data-tng-print-packing-count]');
         if (printCount) printCount.textContent = `Packing · ${count} of 6 complete`;
         if (card === nextCard) updateNextLaunchStatus();
+        updatePrepOverview();
         if (selectedFilter === 'needs-prep' || selectedFilter === 'launch-ready') applyFilters();
         if (status) status.textContent = data.message;
       } catch (error) {
@@ -309,6 +340,7 @@
       const printCount = card.querySelector('[data-tng-print-readiness-count]');
       if (printCount) printCount.textContent = `Readiness · ${count} of 4 complete`;
       if (card === nextCard) updateNextLaunchStatus();
+      updatePrepOverview();
       if (selectedFilter === 'needs-prep' || selectedFilter === 'launch-ready') applyFilters();
       if (status) status.textContent = data.message;
     } catch (error) {
