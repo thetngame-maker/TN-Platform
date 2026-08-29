@@ -138,24 +138,27 @@
   const initializeAdventurePacks = async () => {
     if (!adventurePacks.length || !('serviceWorker' in navigator)) return;
     try {
-      const response = await messageOfflineWorker({type:'TNG_ADVENTURE_PACK_STATUS',ids:adventurePacks.map((pack) => pack.id)});
+      const response = await messageOfflineWorker({type:'TNG_ADVENTURE_PACK_STATUS',packs:adventurePacks.map((pack) => ({id:pack.id,urls:pack.urls}))});
       adventurePacks.forEach((pack) => {
         const state = pack.panel.querySelector('[data-tng-adventure-offline-state]');
         const save = pack.panel.querySelector('[data-tng-adventure-offline-save]');
         const remove = pack.panel.querySelector('[data-tng-adventure-offline-remove]');
-        const render = (count) => {
-          state.textContent = count > 0 ? `${count} public stop screen${count === 1 ? '' : 's'} saved` : 'Not downloaded';
+        const render = (info) => {
+          const count = Number(typeof info === 'object' ? info?.count : info) || 0;
+          const current = typeof info !== 'object' || info?.current !== false;
+          pack.panel.classList.toggle('needs-update', count > 0 && !current);
+          state.textContent = count > 0 ? (current ? `${count} public stop screen${count === 1 ? '' : 's'} saved` : `Update available · ${count} screen${count === 1 ? '' : 's'} saved`) : 'Not downloaded';
           save.textContent = count > 0 ? 'Update' : 'Download';
           remove.hidden = count < 1;
         };
         pack.panel.hidden = false;
-        render(Number(response.installed?.[pack.id] || 0));
+        render(response.installed?.[pack.id] || 0);
         save.addEventListener('click', async () => {
           if (!navigator.onLine) { state.textContent = 'Connect to download public stop screens'; return; }
           save.disabled = true; remove.disabled = true; state.textContent = 'Downloading public stop screens…';
           try {
             const result = await messageOfflineWorker({type:'TNG_ADVENTURE_PACK_SAVE',id:pack.id,urls:pack.urls});
-            render(Number(result.installed?.[pack.id] || result.saved || 0));
+            render(result.installed?.[pack.id] || result.saved || 0);
             if (!result.ok) state.textContent = `${result.saved || 0} saved · ${result.failed || 0} unavailable`;
           } catch (error) { state.textContent = 'Could not download this adventure'; }
           save.disabled = false; remove.disabled = false;
