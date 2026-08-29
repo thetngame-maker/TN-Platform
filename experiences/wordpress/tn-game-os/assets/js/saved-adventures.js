@@ -80,6 +80,13 @@
   };
 
   const launchCountFor = (card) => Math.min(10,Math.max(0,Number(card.dataset.planReadyCount || 0) + Number(card.dataset.planPackedCount || 0)));
+  const launchReadyStatusFor = (card, previousCount, fallback) => {
+    if (previousCount < 10 && launchCountFor(card) === 10) {
+      const title = card.querySelector('[data-plan-title]')?.textContent?.trim() || 'This adventure';
+      return `${title} is launch ready. All 10 preparation checks are complete.`;
+    }
+    return fallback || 'Checklist updated.';
+  };
   const nextIncompleteCheckFor = (card) => [...card.querySelectorAll('[data-tng-readiness-key],[data-tng-packing-key]')].find((item) => !item.checked) || null;
   const updatePrepOverview = () => {
     if (!prepOverview) return;
@@ -350,6 +357,7 @@
       const card = packingCheckbox.closest('[data-plan-id]');
       const fieldset = packingCheckbox.closest('[data-tng-plan-packing]');
       const previous = !packingCheckbox.checked;
+      const previousLaunchCount = launchCountFor(card);
       packingCheckbox.disabled = true;
       try {
         const data = await post({operation:'packing',plan_id:card.dataset.planId || '',packing_key:packingCheckbox.dataset.tngPackingKey || '',checked:packingCheckbox.checked ? '1' : '0'});
@@ -366,7 +374,7 @@
         if (printCount) printCount.textContent = `Packing · ${count} of 6 complete`;
         if (card === nextCard) updateNextLaunchStatus();
         refreshPrepViews();
-        if (status) status.textContent = data.message;
+        if (status) status.textContent = launchReadyStatusFor(card,previousLaunchCount,data.message);
       } catch (error) {
         packingCheckbox.checked = previous;
         if (status) status.textContent = error.message;
@@ -378,6 +386,7 @@
     const card = checkbox.closest('[data-plan-id]');
     const fieldset = checkbox.closest('[data-tng-plan-readiness]');
     const previous = !checkbox.checked;
+    const previousLaunchCount = launchCountFor(card);
     checkbox.disabled = true;
     try {
       const data = await post({operation:'readiness',plan_id:card.dataset.planId || '',readiness_key:checkbox.dataset.tngReadinessKey || '',checked:checkbox.checked ? '1' : '0'});
@@ -394,7 +403,7 @@
       if (printCount) printCount.textContent = `Readiness · ${count} of 4 complete`;
       if (card === nextCard) updateNextLaunchStatus();
       refreshPrepViews();
-      if (status) status.textContent = data.message;
+      if (status) status.textContent = launchReadyStatusFor(card,previousLaunchCount,data.message);
     } catch (error) {
       checkbox.checked = previous;
       if (status) status.textContent = error.message;
