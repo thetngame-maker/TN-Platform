@@ -1,3 +1,12 @@
+TN GAME OS 5.136.0 — OFFLINE ADVENTURE PACK FRESHNESS
+
+CURRENT MILESTONE
+- Compares each downloaded Adventure Pack with the plan's current public stop list.
+- Shows Update Available when saved screens are missing, added, or changed.
+- Keeps the existing downloaded screens usable until the Explorer explicitly updates or removes them.
+- Performs the comparison inside device Cache Storage without a network request.
+- Adds no automatic download, background refresh, queued write, or private data cache.
+
 TN GAME OS 5.135.0 — PRIVACY-SAFE OFFLINE ADVENTURE PACKS
 
 CURRENT MILESTONE
