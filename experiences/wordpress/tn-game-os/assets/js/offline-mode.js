@@ -106,9 +106,11 @@
       visiblePacks.forEach((pack, packIndex) => {
         const urls = Array.isArray(pack?.urls) ? pack.urls.slice(0,12) : [];
         const links = urls.map((value,index) => ({value,label:publicStopLabel(value,index)})).filter((item) => item.label);
-        if (!links.length) return;
+        const issues = Math.max(0,Number(pack?.issues) || 0);
+        if (!links.length && !issues) return;
         const article = document.createElement('article');
         article.className = 'tng-offline-adventure';
+        article.classList.toggle('has-integrity-issues', issues > 0);
         const heading = document.createElement('div');
         heading.className = 'tng-offline-adventure__summary';
         const headingCopy = document.createElement('div');
@@ -118,7 +120,8 @@
         const verifiedDate = pack?.verifiedAt ? new Date(pack.verifiedAt) : null;
         const verifiedLabel = verifiedDate && Number.isFinite(verifiedDate.getTime()) ? ` · verified ${Date.now()-verifiedDate.getTime()<86400000?'today':verifiedDate.toLocaleDateString(undefined,{month:'short',day:'numeric'})}` : '';
         const sizeLabel = Number(pack?.bytes || 0) > 0 ? ` · ${formatBytes(pack.bytes)}` : '';
-        detail.textContent = `${links.length} public stop screen${links.length === 1 ? '' : 's'} · device only${sizeLabel}${verifiedLabel}`;
+        const issueLabel = issues ? ` · ${issues} need${issues === 1 ? 's' : ''} repair` : '';
+        detail.textContent = `${links.length} verified public screen${links.length === 1 ? '' : 's'} · device only${sizeLabel}${verifiedLabel}${issueLabel}`;
         headingCopy.append(title,detail);
         const remove = document.createElement('button');
         remove.type = 'button';
@@ -138,12 +141,14 @@
         const nav = document.createElement('nav');
         nav.setAttribute('aria-label',title.textContent);
         links.forEach((item) => { const link=document.createElement('a');link.href=item.value;link.textContent=item.label;nav.append(link); });
+        if (issues) { const warning=document.createElement('p');warning.textContent='Reconnect, then refresh this pack from Saved Adventures.';nav.append(warning); }
         article.append(heading,nav);
         deviceAdventureList.append(article);
       });
       const count = deviceAdventureList.childElementCount;
       const totalBytes = visiblePacks.reduce((total,pack) => total + Math.max(0,Number(pack?.bytes) || 0),0);
-      if (deviceAdventureSummary) deviceAdventureSummary.textContent = count ? `${count} device pack${count === 1 ? '' : 's'} · ${formatBytes(totalBytes)} of public stop screens` : 'Public stop screens only · plan details stay private';
+      const issuePacks = visiblePacks.filter((pack) => Number(pack?.issues || 0) > 0).length;
+      if (deviceAdventureSummary) deviceAdventureSummary.textContent = count ? `${count} device pack${count === 1 ? '' : 's'} · ${formatBytes(totalBytes)} verified${issuePacks ? ` · ${issuePacks} need${issuePacks === 1 ? 's' : ''} repair` : ''}` : 'Public stop screens only · plan details stay private';
       if (deviceAdventureClear) deviceAdventureClear.hidden = count === 0;
       deviceAdventures.hidden = count === 0;
     };

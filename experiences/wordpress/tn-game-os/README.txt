@@ -1,3 +1,12 @@
+TN GAME OS 5.145.0 — OFFLINE ADVENTURE INTEGRITY CHECK
+
+CURRENT MILESTONE
+- Verifies every device-launcher entry is a readable, same-origin public-safe HTML response.
+- Hides questionable cached entries from launch and reports how many need repair.
+- Keeps healthy public stops available when another entry in the same pack is damaged or missing.
+- Directs the Explorer to reconnect and refresh the affected pack from Saved Adventures.
+- Performs no automatic deletion, redownload, private-route request, or server activity write.
+
 TN GAME OS 5.144.0 — OFFLINE ADVENTURE STORAGE SUMMARY
 
 CURRENT MILESTONE
