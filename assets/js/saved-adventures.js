@@ -161,7 +161,7 @@
             render(result.installed?.[pack.id] || result.saved || 0);
             if (!result.ok) {
               const preserved = Number(result.preserved || 0);
-              state.textContent = preserved ? `Update incomplete · ${preserved} previous screen${preserved === 1 ? '' : 's'} kept` : `${result.failed || 0} public screen${Number(result.failed || 0) === 1 ? '' : 's'} unavailable`;
+              state.textContent = result.error === 'low-storage' ? (preserved ? `Storage low · ${preserved} previous screen${preserved === 1 ? '' : 's'} kept` : 'Storage low · remove another offline pack first') : (preserved ? `Update incomplete · ${preserved} previous screen${preserved === 1 ? '' : 's'} kept` : `${result.failed || 0} public screen${Number(result.failed || 0) === 1 ? '' : 's'} unavailable`);
             }
           } catch (error) { state.textContent = 'Could not download this adventure'; }
           save.disabled = false; remove.disabled = false;

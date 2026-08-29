@@ -1,3 +1,12 @@
+TN GAME OS 5.138.0 — OFFLINE ADVENTURE STORAGE GUARD
+
+CURRENT MILESTONE
+- Checks browser storage headroom before creating a staged Adventure Pack replacement.
+- Keeps at least 8 MB or 2% of the browser quota free for a safe staging operation.
+- Refuses low-space downloads before modifying the working pack.
+- Tells the Explorer when existing public stop screens were preserved and how to make room.
+- Adds no tracking, background download, private cache, queued write, or automatic deletion.
+
 TN GAME OS 5.137.0 — FAILURE-SAFE OFFLINE PACK UPDATES
 
 CURRENT MILESTONE
