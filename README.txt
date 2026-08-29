@@ -1,3 +1,12 @@
+TN GAME OS 5.149.0 — ADVENTURE PREP ORGANIZER
+
+CURRENT MILESTONE
+- Adds a 0–10 launch-preparation score to every scheduled, non-archived Saved Adventure.
+- Adds Needs Prep and Launch Ready filters for upcoming plans in the private organizer.
+- Recalculates the score and active filter immediately after explicit readiness or packing changes.
+- Keeps unscheduled, archived, past, and unrelated plans out of both preparation filters.
+- Uses existing owner-only rendered counts and device view preferences with no new server write, block, notification, or public activity.
+
 TN GAME OS 5.148.0 — NEXT ADVENTURE LAUNCH STATUS
 
 CURRENT MILESTONE
