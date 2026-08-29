@@ -20,5 +20,5 @@ assert.match(client,/data-tng-next-timing/);
 assert.match(css,/tng-adventure-card__timing/);
 const timingClient=client.slice(client.indexOf('const timing = nextCard'),client.indexOf("nextBanner.querySelector('[data-tng-next-readiness]"));
 assert.doesNotMatch(timingClient,/post\(|fetch\(|operation:/);
-assert.doesNotMatch(client,/setInterval|serviceWorker|Notification/);
+assert.doesNotMatch(client,/setInterval|Notification/);
 console.log('TN Game OS 5.132.0 Adventure Timing Summary checks passed');

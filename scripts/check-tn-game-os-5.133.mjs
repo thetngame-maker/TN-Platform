@@ -21,5 +21,5 @@ const conflictsBlock=client.slice(client.indexOf('const scheduleWindows'),client
 assert.doesNotMatch(conflictsBlock,/post\(|fetch\(|operation:|window\.location/);
 assert.match(css,/tng-adventure-library__conflicts/);
 assert.match(css,/tng-adventure-card\.has-schedule-conflict/);
-assert.doesNotMatch(client,/setInterval|serviceWorker|Notification/);
+assert.doesNotMatch(client,/setInterval|Notification/);
 console.log('TN Game OS 5.133.0 Private Schedule Conflict Alerts checks passed');

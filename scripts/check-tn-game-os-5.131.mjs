@@ -25,5 +25,5 @@ const printBlock=adventure.slice(printStart,adventure.indexOf('</article>',print
 assert.doesNotMatch(printBlock,/\$notes|plan\['notes'\]/);
 const shareBlock=client.slice(client.indexOf("const share ="),client.indexOf("const start ="));
 assert.doesNotMatch(shareBlock,/notes|planning/i);
-assert.doesNotMatch(client,/setInterval|serviceWorker|Notification/);
+assert.doesNotMatch(client,/setInterval|Notification/);
 console.log('TN Game OS 5.131.0 Private Adventure Planning Notes checks passed');

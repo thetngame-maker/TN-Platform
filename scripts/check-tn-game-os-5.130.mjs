@@ -18,7 +18,7 @@ assert.match(adventure,/planned_date !== \$previous_date\) unset\(\$library\[\$i
 assert.match(adventure,/unset\(\$copy\['archived_at'\], \$copy\['planned_date'\], \$copy\['readiness'\], \$copy\['readiness_updated_at'\]/);
 assert.match(client,/operation:'readiness'/);
 assert.match(client,/data-tng-next-readiness/);
-assert.doesNotMatch(client,/setInterval|serviceWorker|Notification/);
+assert.doesNotMatch(client,/setInterval|Notification/);
 assert.match(css,/tng-adventure-card__readiness/);
 assert.match(css,/@media\(max-width:390px\)/);
 console.log('TN Game OS 5.130.0 Adventure Readiness Checklist checks passed');

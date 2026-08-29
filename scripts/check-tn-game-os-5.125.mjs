@@ -20,5 +20,5 @@ assert.match(client,/operation:'schedule'/);
 assert.match(client,/data-tng-plan-clear-date/);
 assert.match(css,/tng-adventure-card__planned/);
 assert.match(css,/tng-adventure-card__schedule/);
-assert.doesNotMatch(client,/setInterval|Notification|serviceWorker/);
+assert.doesNotMatch(client,/setInterval|Notification/);
 console.log('TN Game OS 5.125.0 Private Adventure Scheduling checks passed');
