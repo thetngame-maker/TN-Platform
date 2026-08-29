@@ -94,6 +94,8 @@
     nextBanner.querySelector('[data-tng-next-title]').textContent = nextCard.querySelector('[data-plan-title]')?.textContent?.trim() || 'Tennessee adventure';
     nextBanner.querySelector('[data-tng-next-countdown]').textContent = daysAway === 0 ? 'Today' : (daysAway === 1 ? 'Tomorrow' : `In ${daysAway} days`);
     nextBanner.querySelector('[data-tng-next-date]').textContent = targetDate.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'});
+    const timing = nextCard.querySelector('[data-tng-plan-timing]');
+    nextBanner.querySelector('[data-tng-next-timing]').textContent = timing ? `${timing.querySelector('[data-tng-timing-start]').textContent}–${timing.querySelector('[data-tng-timing-finish]').textContent} · ${timing.querySelector('[data-tng-timing-duration]').textContent}` : '';
     nextBanner.querySelector('[data-tng-next-readiness]').textContent = Number(nextCard.dataset.planReadyCount || 0) + ' of 4 readiness checks complete';
     nextBanner.hidden = false;
     nextCard.classList.add('is-next-up');
