@@ -236,6 +236,30 @@
   window.addEventListener('afterprint', cleanupPrint);
 
   root.addEventListener('change', async (event) => {
+    const packingCheckbox = event.target.closest('[data-tng-packing-key]');
+    if (packingCheckbox) {
+      const card = packingCheckbox.closest('[data-plan-id]');
+      const fieldset = packingCheckbox.closest('[data-tng-plan-packing]');
+      const previous = !packingCheckbox.checked;
+      packingCheckbox.disabled = true;
+      try {
+        const data = await post({operation:'packing',plan_id:card.dataset.planId || '',packing_key:packingCheckbox.dataset.tngPackingKey || '',checked:packingCheckbox.checked ? '1' : '0'});
+        const count = [...fieldset.querySelectorAll('[data-tng-packing-key]')].filter((item) => item.checked).length;
+        fieldset.querySelector('[data-tng-packing-count]').textContent = count + ' of 6 packed';
+        const printItem = card.querySelector(`[data-tng-print-packing="${packingCheckbox.dataset.tngPackingKey || ''}"]`);
+        if (printItem) {
+          printItem.classList.toggle('is-ready', packingCheckbox.checked);
+          printItem.querySelector('span').textContent = packingCheckbox.checked ? '✓' : '○';
+        }
+        const printCount = card.querySelector('[data-tng-print-packing-count]');
+        if (printCount) printCount.textContent = `Packing · ${count} of 6 complete`;
+        if (status) status.textContent = data.message;
+      } catch (error) {
+        packingCheckbox.checked = previous;
+        if (status) status.textContent = error.message;
+      } finally { packingCheckbox.disabled = false; }
+      return;
+    }
     const checkbox = event.target.closest('[data-tng-readiness-key]');
     if (!checkbox) return;
     const card = checkbox.closest('[data-plan-id]');
@@ -271,7 +295,7 @@
       const stamp = new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}Z$/,'Z');
       const events = scheduleWindows.flatMap((plan, index) => {
         const title = plan.card.querySelector('[data-plan-title]')?.textContent?.trim() || 'Tennessee adventure';
-        const stops = [...plan.card.querySelectorAll('.tng-adventure-card__print li')].map((node) => node.textContent.trim()).filter(Boolean);
+        const stops = [...plan.card.querySelectorAll('[data-tng-print-stops] li')].map((node) => node.textContent.trim()).filter(Boolean);
         return ['BEGIN:VEVENT',`UID:tn-game-upcoming-${index}-${plan.start}@thetngame.com`,`DTSTAMP:${stamp}`,`DTSTART:${calendarStamp(new Date(plan.start))}`,`DTEND:${calendarStamp(new Date(plan.end))}`,`SUMMARY:${calendarEscape(title)}`,`DESCRIPTION:${calendarEscape(`Stops: ${stops.join(' → ')}\nConfirm hours, tickets, trail conditions, and driving time before leaving.`)}`,`URL:${window.location.origin}/`,'END:VEVENT'];
       });
       const content = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//The TN Game//Upcoming Adventures//EN','CALSCALE:GREGORIAN',...events,'END:VCALENDAR'].join('\r\n');
@@ -294,7 +318,7 @@
       const starts = new Date(parts[0],parts[1]-1,parts[2],Math.floor(startMinutes/60),startMinutes%60,0);
       const ends = new Date(starts.getTime()+durationMinutes*60000);
       const title = card.querySelector('[data-plan-title]')?.textContent?.trim() || 'Tennessee adventure';
-      const stops = [...card.querySelectorAll('.tng-adventure-card__print li')].map((node) => node.textContent.trim()).filter(Boolean);
+      const stops = [...card.querySelectorAll('[data-tng-print-stops] li')].map((node) => node.textContent.trim()).filter(Boolean);
       const stamp = new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}Z$/,'Z');
       const content = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//The TN Game//Saved Adventure//EN','CALSCALE:GREGORIAN','BEGIN:VEVENT',`UID:tn-game-${Date.now()}@thetngame.com`,`DTSTAMP:${stamp}`,`DTSTART:${calendarStamp(starts)}`,`DTEND:${calendarStamp(ends)}`,`SUMMARY:${calendarEscape(title)}`,`DESCRIPTION:${calendarEscape(`Stops: ${stops.join(' → ')}\nConfirm hours, tickets, trail conditions, and driving time before leaving.`)}`,`URL:${window.location.origin}/`,'END:VEVENT','END:VCALENDAR'].join('\r\n');
       const url = URL.createObjectURL(new Blob([content],{type:'text/calendar;charset=utf-8'}));

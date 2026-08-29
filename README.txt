@@ -1,3 +1,12 @@
+TN GAME OS 5.147.0 — PRIVATE ADVENTURE PACKING CHECKLIST
+
+CURRENT MILESTONE
+- Adds a six-item packing checklist to every scheduled, non-archived Saved Adventure.
+- Stores only predefined completion keys inside the owner Explorer's existing private plan record.
+- Resets packing completion when the adventure date changes and excludes it from duplicated plans.
+- Synchronizes the explicit checklist updates into the owner-only Day-of Adventure Brief.
+- Adds no custom sensitive fields, notifications, background tasks, public activity, or external requests.
+
 TN GAME OS 5.146.0 — DAY-OF ADVENTURE BRIEF
 
 CURRENT MILESTONE
