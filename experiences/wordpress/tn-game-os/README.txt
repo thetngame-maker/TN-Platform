@@ -1,3 +1,12 @@
+TN GAME OS 5.134.0 — UPCOMING ADVENTURES CALENDAR EXPORT
+
+CURRENT MILESTONE
+- Exports every upcoming Saved Adventure into one standard .ics calendar file.
+- Preserves each plan's local start, estimated finish, title, and full stop list.
+- Includes overnight adventures and works alongside individual calendar downloads.
+- Excludes archived, unscheduled, and past plans automatically.
+- Requires one explicit download and creates no external connection or server write.
+
 TN GAME OS 5.133.0 — PRIVATE SCHEDULE CONFLICT ALERTS
 
 CURRENT MILESTONE

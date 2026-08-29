@@ -128,6 +128,7 @@ final class Adventure_AI implements Module_Interface {
                         <button type="button" data-tng-adventure-filter="ready" aria-pressed="false">Ready</button>
                         <button type="button" data-tng-adventure-filter="completed" aria-pressed="false">Completed</button>
                         <button type="button" data-tng-adventure-filter="archived" aria-pressed="false">Archived</button>
+                        <button class="tng-adventure-library__calendar-export" type="button" data-tng-upcoming-calendar hidden>Export calendar (.ics)</button>
                         <button class="tng-adventure-library__reset" type="button" data-tng-adventure-reset>Reset view</button>
                     </div>
                     <p data-tng-filter-status aria-live="polite"></p>
