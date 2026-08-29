@@ -78,6 +78,41 @@
     const cards = [...manager.querySelectorAll('[data-tng-pack]')];
     const storageTitle = manager.querySelector('[data-tng-storage-title]');
     const storageCopy = manager.querySelector('[data-tng-storage-copy]');
+    const deviceAdventures = manager.querySelector('[data-tng-device-adventures]');
+    const deviceAdventureList = manager.querySelector('[data-tng-device-adventure-list]');
+
+    const publicStopLabel = (value, index) => {
+      try {
+        const url = new URL(value, window.location.origin);
+        if (url.origin !== window.location.origin) return '';
+        const slug = decodeURIComponent(url.pathname.split('/').filter(Boolean).pop() || '').replace(/[-_]+/g,' ').trim();
+        return slug ? slug.replace(/\b\w/g,(letter) => letter.toUpperCase()).slice(0,64) : `Public stop ${index + 1}`;
+      } catch (error) { return ''; }
+    };
+
+    const renderAdventureLibrary = (packs = []) => {
+      if (!deviceAdventures || !deviceAdventureList) return;
+      deviceAdventureList.replaceChildren();
+      packs.slice(0,12).forEach((pack, packIndex) => {
+        const urls = Array.isArray(pack?.urls) ? pack.urls.slice(0,12) : [];
+        const links = urls.map((value,index) => ({value,label:publicStopLabel(value,index)})).filter((item) => item.label);
+        if (!links.length) return;
+        const article = document.createElement('article');
+        article.className = 'tng-offline-adventure';
+        const heading = document.createElement('div');
+        const title = document.createElement('h3');
+        title.textContent = `Saved Adventure ${packIndex + 1}`;
+        const detail = document.createElement('small');
+        detail.textContent = `${links.length} public stop screen${links.length === 1 ? '' : 's'} · device only`;
+        heading.append(title,detail);
+        const nav = document.createElement('nav');
+        nav.setAttribute('aria-label',title.textContent);
+        links.forEach((item) => { const link=document.createElement('a');link.href=item.value;link.textContent=item.label;nav.append(link); });
+        article.append(heading,nav);
+        deviceAdventureList.append(article);
+      });
+      deviceAdventures.hidden = deviceAdventureList.childElementCount === 0;
+    };
 
     const renderStatus = (installed = {}) => {
       cards.forEach((card) => {
@@ -129,5 +164,7 @@
       } else storageTitle.textContent = 'Device storage ready';
     } catch (error) { storageTitle.textContent = 'Device storage ready'; }
     try { await refresh(); } catch (error) { renderStatus({}); }
+    try { const response=await messageWorker({type:'TNG_ADVENTURE_PACK_LIBRARY'});renderAdventureLibrary(response.ok ? response.packs || [] : []); }
+    catch (error) { renderAdventureLibrary([]); }
   };
 })();

@@ -1,3 +1,12 @@
+TN GAME OS 5.142.0 — DEVICE-LOCAL OFFLINE ADVENTURE LAUNCHER
+
+CURRENT MILESTONE
+- Lists downloaded Saved Adventure packs in the public Offline manager on the same device.
+- Opens each verified public stop screen without requiring the private Saved Adventures page.
+- Uses numbered pack labels and public URL slugs instead of private plan names or schedules.
+- Validates every launcher link as same-origin and caps output at 12 packs with 12 stops each.
+- Sends no plan, account, XP, notes, schedule, or device-library data to WordPress.
+
 TN GAME OS 5.141.0 — OFFLINE ADVENTURE REFRESH GUIDANCE
 
 CURRENT MILESTONE
