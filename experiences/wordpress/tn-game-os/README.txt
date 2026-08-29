@@ -1,3 +1,12 @@
+TN GAME OS 5.140.0 — OFFLINE ADVENTURE VERIFICATION DATES
+
+CURRENT MILESTONE
+- Records when a Saved Adventure's complete public stop pack last passed verification.
+- Shows the device-local verification date beside each downloaded pack.
+- Writes a date only after the full staged replacement succeeds.
+- Removes the date when the Explorer explicitly removes the pack.
+- Sends no timestamp, plan activity, or browsing data to WordPress or another service.
+
 TN GAME OS 5.139.0 — RELEASE-STABLE OFFLINE ADVENTURES
 
 CURRENT MILESTONE
