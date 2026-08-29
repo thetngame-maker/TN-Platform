@@ -13,6 +13,7 @@
   const conflictSummary = root.querySelector('[data-tng-conflict-summary]');
   const prepOverview = root.querySelector('[data-tng-prep-overview]');
   const prepFocus = prepOverview?.querySelector('[data-tng-prep-focus]');
+  const prepFilters = prepOverview ? [...prepOverview.querySelectorAll('[data-tng-prep-filter]')] : [];
   const upcomingCalendar = root.querySelector('[data-tng-upcoming-calendar]');
   const resetView = root.querySelector('[data-tng-adventure-reset]');
   const preferenceKey = 'tng_saved_adventure_view_v1';
@@ -61,6 +62,10 @@
   const savePreferences = () => {
     try { window.localStorage.setItem(preferenceKey, JSON.stringify({filter:selectedFilter,sort:sort?.value || 'recent'})); }
     catch (error) { /* The organizer remains usable without storage. */ }
+  };
+  const syncFilterControls = () => {
+    filters.forEach((item) => item.setAttribute('aria-pressed', String(item.dataset.tngAdventureFilter === selectedFilter)));
+    prepFilters.forEach((item) => item.setAttribute('aria-pressed', String(item.dataset.tngPrepFilter === selectedFilter)));
   };
 
   const updateCardLaunchStatus = (card) => {
@@ -167,7 +172,7 @@
   sort?.addEventListener('change', () => { savePreferences(); applyFilters(); });
   filters.forEach((button) => button.addEventListener('click', () => {
     selectedFilter = button.dataset.tngAdventureFilter || 'all';
-    filters.forEach((item) => item.setAttribute('aria-pressed', String(item === button)));
+    syncFilterControls();
     savePreferences();
     applyFilters();
   }));
@@ -175,11 +180,11 @@
     selectedFilter = 'all';
     if (sort) sort.value = 'recent';
     if (search) search.value = '';
-    filters.forEach((item) => item.setAttribute('aria-pressed', String(item.dataset.tngAdventureFilter === 'all')));
+    syncFilterControls();
     try { window.localStorage.removeItem(preferenceKey); } catch (error) { /* No storage to reset. */ }
     applyFilters();
   });
-  filters.forEach((item) => item.setAttribute('aria-pressed', String(item.dataset.tngAdventureFilter === selectedFilter)));
+  syncFilterControls();
   applyFilters();
   updatePrepOverview();
   prepOverview?.addEventListener('click', (event) => {
@@ -195,7 +200,7 @@
     if (!priorityPrep) return;
     if (search) search.value = '';
     selectedFilter = 'needs-prep';
-    filters.forEach((item) => item.setAttribute('aria-pressed', String(item.dataset.tngAdventureFilter === selectedFilter)));
+    syncFilterControls();
     savePreferences();
     applyFilters();
     priorityPrep.card.classList.add('is-prep-focus');
@@ -302,7 +307,7 @@
     nextCard.classList.add('is-next-up');
     const revealNextCard = () => {
       selectedFilter = 'all';
-      filters.forEach((item) => item.setAttribute('aria-pressed', String(item.dataset.tngAdventureFilter === 'all')));
+      syncFilterControls();
       savePreferences();
       applyFilters();
       nextCard.scrollIntoView({behavior:'smooth',block:'center'});
