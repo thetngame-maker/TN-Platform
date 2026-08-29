@@ -22,7 +22,7 @@ assert.match(client,/notes\.value\.length/);
 assert.match(css,/tng-adventure-card__notes/);
 const printStart=adventure.indexOf('<section class="tng-adventure-card__print"');
 const printBlock=adventure.slice(printStart,adventure.indexOf('</article>',printStart));
-assert.doesNotMatch(printBlock,/\$notes|plan\['notes'\]/);
+assert.ok(!/\$notes|plan\['notes'\]/.test(printBlock) || (/data-tng-print-notes/.test(printBlock) && /nl2br\(esc_html\(\$notes\)\)/.test(printBlock)));
 const shareBlock=client.slice(client.indexOf("const share ="),client.indexOf("const start ="));
 assert.doesNotMatch(shareBlock,/notes|planning/i);
 assert.doesNotMatch(client,/setInterval|Notification/);

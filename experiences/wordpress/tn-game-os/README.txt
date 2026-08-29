@@ -1,3 +1,12 @@
+TN GAME OS 5.146.0 — DAY-OF ADVENTURE BRIEF
+
+CURRENT MILESTONE
+- Upgrades each Saved Adventure's print action into a compact owner-only day-of brief.
+- Calculates a numbered stop schedule with local arrival times from the saved start, visit, and buffer settings.
+- Includes the current readiness checklist, private planning notes, timing summary, and private map route.
+- Keeps readiness and notes synchronized in the brief after explicit Explorer updates without a page reload.
+- Creates no new stored record, external forecast request, background task, share link, or public plan page.
+
 TN GAME OS 5.145.0 — OFFLINE ADVENTURE INTEGRITY CHECK
 
 CURRENT MILESTONE

@@ -8,7 +8,7 @@ const client=read('assets/js/saved-adventures.js');
 const css=read('assets/css/saved-adventures.css');
 assert.match(bootstrap,/Version:\s*5\.1(?:24|2[5-9]|[3-9]\d)\.\d+/);
 assert.match(bootstrap,/define\('TNG_OS_VERSION','5\.1(?:24|2[5-9]|[3-9]\d)\.\d+'\)/);
-assert.match(adventure,/data-tng-plan-print>Print \/ save PDF/);
+assert.match(adventure,/data-tng-plan-print>(?:Print \/ save PDF|Day-of brief \/ PDF)/);
 assert.match(adventure,/class="tng-adventure-card__print"/);
 assert.match(adventure,/\$print_ids=array_slice\(\(array\)\$plan\['ids'\],0,12\)/);
 assert.match(adventure,/start_minutes/);
