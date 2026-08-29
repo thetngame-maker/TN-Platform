@@ -1,3 +1,12 @@
+TN GAME OS 5.139.0 — RELEASE-STABLE OFFLINE ADVENTURES
+
+CURRENT MILESTONE
+- Keeps downloaded Saved Adventure stop screens across normal TN Game plugin upgrades.
+- Moves Adventure Packs to a release-stable, device-local cache separate from versioned app assets.
+- Migrates previously verified 5.135–5.138 Adventure Pack caches during activation without a network request.
+- Cleans abandoned staging caches while leaving complete working packs intact.
+- Adds no background refresh, account data, private cache, queued write, or automatic content update.
+
 TN GAME OS 5.138.0 — OFFLINE ADVENTURE STORAGE GUARD
 
 CURRENT MILESTONE
