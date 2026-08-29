@@ -17,7 +17,7 @@
   const resetView = root.querySelector('[data-tng-adventure-reset]');
   const preferenceKey = 'tng_saved_adventure_view_v1';
   const allowedFilters = ['all','upcoming','needs-prep','launch-ready','active','ready','completed','archived'];
-  const allowedSorts = ['recent','date','title','status'];
+  const allowedSorts = ['recent','prep','date','title','status'];
   let selectedFilter = 'all';
   let nextCard = null;
   let priorityPrep = null;
@@ -112,6 +112,21 @@
     const sorted = [...cards].sort((a, b) => {
       if (sort?.value === 'title') return (a.querySelector('[data-plan-title]')?.textContent || '').localeCompare(b.querySelector('[data-plan-title]')?.textContent || '', undefined, {sensitivity:'base'});
       if (sort?.value === 'status') return (stateOrder[a.dataset.planState] ?? 9) - (stateOrder[b.dataset.planState] ?? 9) || Number(b.dataset.planUpdated || 0) - Number(a.dataset.planUpdated || 0);
+      if (sort?.value === 'prep') {
+        const aUpcoming = a.dataset.planState !== 'archived' && a.dataset.planDate >= todayKey;
+        const bUpcoming = b.dataset.planState !== 'archived' && b.dataset.planDate >= todayKey;
+        const aLaunch = launchCountFor(a);
+        const bLaunch = launchCountFor(b);
+        const aRank = aUpcoming ? (aLaunch < 10 ? 0 : 1) : (a.dataset.planState === 'archived' ? 3 : 2);
+        const bRank = bUpcoming ? (bLaunch < 10 ? 0 : 1) : (b.dataset.planState === 'archived' ? 3 : 2);
+        if (aRank !== bRank) return aRank - bRank;
+        if (aRank < 2) {
+          const dateOrder = a.dataset.planDate.localeCompare(b.dataset.planDate);
+          if (dateOrder !== 0) return dateOrder;
+          if (aRank === 0 && aLaunch !== bLaunch) return aLaunch - bLaunch;
+        }
+        return Number(b.dataset.planUpdated || 0) - Number(a.dataset.planUpdated || 0);
+      }
       if (sort?.value === 'date') {
         const aDate = a.dataset.planDate || '';
         const bDate = b.dataset.planDate || '';
