@@ -1,3 +1,12 @@
+TN GAME OS 5.152.0 — ADVENTURE PREP PRIORITY SORTING
+
+CURRENT MILESTONE
+- Adds an explicit Prep priority option to the private Saved Adventures organizer.
+- Places upcoming plans that still need launch checks before launch-ready, past, unscheduled, and archived plans.
+- Orders incomplete upcoming plans by the nearest date, then by the lowest completed-check count on the same date.
+- Preserves the choice only in the existing device-local organizer preference and never changes checklist completion.
+- Uses only owner-rendered card data with no new database record, request, notification, automation, or public output.
+
 TN GAME OS 5.151.0 — PRIVATE ADVENTURE PREP FOCUS
 
 CURRENT MILESTONE
