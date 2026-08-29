@@ -1,3 +1,12 @@
+TN GAME OS 5.133.0 — PRIVATE SCHEDULE CONFLICT ALERTS
+
+CURRENT MILESTONE
+- Detects overlapping upcoming Saved Adventures using their dates and timing summaries.
+- Recognizes conflicts that cross midnight into the next day.
+- Identifies the overlapping plan on each affected private card.
+- Adds one library-level warning while leaving every plan unchanged and startable.
+- Runs entirely on already-rendered private data with no request, write, or notification.
+
 TN GAME OS 5.132.0 — ADVENTURE TIMING SUMMARY
 
 CURRENT MILESTONE
