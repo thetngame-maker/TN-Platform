@@ -1,3 +1,12 @@
+TN GAME OS 5.144.0 — OFFLINE ADVENTURE STORAGE SUMMARY
+
+CURRENT MILESTONE
+- Measures the cached public-screen size of each device-local Adventure Pack.
+- Shows the combined Adventure Pack footprint in the public Offline manager.
+- Adds a separately confirmed Remove All action for Adventure Pack caches and metadata.
+- Leaves general Offline Packs, app assets, Saved Adventures, accounts, XP, and gameplay untouched.
+- Calculates and clears storage locally without a server request or activity record.
+
 TN GAME OS 5.143.0 — DEVICE OFFLINE ADVENTURE MANAGEMENT
 
 CURRENT MILESTONE

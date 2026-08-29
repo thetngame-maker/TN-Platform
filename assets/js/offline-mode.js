@@ -80,6 +80,15 @@
     const storageCopy = manager.querySelector('[data-tng-storage-copy]');
     const deviceAdventures = manager.querySelector('[data-tng-device-adventures]');
     const deviceAdventureList = manager.querySelector('[data-tng-device-adventure-list]');
+    const deviceAdventureSummary = manager.querySelector('[data-tng-device-adventure-summary]');
+    const deviceAdventureClear = manager.querySelector('[data-tng-device-adventure-clear]');
+
+    const formatBytes = (value) => {
+      const bytes = Math.max(0,Number(value) || 0);
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1048576) return `${(bytes / 1024).toFixed(bytes < 10240 ? 1 : 0)} KB`;
+      return `${(bytes / 1048576).toFixed(1)} MB`;
+    };
 
     const publicStopLabel = (value, index) => {
       try {
@@ -93,7 +102,8 @@
     const renderAdventureLibrary = (packs = []) => {
       if (!deviceAdventures || !deviceAdventureList) return;
       deviceAdventureList.replaceChildren();
-      packs.slice(0,12).forEach((pack, packIndex) => {
+      const visiblePacks = packs.slice(0,12);
+      visiblePacks.forEach((pack, packIndex) => {
         const urls = Array.isArray(pack?.urls) ? pack.urls.slice(0,12) : [];
         const links = urls.map((value,index) => ({value,label:publicStopLabel(value,index)})).filter((item) => item.label);
         if (!links.length) return;
@@ -107,7 +117,8 @@
         const detail = document.createElement('small');
         const verifiedDate = pack?.verifiedAt ? new Date(pack.verifiedAt) : null;
         const verifiedLabel = verifiedDate && Number.isFinite(verifiedDate.getTime()) ? ` · verified ${Date.now()-verifiedDate.getTime()<86400000?'today':verifiedDate.toLocaleDateString(undefined,{month:'short',day:'numeric'})}` : '';
-        detail.textContent = `${links.length} public stop screen${links.length === 1 ? '' : 's'} · device only${verifiedLabel}`;
+        const sizeLabel = Number(pack?.bytes || 0) > 0 ? ` · ${formatBytes(pack.bytes)}` : '';
+        detail.textContent = `${links.length} public stop screen${links.length === 1 ? '' : 's'} · device only${sizeLabel}${verifiedLabel}`;
         headingCopy.append(title,detail);
         const remove = document.createElement('button');
         remove.type = 'button';
@@ -130,8 +141,22 @@
         article.append(heading,nav);
         deviceAdventureList.append(article);
       });
-      deviceAdventures.hidden = deviceAdventureList.childElementCount === 0;
+      const count = deviceAdventureList.childElementCount;
+      const totalBytes = visiblePacks.reduce((total,pack) => total + Math.max(0,Number(pack?.bytes) || 0),0);
+      if (deviceAdventureSummary) deviceAdventureSummary.textContent = count ? `${count} device pack${count === 1 ? '' : 's'} · ${formatBytes(totalBytes)} of public stop screens` : 'Public stop screens only · plan details stay private';
+      if (deviceAdventureClear) deviceAdventureClear.hidden = count === 0;
+      deviceAdventures.hidden = count === 0;
     };
+
+    deviceAdventureClear?.addEventListener('click', async () => {
+      if (!window.confirm('Remove every cached Adventure Pack from this device? Your Saved Adventures will remain in your Explorer account.')) return;
+      deviceAdventureClear.disabled = true; deviceAdventureClear.textContent = 'Removing all…';
+      try {
+        const result = await messageWorker({type:'TNG_ADVENTURE_PACK_CLEAR'});
+        if (!result.ok) throw new Error('Clear failed');
+        renderAdventureLibrary([]);
+      } catch (error) { deviceAdventureClear.disabled = false; deviceAdventureClear.textContent = 'Could not remove all'; }
+    });
 
     const renderStatus = (installed = {}) => {
       cards.forEach((card) => {
