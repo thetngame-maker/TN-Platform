@@ -1,3 +1,12 @@
+TN GAME OS 5.151.0 — PRIVATE ADVENTURE PREP FOCUS
+
+CURRENT MILESTONE
+- Identifies the first incomplete launch check on the closest upcoming plan that still needs preparation.
+- Adds one compact review action to the existing private prep overview.
+- Clears only the temporary search view, selects the existing Needs Prep filter, and focuses the exact owner checklist control.
+- Leaves every checklist update explicit; opening a check never completes it or launches an adventure.
+- Uses only owner-rendered plan cards with no new storage, request, notification, automation, or public output.
+
 TN GAME OS 5.150.0 — PRIVATE ADVENTURE PREP OVERVIEW
 
 CURRENT MILESTONE
