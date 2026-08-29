@@ -1,3 +1,12 @@
+TN GAME OS 5.143.0 — DEVICE OFFLINE ADVENTURE MANAGEMENT
+
+CURRENT MILESTONE
+- Shows each device pack's last successful public-screen verification date in the Offline manager.
+- Adds a confirmed Remove from Device action beside each downloaded Adventure pack.
+- Deletes only that pack's cached public screens, staging cache, and device-only metadata.
+- Keeps the Explorer's Saved Adventure, plan details, progress, XP, and account data untouched.
+- Works without a network request and sends no removal activity to WordPress.
+
 TN GAME OS 5.142.0 — DEVICE-LOCAL OFFLINE ADVENTURE LAUNCHER
 
 CURRENT MILESTONE
