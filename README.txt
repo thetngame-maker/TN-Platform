@@ -1,3 +1,12 @@
+TN GAME OS 5.137.0 — FAILURE-SAFE OFFLINE PACK UPDATES
+
+CURRENT MILESTONE
+- Downloads every replacement public stop screen into a temporary staging cache.
+- Keeps the currently working pack untouched when any new screen cannot be verified.
+- Replaces the live pack only after the complete staged set passes public-safety checks.
+- Restores the previous cache if the final replacement step fails.
+- Requires an explicit Update; adds no automatic download, sync, private cache, or queued gameplay.
+
 TN GAME OS 5.136.0 — OFFLINE ADVENTURE PACK FRESHNESS
 
 CURRENT MILESTONE

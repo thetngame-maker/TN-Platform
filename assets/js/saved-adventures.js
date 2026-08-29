@@ -159,7 +159,10 @@
           try {
             const result = await messageOfflineWorker({type:'TNG_ADVENTURE_PACK_SAVE',id:pack.id,urls:pack.urls});
             render(result.installed?.[pack.id] || result.saved || 0);
-            if (!result.ok) state.textContent = `${result.saved || 0} saved · ${result.failed || 0} unavailable`;
+            if (!result.ok) {
+              const preserved = Number(result.preserved || 0);
+              state.textContent = preserved ? `Update incomplete · ${preserved} previous screen${preserved === 1 ? '' : 's'} kept` : `${result.failed || 0} public screen${Number(result.failed || 0) === 1 ? '' : 's'} unavailable`;
+            }
           } catch (error) { state.textContent = 'Could not download this adventure'; }
           save.disabled = false; remove.disabled = false;
         });
