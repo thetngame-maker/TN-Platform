@@ -152,6 +152,10 @@
     if (filterStatus) filterStatus.textContent = `${visible} of ${cards.length} adventure${cards.length === 1 ? '' : 's'} shown`;
     if (filterEmpty) filterEmpty.hidden = visible !== 0;
   };
+  const refreshPrepViews = () => {
+    updatePrepOverview();
+    if (selectedFilter === 'needs-prep' || selectedFilter === 'launch-ready' || sort?.value === 'prep') applyFilters();
+  };
 
   search?.addEventListener('input', applyFilters);
   root.addEventListener('input', (event) => {
@@ -356,8 +360,7 @@
         const printCount = card.querySelector('[data-tng-print-packing-count]');
         if (printCount) printCount.textContent = `Packing · ${count} of 6 complete`;
         if (card === nextCard) updateNextLaunchStatus();
-        updatePrepOverview();
-        if (selectedFilter === 'needs-prep' || selectedFilter === 'launch-ready') applyFilters();
+        refreshPrepViews();
         if (status) status.textContent = data.message;
       } catch (error) {
         packingCheckbox.checked = previous;
@@ -385,8 +388,7 @@
       const printCount = card.querySelector('[data-tng-print-readiness-count]');
       if (printCount) printCount.textContent = `Readiness · ${count} of 4 complete`;
       if (card === nextCard) updateNextLaunchStatus();
-      updatePrepOverview();
-      if (selectedFilter === 'needs-prep' || selectedFilter === 'launch-ready') applyFilters();
+      refreshPrepViews();
       if (status) status.textContent = data.message;
     } catch (error) {
       checkbox.checked = previous;

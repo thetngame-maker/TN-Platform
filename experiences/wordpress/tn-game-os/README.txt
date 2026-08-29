@@ -1,3 +1,12 @@
+TN GAME OS 5.153.0 — LIVE PREP PRIORITY REFRESH
+
+CURRENT MILESTONE
+- Refreshes the private Prep priority order immediately after an explicit readiness or packing save succeeds.
+- Moves a newly launch-ready plan into the launch-ready group without requiring a manual page refresh.
+- Keeps Needs Prep and Launch Ready filters synchronized through one shared client-only refresh path.
+- Preserves the focused checklist control while reordering its existing owner-rendered card.
+- Adds no checklist automation, database record, request, notification, background task, or public output.
+
 TN GAME OS 5.152.0 — ADVENTURE PREP PRIORITY SORTING
 
 CURRENT MILESTONE
