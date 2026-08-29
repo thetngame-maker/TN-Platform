@@ -14,7 +14,7 @@
   const upcomingCalendar = root.querySelector('[data-tng-upcoming-calendar]');
   const resetView = root.querySelector('[data-tng-adventure-reset]');
   const preferenceKey = 'tng_saved_adventure_view_v1';
-  const allowedFilters = ['all','upcoming','active','ready','completed','archived'];
+  const allowedFilters = ['all','upcoming','needs-prep','launch-ready','active','ready','completed','archived'];
   const allowedSorts = ['recent','date','title','status'];
   let selectedFilter = 'all';
   let nextCard = null;
@@ -60,6 +60,17 @@
     catch (error) { /* The organizer remains usable without storage. */ }
   };
 
+  const updateCardLaunchStatus = (card) => {
+    const panel = card.querySelector('[data-tng-plan-launch-score]');
+    if (!panel) return;
+    const ready = Math.min(4,Math.max(0,Number(card.dataset.planReadyCount || 0)));
+    const packed = Math.min(6,Math.max(0,Number(card.dataset.planPackedCount || 0)));
+    const complete = ready + packed;
+    panel.querySelector('[data-tng-plan-launch-label]').textContent = complete === 10 ? 'Launch ready' : `${complete} of 10 complete`;
+    panel.querySelector('[data-tng-plan-launch-progress]').style.width = `${complete * 10}%`;
+    panel.classList.toggle('is-complete',complete === 10);
+  };
+
   const applyFilters = () => {
     const stateOrder = {active:0,ready:1,completed:2,archived:3};
     const sorted = [...cards].sort((a, b) => {
@@ -80,7 +91,9 @@
     const query = search?.value.trim().toLocaleLowerCase() || '';
     let visible = 0;
     cards.forEach((card) => {
-      const matchesState = selectedFilter === 'all' ? card.dataset.planState !== 'archived' : (selectedFilter === 'upcoming' ? card.dataset.planState !== 'archived' && card.dataset.planDate >= todayKey : card.dataset.planState === selectedFilter);
+      const launchCount = Math.min(10,Math.max(0,Number(card.dataset.planReadyCount || 0) + Number(card.dataset.planPackedCount || 0)));
+      const upcoming = card.dataset.planState !== 'archived' && card.dataset.planDate >= todayKey;
+      const matchesState = selectedFilter === 'all' ? card.dataset.planState !== 'archived' : (selectedFilter === 'upcoming' ? upcoming : (selectedFilter === 'needs-prep' ? upcoming && launchCount < 10 : (selectedFilter === 'launch-ready' ? upcoming && launchCount === 10 : card.dataset.planState === selectedFilter)));
       const matchesQuery = !query || card.textContent.toLocaleLowerCase().includes(query);
       card.hidden = !(matchesState && matchesQuery);
       if (!card.hidden) visible += 1;
@@ -258,6 +271,7 @@
         const data = await post({operation:'packing',plan_id:card.dataset.planId || '',packing_key:packingCheckbox.dataset.tngPackingKey || '',checked:packingCheckbox.checked ? '1' : '0'});
         const count = [...fieldset.querySelectorAll('[data-tng-packing-key]')].filter((item) => item.checked).length;
         card.dataset.planPackedCount = String(count);
+        updateCardLaunchStatus(card);
         fieldset.querySelector('[data-tng-packing-count]').textContent = count + ' of 6 packed';
         const printItem = card.querySelector(`[data-tng-print-packing="${packingCheckbox.dataset.tngPackingKey || ''}"]`);
         if (printItem) {
@@ -267,6 +281,7 @@
         const printCount = card.querySelector('[data-tng-print-packing-count]');
         if (printCount) printCount.textContent = `Packing · ${count} of 6 complete`;
         if (card === nextCard) updateNextLaunchStatus();
+        if (selectedFilter === 'needs-prep' || selectedFilter === 'launch-ready') applyFilters();
         if (status) status.textContent = data.message;
       } catch (error) {
         packingCheckbox.checked = previous;
@@ -284,6 +299,7 @@
       const data = await post({operation:'readiness',plan_id:card.dataset.planId || '',readiness_key:checkbox.dataset.tngReadinessKey || '',checked:checkbox.checked ? '1' : '0'});
       const count = [...fieldset.querySelectorAll('[data-tng-readiness-key]')].filter((item) => item.checked).length;
       card.dataset.planReadyCount = String(count);
+      updateCardLaunchStatus(card);
       fieldset.querySelector('[data-tng-readiness-count]').textContent = count + ' of 4 ready';
       const printItem = card.querySelector(`[data-tng-print-readiness="${checkbox.dataset.tngReadinessKey || ''}"]`);
       if (printItem) {
@@ -293,6 +309,7 @@
       const printCount = card.querySelector('[data-tng-print-readiness-count]');
       if (printCount) printCount.textContent = `Readiness · ${count} of 4 complete`;
       if (card === nextCard) updateNextLaunchStatus();
+      if (selectedFilter === 'needs-prep' || selectedFilter === 'launch-ready') applyFilters();
       if (status) status.textContent = data.message;
     } catch (error) {
       checkbox.checked = previous;
