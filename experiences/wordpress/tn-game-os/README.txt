@@ -1,3 +1,12 @@
+TN GAME OS 5.141.0 — OFFLINE ADVENTURE REFRESH GUIDANCE
+
+CURRENT MILESTONE
+- Marks downloaded public stop packs for a recommended refresh after seven days.
+- Prompts one manual refresh for migrated packs that do not yet have a verification date.
+- Distinguishes a changed stop list from an age-based refresh recommendation.
+- Keeps every refresh explicit and preserves the working pack if verification fails.
+- Adds no timers, background fetch, automatic cache mutation, private data, or server tracking.
+
 TN GAME OS 5.140.0 — OFFLINE ADVENTURE VERIFICATION DATES
 
 CURRENT MILESTONE

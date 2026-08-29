@@ -146,11 +146,13 @@
         const render = (info) => {
           const count = Number(typeof info === 'object' ? info?.count : info) || 0;
           const current = typeof info !== 'object' || info?.current !== false;
+          const stale = count > 0 && current && typeof info === 'object' && info?.stale === true;
           const verifiedDate = typeof info === 'object' && info?.verifiedAt ? new Date(info.verifiedAt) : null;
           const verifiedLabel = verifiedDate && Number.isFinite(verifiedDate.getTime()) ? ` · verified ${Date.now() - verifiedDate.getTime() < 86400000 ? 'today' : verifiedDate.toLocaleDateString(undefined,{month:'short',day:'numeric'})}` : '';
           pack.panel.classList.toggle('needs-update', count > 0 && !current);
-          state.textContent = count > 0 ? (current ? `${count} public stop screen${count === 1 ? '' : 's'} saved${verifiedLabel}` : `Update available · ${count} screen${count === 1 ? '' : 's'} saved${verifiedLabel}`) : 'Not downloaded';
-          save.textContent = count > 0 ? 'Update' : 'Download';
+          pack.panel.classList.toggle('needs-refresh', stale);
+          state.textContent = count > 0 ? (!current ? `Update available · ${count} screen${count === 1 ? '' : 's'} saved${verifiedLabel}` : (stale ? `Refresh recommended · ${count} screen${count === 1 ? '' : 's'} saved${verifiedLabel}` : `${count} public stop screen${count === 1 ? '' : 's'} saved${verifiedLabel}`)) : 'Not downloaded';
+          save.textContent = count > 0 ? (!current ? 'Update' : 'Refresh') : 'Download';
           remove.hidden = count < 1;
         };
         pack.panel.hidden = false;
