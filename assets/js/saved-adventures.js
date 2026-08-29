@@ -10,6 +10,7 @@
   const cards = [...root.querySelectorAll('[data-plan-id]')];
   const filterStatus = root.querySelector('[data-tng-filter-status]');
   const filterEmpty = root.querySelector('[data-tng-filter-empty]');
+  const conflictSummary = root.querySelector('[data-tng-conflict-summary]');
   const resetView = root.querySelector('[data-tng-adventure-reset]');
   const preferenceKey = 'tng_saved_adventure_view_v1';
   const allowedFilters = ['all','upcoming','active','ready','completed','archived'];
@@ -18,6 +19,33 @@
   let nextCard = null;
   const now = new Date();
   const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+
+  const scheduleWindows = cards.map((card) => {
+    if (card.dataset.planState === 'archived' || !card.dataset.planDate || card.dataset.planDate < todayKey) return null;
+    const parts = card.dataset.planDate.split('-').map(Number);
+    if (parts.length !== 3 || parts.some((part) => !Number.isFinite(part))) return null;
+    const start = new Date(parts[0],parts[1]-1,parts[2]).getTime() + Number(card.dataset.planStart || 0) * 60000;
+    return {card,start,end:start + Math.max(1,Number(card.dataset.planDuration || 1)) * 60000,title:card.querySelector('[data-plan-title]')?.textContent?.trim() || 'another adventure'};
+  }).filter(Boolean);
+  const conflicts = new Map();
+  scheduleWindows.forEach((plan, index) => scheduleWindows.slice(index + 1).forEach((other) => {
+    if (plan.start >= other.end || other.start >= plan.end) return;
+    if (!conflicts.has(plan.card)) conflicts.set(plan.card,new Set());
+    if (!conflicts.has(other.card)) conflicts.set(other.card,new Set());
+    conflicts.get(plan.card).add(other.title);
+    conflicts.get(other.card).add(plan.title);
+  }));
+  conflicts.forEach((titles, card) => {
+    const names = [...titles];
+    const warning = card.querySelector('[data-tng-plan-conflict]');
+    card.classList.add('has-schedule-conflict');
+    warning.querySelector('[data-tng-conflict-detail]').textContent = `Overlaps ${names.slice(0,2).join(', ')}${names.length > 2 ? ` +${names.length-2} more` : ''}`;
+    warning.hidden = false;
+  });
+  if (conflictSummary && conflicts.size) {
+    conflictSummary.textContent = `${conflicts.size} scheduled adventure${conflicts.size === 1 ? '' : 's'} overlap. Review their times before starting.`;
+    conflictSummary.hidden = false;
+  }
 
   try {
     const preferences = JSON.parse(window.localStorage.getItem(preferenceKey) || '{}');
