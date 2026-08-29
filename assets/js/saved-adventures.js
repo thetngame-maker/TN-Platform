@@ -247,6 +247,13 @@
       const count = [...fieldset.querySelectorAll('[data-tng-readiness-key]')].filter((item) => item.checked).length;
       card.dataset.planReadyCount = String(count);
       fieldset.querySelector('[data-tng-readiness-count]').textContent = count + ' of 4 ready';
+      const printItem = card.querySelector(`[data-tng-print-readiness="${checkbox.dataset.tngReadinessKey || ''}"]`);
+      if (printItem) {
+        printItem.classList.toggle('is-ready', checkbox.checked);
+        printItem.querySelector('span').textContent = checkbox.checked ? '✓' : '○';
+      }
+      const printCount = card.querySelector('[data-tng-print-readiness-count]');
+      if (printCount) printCount.textContent = `Readiness · ${count} of 4 complete`;
       if (card === nextCard) root.querySelector('[data-tng-next-readiness]').textContent = count + ' of 4 readiness checks complete';
       if (status) status.textContent = data.message;
     } catch (error) {
@@ -404,6 +411,11 @@
         const data = await post({operation:'notes',plan_id:card.dataset.planId || '',notes:notes.value});
         panel.classList.toggle('has-notes', notes.value.trim() !== '');
         panel.querySelector('[data-tng-notes-state]').textContent = notes.value.trim() === '' ? 'Optional' : 'Saved';
+        const printNotes = card.querySelector('[data-tng-print-notes]');
+        if (printNotes) {
+          printNotes.hidden = notes.value.trim() === '';
+          printNotes.querySelector('p').textContent = notes.value.trim();
+        }
         if (status) status.textContent = data.message;
       } catch (error) {
         if (status) status.textContent = error.message;
