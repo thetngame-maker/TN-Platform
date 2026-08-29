@@ -17,7 +17,7 @@ assert.match(client,/PRODID:-\/\/The TN Game\/\/Upcoming Adventures\/\/EN/);
 assert.match(client,/BEGIN:VEVENT/);
 assert.match(client,/END:VEVENT/);
 assert.match(client,/tn-game-upcoming-adventures\.ics/);
-assert.match(client,/\.tng-adventure-card__print li/);
+assert.match(client,/(?:\.tng-adventure-card__print|\[data-tng-print-stops\]) li/);
 const exportStart=client.indexOf("const exportUpcoming =");
 const exportBlock=client.slice(exportStart,client.indexOf("const calendar =",exportStart));
 assert.doesNotMatch(exportBlock,/post\(|fetch\(|operation:|plan_id/);

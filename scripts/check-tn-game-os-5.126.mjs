@@ -18,5 +18,5 @@ assert.match(client,/text\/calendar;charset=utf-8/);
 assert.match(client,/URL\.revokeObjectURL/);
 const calendarBlock=client.slice(client.indexOf('const calendar ='),client.indexOf('const clearDate ='));
 assert.doesNotMatch(calendarBlock,/post\(|fetch\(|planId|plan_id|user|account/i);
-assert.match(calendarBlock,/\.tng-adventure-card__print li/);
+assert.match(calendarBlock,/(?:\.tng-adventure-card__print|\[data-tng-print-stops\]) li/);
 console.log('TN Game OS 5.126.0 Private Calendar Export checks passed');
