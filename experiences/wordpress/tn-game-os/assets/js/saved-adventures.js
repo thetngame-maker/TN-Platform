@@ -183,6 +183,18 @@
 
   const nextBanner = root.querySelector('[data-tng-next-adventure]');
   nextCard = cards.filter((card) => card.dataset.planState !== 'archived' && card.dataset.planDate >= todayKey).sort((a, b) => a.dataset.planDate.localeCompare(b.dataset.planDate))[0] || null;
+  const updateNextLaunchStatus = () => {
+    if (!nextBanner || !nextCard) return;
+    const ready = Math.min(4,Math.max(0,Number(nextCard.dataset.planReadyCount || 0)));
+    const packed = Math.min(6,Math.max(0,Number(nextCard.dataset.planPackedCount || 0)));
+    const complete = ready + packed;
+    const remaining = 10 - complete;
+    nextBanner.querySelector('[data-tng-next-readiness]').textContent = `${ready} of 4 readiness checks complete`;
+    nextBanner.querySelector('[data-tng-next-packing]').textContent = `${packed} of 6 packing checks complete`;
+    nextBanner.querySelector('[data-tng-next-launch-progress]').style.width = `${complete * 10}%`;
+    nextBanner.querySelector('[data-tng-next-launch-label]').textContent = remaining === 0 ? 'Launch checks complete' : `${remaining} launch check${remaining === 1 ? '' : 's'} remaining`;
+    nextBanner.querySelector('[data-tng-next-launch-status]').classList.toggle('is-complete',remaining === 0);
+  };
   if (nextBanner && nextCard) {
     const parts = nextCard.dataset.planDate.split('-').map(Number);
     const targetDate = new Date(parts[0],parts[1]-1,parts[2],12,0,0);
@@ -193,7 +205,7 @@
     nextBanner.querySelector('[data-tng-next-date]').textContent = targetDate.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'});
     const timing = nextCard.querySelector('[data-tng-plan-timing]');
     nextBanner.querySelector('[data-tng-next-timing]').textContent = timing ? `${timing.querySelector('[data-tng-timing-start]').textContent}–${timing.querySelector('[data-tng-timing-finish]').textContent} · ${timing.querySelector('[data-tng-timing-duration]').textContent}` : '';
-    nextBanner.querySelector('[data-tng-next-readiness]').textContent = Number(nextCard.dataset.planReadyCount || 0) + ' of 4 readiness checks complete';
+    updateNextLaunchStatus();
     nextBanner.hidden = false;
     nextCard.classList.add('is-next-up');
     const revealNextCard = () => {
@@ -245,6 +257,7 @@
       try {
         const data = await post({operation:'packing',plan_id:card.dataset.planId || '',packing_key:packingCheckbox.dataset.tngPackingKey || '',checked:packingCheckbox.checked ? '1' : '0'});
         const count = [...fieldset.querySelectorAll('[data-tng-packing-key]')].filter((item) => item.checked).length;
+        card.dataset.planPackedCount = String(count);
         fieldset.querySelector('[data-tng-packing-count]').textContent = count + ' of 6 packed';
         const printItem = card.querySelector(`[data-tng-print-packing="${packingCheckbox.dataset.tngPackingKey || ''}"]`);
         if (printItem) {
@@ -253,6 +266,7 @@
         }
         const printCount = card.querySelector('[data-tng-print-packing-count]');
         if (printCount) printCount.textContent = `Packing · ${count} of 6 complete`;
+        if (card === nextCard) updateNextLaunchStatus();
         if (status) status.textContent = data.message;
       } catch (error) {
         packingCheckbox.checked = previous;
@@ -278,7 +292,7 @@
       }
       const printCount = card.querySelector('[data-tng-print-readiness-count]');
       if (printCount) printCount.textContent = `Readiness · ${count} of 4 complete`;
-      if (card === nextCard) root.querySelector('[data-tng-next-readiness]').textContent = count + ' of 4 readiness checks complete';
+      if (card === nextCard) updateNextLaunchStatus();
       if (status) status.textContent = data.message;
     } catch (error) {
       checkbox.checked = previous;

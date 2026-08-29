@@ -1,3 +1,12 @@
+TN GAME OS 5.148.0 — NEXT ADVENTURE LAUNCH STATUS
+
+CURRENT MILESTONE
+- Combines readiness and packing progress for the next scheduled Saved Adventure.
+- Shows both checklist counts, a ten-check progress bar, and a clear remaining or complete status.
+- Updates immediately after an explicit checklist change without reloading the private workspace.
+- Keeps Start Adventure available even when checks remain; the status is advisory rather than a blocker.
+- Derives everything from already-rendered owner-only data with no new storage, request, notification, or public activity.
+
 TN GAME OS 5.147.0 — PRIVATE ADVENTURE PACKING CHECKLIST
 
 CURRENT MILESTONE
