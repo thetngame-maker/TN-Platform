@@ -1,3 +1,12 @@
+TN GAME OS 5.135.0 — PRIVACY-SAFE OFFLINE ADVENTURE PACKS
+
+CURRENT MILESTONE
+- Downloads the public stop pages for one Saved Adventure after an explicit Explorer action.
+- Verifies every logged-out response is marked public-safe before caching it.
+- Supports update, device-local status, and removal from any private Saved Adventure card, including archived plans.
+- Never caches the private plan, notes, readiness, XP, profile, account cookies, or write requests.
+- Limits each pack to 12 same-origin published stop screens and queues no offline gameplay.
+
 TN GAME OS 5.134.0 — UPCOMING ADVENTURES CALENDAR EXPORT
 
 CURRENT MILESTONE

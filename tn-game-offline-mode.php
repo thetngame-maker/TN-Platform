@@ -10,6 +10,7 @@ if (!defined('ABSPATH')) exit;
 final class TNG_Offline_Mode {
     private const QUERY_VAR = 'tng_offline_asset';
     private const SAFE_ROUTES = ['explore','play','games','map','offline','trails','events','food','top-sights','destinations'];
+    private const SAFE_POST_TYPES = ['st_activity','activity','top_sight','tng_destination','st_location'];
 
     public static function boot(): void {
         add_action('init', [self::class, 'rewrites'], 15);
@@ -39,7 +40,8 @@ final class TNG_Offline_Mode {
     public static function public_cache_header(): void {
         if (is_admin() || is_user_logged_in() || headers_sent()) return;
         $route = self::request_route();
-        if (in_array($route, self::SAFE_ROUTES, true)) header('X-TNG-Offline-Safe: 1');
+        $public_stop = is_singular(self::SAFE_POST_TYPES) && get_post_status(get_queried_object_id()) === 'publish';
+        if (in_array($route, self::SAFE_ROUTES, true) || $public_stop) header('X-TNG-Offline-Safe: 1');
     }
 
     public static function assets(): void {
@@ -131,10 +133,16 @@ self.addEventListener('message',event=>{
   const data=event.data||{};
   const reply=payload=>{if(event.ports&&event.ports[0])event.ports[0].postMessage(payload);else if(event.source)event.source.postMessage(payload);};
   const safeUrl=value=>{try{const url=new URL(value,self.location.origin);const route=url.pathname.split('/').filter(Boolean)[0]||'';return url.origin===self.location.origin&&PUBLIC_ROUTES.includes(route)?url.toString():'';}catch(error){return'';}};
+  const adventureId=value=>/^adventure-[a-f0-9]{20}$/.test(String(value||''))?String(value):'';
+  const adventureUrl=value=>{try{const url=new URL(value,self.location.origin);url.hash='';return url.origin===self.location.origin&&!url.search&&url.pathname!=='/'?url.toString():'';}catch(error){return'';}};
   const status=async()=>{const installed={};for(const id of Object.keys(PACKS)){const cache=await caches.open(PACK_PREFIX+id);installed[id]=(await cache.keys()).length;}return installed;};
+  const adventureStatus=async ids=>{const installed={};for(const value of ids.slice(0,12)){const id=adventureId(value);if(!id)continue;const cache=await caches.open(PACK_PREFIX+id);installed[id]=(await cache.keys()).length;}return installed;};
   if(data.type==='TNG_OFFLINE_PACK_STATUS')event.waitUntil(status().then(installed=>reply({ok:true,installed})));
   if(data.type==='TNG_OFFLINE_PACK_REMOVE')event.waitUntil((async()=>{const id=String(data.id||'');if(!Object.prototype.hasOwnProperty.call(PACKS,id)){reply({ok:false,error:'Unknown offline pack.'});return;}await caches.delete(PACK_PREFIX+id);reply({ok:true,id,installed:await status()});})());
   if(data.type==='TNG_OFFLINE_PACK_SAVE')event.waitUntil((async()=>{const id=String(data.id||'');if(!Object.prototype.hasOwnProperty.call(PACKS,id)){reply({ok:false,error:'Unknown offline pack.'});return;}const cache=await caches.open(PACK_PREFIX+id);let saved=0;const failed=[];for(const value of PACKS[id]){const url=safeUrl(value);if(!url){failed.push(value);continue;}try{const response=await fetch(new Request(url,{credentials:'omit',cache:'reload'}));if(response.ok&&response.headers.get('X-TNG-Offline-Safe')==='1'){await cache.put(url,response.clone());saved++;}else failed.push(url);}catch(error){failed.push(url);}}reply({ok:failed.length===0,id,saved,failed:failed.length,installed:await status()});})());
+  if(data.type==='TNG_ADVENTURE_PACK_STATUS')event.waitUntil((async()=>{const ids=Array.isArray(data.ids)?data.ids:[];reply({ok:true,installed:await adventureStatus(ids)});})());
+  if(data.type==='TNG_ADVENTURE_PACK_REMOVE')event.waitUntil((async()=>{const id=adventureId(data.id);if(!id){reply({ok:false,error:'Unknown adventure pack.'});return;}await caches.delete(PACK_PREFIX+id);reply({ok:true,id,installed:await adventureStatus([id])});})());
+  if(data.type==='TNG_ADVENTURE_PACK_SAVE')event.waitUntil((async()=>{const id=adventureId(data.id);const values=Array.isArray(data.urls)?[...new Set(data.urls)].slice(0,12):[];if(!id||!values.length){reply({ok:false,error:'Adventure pack is not valid.'});return;}await caches.delete(PACK_PREFIX+id);const cache=await caches.open(PACK_PREFIX+id);let saved=0;const failed=[];for(const value of values){const url=adventureUrl(value);if(!url){failed.push(value);continue;}try{const response=await fetch(new Request(url,{credentials:'omit',cache:'reload',redirect:'follow'}));if(response.ok&&response.headers.get('X-TNG-Offline-Safe')==='1'){await cache.put(url,response.clone());saved++;}else failed.push(url);}catch(error){failed.push(url);}}if(!saved)await caches.delete(PACK_PREFIX+id);reply({ok:saved>0&&failed.length===0,id,saved,failed:failed.length,installed:await adventureStatus([id])});})());
 });
         <?php
         exit;

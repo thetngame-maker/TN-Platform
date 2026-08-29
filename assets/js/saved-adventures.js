@@ -114,6 +114,63 @@
   filters.forEach((item) => item.setAttribute('aria-pressed', String(item.dataset.tngAdventureFilter === selectedFilter)));
   applyFilters();
 
+  const adventurePacks = cards.map((card) => {
+    const panel = card.querySelector('[data-tng-adventure-offline]');
+    if (!panel) return null;
+    try {
+      const urls = JSON.parse(panel.querySelector('[data-tng-offline-urls]')?.textContent || '[]');
+      return {panel,id:panel.dataset.tngOfflinePack || '',urls:Array.isArray(urls) ? urls.slice(0,12) : []};
+    } catch (error) { return null; }
+  }).filter((pack) => pack && pack.id && pack.urls.length);
+
+  const messageOfflineWorker = async (payload) => {
+    const ready = await navigator.serviceWorker.ready;
+    const worker = ready.active || ready.waiting || ready.installing;
+    if (!worker) throw new Error('Offline worker is not ready.');
+    return await new Promise((resolve, reject) => {
+      const channel = new MessageChannel();
+      const timer = window.setTimeout(() => reject(new Error('Offline worker timed out.')), 30000);
+      channel.port1.onmessage = (event) => { window.clearTimeout(timer); resolve(event.data || {}); };
+      worker.postMessage(payload,[channel.port2]);
+    });
+  };
+
+  const initializeAdventurePacks = async () => {
+    if (!adventurePacks.length || !('serviceWorker' in navigator)) return;
+    try {
+      const response = await messageOfflineWorker({type:'TNG_ADVENTURE_PACK_STATUS',ids:adventurePacks.map((pack) => pack.id)});
+      adventurePacks.forEach((pack) => {
+        const state = pack.panel.querySelector('[data-tng-adventure-offline-state]');
+        const save = pack.panel.querySelector('[data-tng-adventure-offline-save]');
+        const remove = pack.panel.querySelector('[data-tng-adventure-offline-remove]');
+        const render = (count) => {
+          state.textContent = count > 0 ? `${count} public stop screen${count === 1 ? '' : 's'} saved` : 'Not downloaded';
+          save.textContent = count > 0 ? 'Update' : 'Download';
+          remove.hidden = count < 1;
+        };
+        pack.panel.hidden = false;
+        render(Number(response.installed?.[pack.id] || 0));
+        save.addEventListener('click', async () => {
+          if (!navigator.onLine) { state.textContent = 'Connect to download public stop screens'; return; }
+          save.disabled = true; remove.disabled = true; state.textContent = 'Downloading public stop screens…';
+          try {
+            const result = await messageOfflineWorker({type:'TNG_ADVENTURE_PACK_SAVE',id:pack.id,urls:pack.urls});
+            render(Number(result.installed?.[pack.id] || result.saved || 0));
+            if (!result.ok) state.textContent = `${result.saved || 0} saved · ${result.failed || 0} unavailable`;
+          } catch (error) { state.textContent = 'Could not download this adventure'; }
+          save.disabled = false; remove.disabled = false;
+        });
+        remove.addEventListener('click', async () => {
+          save.disabled = true; remove.disabled = true; state.textContent = 'Removing public stop screens…';
+          try { await messageOfflineWorker({type:'TNG_ADVENTURE_PACK_REMOVE',id:pack.id}); render(0); }
+          catch (error) { state.textContent = 'Could not remove this adventure pack'; }
+          save.disabled = false; remove.disabled = false;
+        });
+      });
+    } catch (error) { /* Offline controls remain hidden when the worker is unavailable. */ }
+  };
+  window.addEventListener('load', initializeAdventurePacks, {once:true});
+
   const nextBanner = root.querySelector('[data-tng-next-adventure]');
   nextCard = cards.filter((card) => card.dataset.planState !== 'archived' && card.dataset.planDate >= todayKey).sort((a, b) => a.dataset.planDate.localeCompare(b.dataset.planDate))[0] || null;
   if (nextBanner && nextCard) {
