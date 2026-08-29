@@ -10,7 +10,7 @@ assert.match(bootstrap,/Version:\s*5\.1(?:42|4[3-9]|[5-9]\d)\.\d+/);
 assert.match(bootstrap,/define\('TNG_OS_VERSION','5\.1(?:42|4[3-9]|[5-9]\d)\.\d+'\)/);
 assert.match(offline,/const adventureLibrary=async/);
 assert.match(offline,/key\.startsWith\(ADVENTURE_PACK_PREFIX\)/);
-assert.match(offline,/urls,verifiedAt:/);
+assert.match(offline,/urls,(?:bytes,)?verifiedAt:/);
 assert.match(offline,/TNG_ADVENTURE_PACK_LIBRARY/);
 assert.match(offline,/data-tng-device-adventures/);
 assert.match(offline,/Public stop screens only · plan details stay private/);
