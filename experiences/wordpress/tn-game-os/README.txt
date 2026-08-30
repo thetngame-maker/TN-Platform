@@ -1,3 +1,13 @@
+TN GAME OS 5.162.0 — VERIFIED PREP CHECKLIST SAVES
+
+CURRENT MILESTONE
+- Verifies the stored readiness or packing checklist when a metadata write returns false, distinguishing an unchanged checklist from a failed save.
+- Rejects unpersisted checklist changes so the existing client restores the checkbox and leaves confirmed counts, print views, and prep status unchanged.
+- Keeps launch-ready confirmations behind a successful save response; failed saves remain available for manual retry.
+- Checks the whole affected checklist, including removals, without returning private plan fields.
+- Retains owner, nonce, scheduled-plan, archived-plan, and allowed-check protections.
+- Adds no automatic retry, new client request, browser storage, or cross-tab synchronization.
+
 TN GAME OS 5.161.0 — CONSISTENT SAVED ADVENTURE NAMES
 
 CURRENT MILESTONE

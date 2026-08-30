@@ -27,7 +27,10 @@ function get_user_meta(int $user, string $key, bool $single = false): mixed {
 }
 function update_user_meta(int $user, string $key, mixed $value): bool {
     $GLOBALS['notes_fixture']['writes']++;
-    if (!$GLOBALS['notes_fixture']['write_success']) return false;
+    if (!$GLOBALS['notes_fixture']['write_success']) {
+        if (isset($GLOBALS['notes_fixture']['failed_write_hook'])) ($GLOBALS['notes_fixture']['failed_write_hook'])();
+        return false;
+    }
     $GLOBALS['notes_fixture']['meta'][$user][$key] = $value;
     return true;
 }
@@ -151,3 +154,91 @@ foreach (['logged_in'=>401,'nonce_valid'=>403] as $flag=>$status) {
     notes_expect(!array_key_exists('title', $response->data), 'Denied rename returns no title');
 }
 fwrite(STDOUT, "TN Game OS 5.161.0 private rename endpoint tests passed\n");
+
+foreach (['readiness'=>['route','gear'], 'packing'=>['water','layers']] as $kind=>$keys) {
+    [$key,$other_key] = $keys;
+    foreach ([true,false] as $checked) {
+        foreach ([true,false] as $write_success) {
+            notes_reset();
+            $initial = $checked ? [$other_key=>1] : [$other_key=>1,$key=>1];
+            $expected = $checked ? [$other_key=>1,$key=>1] : [$other_key=>1];
+            $GLOBALS['notes_fixture']['meta'][7]['tng_adventure_ai_plan_library'][0][$kind] = $initial;
+            $GLOBALS['notes_fixture']['write_success'] = $write_success;
+            $other_owner = $GLOBALS['notes_fixture']['meta'][8];
+            $response = notes_action(['operation'=>$kind,'plan_id'=>'owned-plan',$kind.'_key'=>$key,'checked'=>$checked?'1':'0']);
+            notes_expect($response->success === $write_success, 'Checklist success must match persistence for checking and unchecking');
+            notes_expect($response->status === ($write_success ? 200 : 500), 'Failed checklist writes report a server error');
+            notes_expect(notes_saved()[$kind] == ($write_success ? $expected : $initial), 'Checklist persistence preserves other items');
+            notes_expect($GLOBALS['notes_fixture']['writes'] === 1, 'Checklist save does not automatically retry');
+            notes_expect($GLOBALS['notes_fixture']['meta'][8] === $other_owner, 'Another owner checklist remains untouched');
+            notes_expect(notes_saved()['notes'] === 'Old private notes', 'Checklist updates preserve private notes');
+            notes_expect(array_diff(array_keys($response->data), ['message','url']) === [], 'Checklist responses disclose no private plan fields');
+        }
+        notes_reset();
+        $GLOBALS['notes_fixture']['write_success'] = false;
+        $GLOBALS['notes_fixture']['meta'][7]['tng_adventure_ai_plan_library'][0][$kind] = $checked ? [$key=>1,$other_key=>1] : [$other_key=>1];
+        $response = notes_action(['operation'=>$kind,'plan_id'=>'owned-plan',$kind.'_key'=>$key,'checked'=>$checked?'1':'0']);
+        notes_expect($response->success, 'An already stored checkbox value is a verified no-op');
+    }
+
+    notes_reset();
+    $GLOBALS['notes_fixture']['write_success'] = false;
+    $response = notes_action(['operation'=>$kind,'plan_id'=>'owned-plan',$kind.'_key'=>$key,'checked'=>'0']);
+    notes_expect($response->success, 'An absent unchecked list is a valid no-op');
+    notes_reset();
+    $GLOBALS['notes_fixture']['meta'][7]['tng_adventure_ai_plan_library'][0][$kind] = [$key=>1];
+    $response = notes_action(['operation'=>$kind,'plan_id'=>'owned-plan',$kind.'_key'=>$key,'checked'=>'0']);
+    notes_expect($response->success && !array_key_exists($kind,notes_saved()), 'Unchecking the last item clears the checklist');
+
+    notes_reset();
+    $GLOBALS['notes_fixture']['write_success'] = false;
+    $GLOBALS['notes_fixture']['meta'][7]['tng_adventure_ai_plan_library'][0][$kind] = [$key=>1];
+    $response = notes_action(['operation'=>$kind,'plan_id'=>'owned-plan',$kind.'_key'=>$key,'checked'=>'0']);
+    notes_expect(!$response->success && $response->status === 500 && notes_saved()[$kind] === [$key=>1], 'Failed removal of the last item cannot confirm an empty list');
+
+    notes_reset();
+    $GLOBALS['notes_fixture']['write_success'] = false;
+    $GLOBALS['notes_fixture']['meta'][7]['tng_adventure_ai_plan_library'][0][$kind] = [$key=>1,$other_key=>1];
+    $GLOBALS['notes_fixture']['failed_write_hook'] = static function() use ($kind,$key,$other_key): void {
+        $GLOBALS['notes_fixture']['meta'][7]['tng_adventure_ai_plan_library'][0][$kind] = [$other_key=>1,$key=>1];
+    };
+    $response = notes_action(['operation'=>$kind,'plan_id'=>'owned-plan',$kind.'_key'=>$key,'checked'=>'1']);
+    notes_expect($response->success, 'Equivalent checklist key order is a valid no-op');
+
+    notes_reset();
+    $GLOBALS['notes_fixture']['write_success'] = false;
+    $GLOBALS['notes_fixture']['meta'][7]['tng_adventure_ai_plan_library'][0][$kind] = [$key=>1,$other_key=>1];
+    $GLOBALS['notes_fixture']['failed_write_hook'] = static function() use ($kind,$key): void {
+        $GLOBALS['notes_fixture']['meta'][7]['tng_adventure_ai_plan_library'][0][$kind] = [$key=>1];
+    };
+    $response = notes_action(['operation'=>$kind,'plan_id'=>'owned-plan',$kind.'_key'=>$key,'checked'=>'1']);
+    notes_expect(!$response->success && $response->status === 500, 'No-op verification checks the entire checklist, not only the submitted item');
+
+    notes_reset();
+    $GLOBALS['notes_fixture']['write_success'] = false;
+    $GLOBALS['notes_fixture']['failed_write_hook'] = static function(): void {
+        $GLOBALS['notes_fixture']['meta'][7]['tng_adventure_ai_plan_library'] = [];
+    };
+    $response = notes_action(['operation'=>$kind,'plan_id'=>'owned-plan',$kind.'_key'=>$key,'checked'=>'0']);
+    notes_expect(!$response->success && $response->status === 500, 'A disappeared plan cannot be mistaken for an empty saved checklist');
+
+    foreach (['invalid_key','archived','unscheduled','other_owner','logged_in','nonce_valid'] as $scenario) {
+        notes_reset();
+        $fields = ['operation'=>$kind,'plan_id'=>'owned-plan',$kind.'_key'=>$key,'checked'=>'1'];
+        $expected_status = 409;
+        if ($scenario === 'invalid_key') { $fields[$kind.'_key'] = 'unsupported'; $expected_status = 400; }
+        if ($scenario === 'archived') $GLOBALS['notes_fixture']['meta'][7]['tng_adventure_ai_plan_library'][0]['archived_at'] = 1;
+        if ($scenario === 'unscheduled') unset($GLOBALS['notes_fixture']['meta'][7]['tng_adventure_ai_plan_library'][0]['planned_date']);
+        if ($scenario === 'other_owner') { $fields['plan_id'] = 'other-plan'; $expected_status = 404; }
+        if ($scenario === 'logged_in' || $scenario === 'nonce_valid') {
+            $GLOBALS['notes_fixture'][$scenario] = false;
+            $expected_status = $scenario === 'logged_in' ? 401 : 403;
+        }
+        $response = notes_action($fields);
+        notes_expect(!$response->success && $response->status === $expected_status, 'Checklist access and validation guards stay enforced');
+        notes_expect($GLOBALS['notes_fixture']['writes'] === 0, 'Rejected checklist requests perform no write');
+        notes_expect(array_keys($response->data) === ['message'], 'Rejected checklist requests disclose no plan fields');
+        if ($scenario === 'logged_in' || $scenario === 'nonce_valid') notes_expect($GLOBALS['notes_fixture']['reads'] === 0, 'Unauthenticated checklist requests access no metadata');
+    }
+}
+fwrite(STDOUT, "TN Game OS 5.162.0 private prep checklist endpoint tests passed\n");
