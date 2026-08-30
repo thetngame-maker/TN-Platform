@@ -1,3 +1,13 @@
+TN GAME OS 5.161.0 — CONSISTENT SAVED ADVENTURE NAMES
+
+CURRENT MILESTONE
+- Returns the sanitized, length-limited saved name only in an authenticated owner's rename response.
+- Updates the adventure card, private print view, Next adventure banner, and prep overview from that confirmed name.
+- Preserves any newer name typed while the save is pending and clearly reports that it still needs saving.
+- Reflects server normalization in the rename field when no newer edit needs preserving; older responses use the submitted name.
+- Distinguishes unchanged names from failed writes before returning success, while retaining notes-save protection.
+- Adds no automatic retry, new request, browser storage, or broader sharing of private plan data.
+
 TN GAME OS 5.160.0 — SNAPSHOT-SAFE NOTES SAVING
 
 CURRENT MILESTONE
