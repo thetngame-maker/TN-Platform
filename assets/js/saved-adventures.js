@@ -80,8 +80,9 @@
   };
 
   const launchCountFor = (card) => Math.min(10,Math.max(0,Number(card.dataset.planReadyCount || 0) + Number(card.dataset.planPackedCount || 0)));
+  const isUpcomingPrepCard = (card) => card.dataset.planState !== 'archived' && card.dataset.planDate >= todayKey;
   const launchReadyStatusFor = (card, previousCount, fallback) => {
-    if (previousCount < 10 && launchCountFor(card) === 10) {
+    if (isUpcomingPrepCard(card) && previousCount < 10 && launchCountFor(card) === 10) {
       const title = card.querySelector('[data-plan-title]')?.textContent?.trim() || 'This adventure';
       return `${title} is launch ready. All 10 preparation checks are complete.`;
     }
@@ -90,7 +91,7 @@
   const nextIncompleteCheckFor = (card) => [...card.querySelectorAll('[data-tng-readiness-key],[data-tng-packing-key]')].find((item) => !item.checked) || null;
   const updatePrepOverview = () => {
     if (!prepOverview) return;
-    const upcoming = cards.filter((card) => card.dataset.planState !== 'archived' && card.dataset.planDate >= todayKey);
+    const upcoming = cards.filter((card) => isUpcomingPrepCard(card));
     const needsPrep = upcoming.filter((card) => launchCountFor(card) < 10);
     const launchReady = upcoming.filter((card) => launchCountFor(card) === 10);
     prepOverview.querySelector('[data-tng-prep-upcoming]').textContent = String(upcoming.length);
@@ -125,8 +126,8 @@
       if (sort?.value === 'title') return (a.querySelector('[data-plan-title]')?.textContent || '').localeCompare(b.querySelector('[data-plan-title]')?.textContent || '', undefined, {sensitivity:'base'});
       if (sort?.value === 'status') return (stateOrder[a.dataset.planState] ?? 9) - (stateOrder[b.dataset.planState] ?? 9) || Number(b.dataset.planUpdated || 0) - Number(a.dataset.planUpdated || 0);
       if (sort?.value === 'prep') {
-        const aUpcoming = a.dataset.planState !== 'archived' && a.dataset.planDate >= todayKey;
-        const bUpcoming = b.dataset.planState !== 'archived' && b.dataset.planDate >= todayKey;
+        const aUpcoming = isUpcomingPrepCard(a);
+        const bUpcoming = isUpcomingPrepCard(b);
         const aLaunch = launchCountFor(a);
         const bLaunch = launchCountFor(b);
         const aRank = aUpcoming ? (aLaunch < 10 ? 0 : 1) : (a.dataset.planState === 'archived' ? 3 : 2);
@@ -155,7 +156,7 @@
     let visible = 0;
     cards.forEach((card) => {
       const launchCount = launchCountFor(card);
-      const upcoming = card.dataset.planState !== 'archived' && card.dataset.planDate >= todayKey;
+      const upcoming = isUpcomingPrepCard(card);
       const matchesState = selectedFilter === 'all' ? card.dataset.planState !== 'archived' : (selectedFilter === 'upcoming' ? upcoming : (selectedFilter === 'needs-prep' ? upcoming && launchCount < 10 : (selectedFilter === 'launch-ready' ? upcoming && launchCount === 10 : card.dataset.planState === selectedFilter)));
       const matchesQuery = !query || card.textContent.toLocaleLowerCase().includes(query);
       card.hidden = !(matchesState && matchesQuery);
@@ -286,7 +287,7 @@
   window.addEventListener('load', initializeAdventurePacks, {once:true});
 
   const nextBanner = root.querySelector('[data-tng-next-adventure]');
-  nextCard = cards.filter((card) => card.dataset.planState !== 'archived' && card.dataset.planDate >= todayKey).sort((a, b) => a.dataset.planDate.localeCompare(b.dataset.planDate))[0] || null;
+  nextCard = cards.filter((card) => isUpcomingPrepCard(card)).sort((a, b) => a.dataset.planDate.localeCompare(b.dataset.planDate))[0] || null;
   const updateNextLaunchStatus = () => {
     if (!nextBanner || !nextCard) return;
     const ready = Math.min(4,Math.max(0,Number(nextCard.dataset.planReadyCount || 0)));
