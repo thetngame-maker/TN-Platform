@@ -1,3 +1,13 @@
+TN GAME OS 5.159.0 — SAVE-IN-PROGRESS PROTECTION
+
+CURRENT MILESTONE
+- Allows only one Saved Adventure update request at a time within the current library page.
+- Rejects an overlapping change with a clear wait-and-retry message, without sending or queueing it.
+- Keeps the protection active through response parsing and releases it after success, server rejection, or network failure.
+- Uses the existing checkbox rollback and button recovery paths; unsaved form text remains available for manual retry.
+- Preserves the existing endpoint, nonce, same-origin credentials, and user confirmations.
+- Adds no automatic retry, storage, background task, or public output; separate tabs and devices are not coordinated.
+
 TN GAME OS 5.158.0 — RELIABLE PLAN NAVIGATION
 
 CURRENT MILESTONE
