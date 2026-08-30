@@ -346,6 +346,13 @@ final class Adventure_AI implements Module_Interface {
             $saved_index = self::plan_index($saved_library, $plan_id);
             if ($saved_index < 0 || (string)($saved_library[$saved_index][$field] ?? '') !== (string)($library[$index][$field] ?? '')) wp_send_json_error(['message'=>$operation === 'notes' ? 'Planning notes could not be saved. Your text is still available to try again.' : 'Adventure name could not be saved. Your text is still available to try again.'], 500);
         }
+        if (($operation === 'readiness' || $operation === 'packing') && $updated === false) {
+            $saved_library = self::library(get_current_user_id());
+            $saved_index = self::plan_index($saved_library, $plan_id);
+            $saved_checks = $saved_index >= 0 && is_array($saved_library[$saved_index][$operation] ?? null) ? $saved_library[$saved_index][$operation] : [];
+            $expected_checks = is_array($library[$index][$operation] ?? null) ? $library[$index][$operation] : [];
+            if ($saved_index < 0 || $saved_checks != $expected_checks) wp_send_json_error(['message'=>$operation === 'readiness' ? 'Adventure readiness could not be saved. Try that change again.' : 'Adventure packing list could not be saved. Try that change again.'], 500);
+        }
         $messages = ['rename'=>'Adventure renamed.','schedule'=>'Adventure date updated.','readiness'=>'Adventure readiness updated.','packing'=>'Adventure packing list updated.','notes'=>'Planning notes updated.','duplicate'=>'Adventure duplicated.','archive'=>'Adventure archived.','restore'=>'Adventure restored.'];
         $response = ['message'=>$messages[$operation] ?? 'Adventure updated.','url'=>home_url('/adventures/')];
         if ($operation === 'notes') $response['notes'] = (string)($library[$index]['notes'] ?? '');
