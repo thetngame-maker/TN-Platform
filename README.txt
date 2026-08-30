@@ -1,3 +1,13 @@
+TN GAME OS 5.158.0 — RELIABLE PLAN NAVIGATION
+
+CURRENT MILESTONE
+- Clears an active search before revealing the private Next adventure card so the requested plan cannot remain hidden.
+- Captures the exact prep card and checkbox selected by Review next check before its smooth-scroll focus handoff.
+- Cancels stale focus handoffs when another plan navigation starts or the prep priority changes.
+- Avoids focusing removed, hidden, disabled, completed, or superseded controls and will not steal focus after the user moves elsewhere.
+- Selects the first currently enabled button or link when a revealed plan receives focus.
+- Adds no request, new storage, automatic checklist change, background task, or public output.
+
 TN GAME OS 5.157.0 — START-TIME-AWARE PREP PRIORITY
 
 CURRENT MILESTONE

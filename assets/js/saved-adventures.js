@@ -22,6 +22,7 @@
   let selectedFilter = 'all';
   let nextCard = null;
   let priorityPrep = null;
+  let planNavigationRequest = 0;
   const now = new Date();
   const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
 
@@ -211,16 +212,23 @@
   });
   prepFocus?.addEventListener('click', () => {
     if (!priorityPrep) return;
+    const target = priorityPrep;
+    const request = ++planNavigationRequest;
+    cards.forEach((card) => card.classList.remove('is-prep-focus'));
     if (search) search.value = '';
     selectedFilter = 'needs-prep';
     syncFilterControls();
     savePreferences();
     applyFilters();
-    priorityPrep.card.classList.add('is-prep-focus');
-    priorityPrep.card.scrollIntoView({behavior:'smooth',block:'center'});
+    target.card.classList.add('is-prep-focus');
+    target.card.scrollIntoView({behavior:'smooth',block:'center'});
+    const focusOrigin = document.activeElement;
     window.setTimeout(() => {
-      priorityPrep?.checkbox.focus({preventScroll:true});
-      priorityPrep?.card.classList.remove('is-prep-focus');
+      if (request !== planNavigationRequest) return;
+      target.card.classList.remove('is-prep-focus');
+      if (priorityPrep?.card !== target.card || priorityPrep?.checkbox !== target.checkbox) return;
+      if (!target.card.isConnected || target.card.hidden || !target.checkbox.isConnected || target.checkbox.hidden || target.checkbox.disabled || target.checkbox.checked) return;
+      if (document.activeElement === focusOrigin) target.checkbox.focus({preventScroll:true});
     },450);
   });
 
@@ -319,12 +327,20 @@
     nextBanner.hidden = false;
     nextCard.classList.add('is-next-up');
     const revealNextCard = () => {
+      const target = nextCard;
+      const request = ++planNavigationRequest;
+      cards.forEach((card) => card.classList.remove('is-prep-focus'));
+      if (search) search.value = '';
       selectedFilter = 'all';
       syncFilterControls();
       savePreferences();
       applyFilters();
-      nextCard.scrollIntoView({behavior:'smooth',block:'center'});
-      window.setTimeout(() => nextCard.querySelector('button,a')?.focus({preventScroll:true}), 450);
+      target.scrollIntoView({behavior:'smooth',block:'center'});
+      const focusOrigin = document.activeElement;
+      window.setTimeout(() => {
+        if (request !== planNavigationRequest || nextCard !== target || !target.isConnected || target.hidden || document.activeElement !== focusOrigin) return;
+        target.querySelector('button:not(:disabled),a[href]')?.focus({preventScroll:true});
+      },450);
     };
     const routeLink = nextCard.querySelector('a[href*="adventure="]');
     const bannerRoute = nextBanner.querySelector('[data-tng-next-map]');
