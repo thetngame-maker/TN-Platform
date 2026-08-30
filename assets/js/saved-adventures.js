@@ -182,6 +182,8 @@
     if (!notes) return;
     const count = notes.closest('[data-tng-plan-notes]').querySelector('[data-tng-notes-count]');
     if (count) count.textContent = notes.value.length + ' of 600';
+    const notesState = notes.closest('[data-tng-plan-notes-panel]')?.querySelector('[data-tng-notes-state]');
+    if (notesState) notesState.textContent = 'Unsaved changes';
   });
   sort?.addEventListener('change', () => { savePreferences(); applyFilters(); });
   filters.forEach((button) => button.addEventListener('click', () => {
@@ -583,17 +585,25 @@
       const panel = notesForm.closest('[data-tng-plan-notes-panel]');
       const notes = notesForm.querySelector('textarea[name="notes"]');
       const button = notesForm.querySelector('button[type="submit"]');
+      const submittedNotes = notes.value;
       button.disabled = true;
       try {
-        const data = await post({operation:'notes',plan_id:card.dataset.planId || '',notes:notes.value});
-        panel.classList.toggle('has-notes', notes.value.trim() !== '');
-        panel.querySelector('[data-tng-notes-state]').textContent = notes.value.trim() === '' ? 'Optional' : 'Saved';
+        const data = await post({operation:'notes',plan_id:card.dataset.planId || '',notes:submittedNotes});
+        const savedNotes = typeof data.notes === 'string' ? data.notes : submittedNotes;
+        const hasNewerEdits = notes.value !== submittedNotes && notes.value !== savedNotes;
+        if (!hasNewerEdits) {
+          notes.value = savedNotes;
+          const count = notesForm.querySelector('[data-tng-notes-count]');
+          if (count) count.textContent = notes.value.length + ' of 600';
+        }
+        panel.classList.toggle('has-notes', savedNotes.trim() !== '');
+        panel.querySelector('[data-tng-notes-state]').textContent = hasNewerEdits ? 'Unsaved changes' : (savedNotes.trim() === '' ? 'Optional' : 'Saved');
         const printNotes = card.querySelector('[data-tng-print-notes]');
         if (printNotes) {
-          printNotes.hidden = notes.value.trim() === '';
-          printNotes.querySelector('p').textContent = notes.value.trim();
+          printNotes.hidden = savedNotes.trim() === '';
+          printNotes.querySelector('p').textContent = savedNotes.trim();
         }
-        if (status) status.textContent = data.message;
+        if (status) status.textContent = hasNewerEdits ? 'Submitted notes saved. Your newer edits are not saved yet.' : data.message;
       } catch (error) {
         if (status) status.textContent = error.message;
       } finally { button.disabled = false; }
