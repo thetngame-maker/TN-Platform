@@ -110,3 +110,44 @@ foreach (['logged_in'=>401,'nonce_valid'=>403] as $flag=>$status) {
     notes_expect(!array_key_exists('notes', $response->data), 'Denied requests disclose no notes');
 }
 fwrite(STDOUT, "TN Game OS 5.160.0 private notes endpoint tests passed\n");
+
+// Extend the same isolated endpoint suite with confirmed rename coverage.
+notes_reset();
+$other = $GLOBALS['notes_fixture']['meta'][8];
+$response = notes_action(['operation'=>'rename','plan_id'=>'owned-plan','title'=>'  <b>Confirmed name</b>  ']);
+notes_expect($response->success && $response->data['title'] === 'Confirmed name', 'Rename returns the sanitized canonical title');
+notes_expect($response->data['title'] === notes_saved()['title'], 'Returned title matches the saved value');
+notes_expect(!array_key_exists('notes', $response->data) && notes_saved()['notes'] === 'Old private notes', 'Rename neither returns nor changes private notes');
+notes_expect($GLOBALS['notes_fixture']['meta'][8] === $other, 'Renaming preserves the other owner');
+$response = notes_action(['operation'=>'rename','plan_id'=>'owned-plan','title'=>str_repeat('n',110)]);
+notes_expect(strlen($response->data['title']) === 100 && $response->data['title'] === notes_saved()['title'], 'Returned title follows the existing saved length limit');
+
+notes_reset();
+$response = notes_action(['operation'=>'rename','plan_id'=>'owned-plan','title'=>' <b></b> ']);
+notes_expect(!$response->success && $response->status === 400 && $GLOBALS['notes_fixture']['writes'] === 0, 'An empty sanitized name is rejected');
+notes_reset();
+$GLOBALS['notes_fixture']['write_success'] = false;
+$response = notes_action(['operation'=>'rename','plan_id'=>'owned-plan','title'=>'Name that did not persist']);
+notes_expect(!$response->success && $response->status === 500 && notes_saved()['title'] === 'My plan', 'A failed rename cannot confirm an unsaved name');
+notes_expect(!array_key_exists('title', $response->data) && !array_key_exists('notes', $response->data), 'Failed rename returns no saved fields');
+$response = notes_action(['operation'=>'rename','plan_id'=>'owned-plan','title'=>'My plan']);
+notes_expect($response->success && $response->data['title'] === 'My plan', 'An unchanged stored name is a verified no-op');
+
+foreach ([['operation'=>'notes','notes'=>'New note'],['operation'=>'readiness','readiness_key'=>'route','checked'=>'1'],['operation'=>'packing','packing_key'=>'water','checked'=>'1']] as $fields) {
+    notes_reset();
+    $response = notes_action($fields + ['plan_id'=>'owned-plan']);
+    notes_expect($response->success && !array_key_exists('title', $response->data), 'Canonical title is returned only for rename operations');
+}
+notes_reset();
+$response = notes_action(['operation'=>'rename','plan_id'=>'other-plan','title'=>'Unauthorized name']);
+notes_expect(!$response->success && $response->status === 404 && $GLOBALS['notes_fixture']['writes'] === 0, 'Another owner plan cannot be renamed');
+notes_expect(!array_key_exists('title', $response->data), 'Unauthorized rename discloses no title');
+foreach (['logged_in'=>401,'nonce_valid'=>403] as $flag=>$status) {
+    notes_reset();
+    $GLOBALS['notes_fixture'][$flag] = false;
+    $response = notes_action(['operation'=>'rename','plan_id'=>'owned-plan','title'=>'Denied rename']);
+    notes_expect(!$response->success && $response->status === $status, 'Rename authentication and nonce checks remain enforced');
+    notes_expect($GLOBALS['notes_fixture']['reads'] === 0 && $GLOBALS['notes_fixture']['writes'] === 0, 'Denied rename accesses no metadata');
+    notes_expect(!array_key_exists('title', $response->data), 'Denied rename returns no title');
+}
+fwrite(STDOUT, "TN Game OS 5.161.0 private rename endpoint tests passed\n");

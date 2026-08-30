@@ -633,17 +633,22 @@
     const card = form.closest('[data-plan-id]');
     const input = form.querySelector('input[name="title"]');
     const button = form.querySelector('button[type="submit"]');
-    const title = input.value.trim();
+    const submittedTitle = input.value;
+    const title = submittedTitle.trim();
     if (!title) { input.focus(); return; }
     button.disabled = true;
     try {
       const data = await post({operation:'rename',plan_id:card.dataset.planId || '',title});
-      card.querySelector('[data-plan-title]').textContent = title;
+      const savedTitle = typeof data.title === 'string' && data.title !== '' ? data.title : title;
+      const hasNewerEdits = input.value !== submittedTitle && input.value.trim() !== savedTitle;
+      if (!hasNewerEdits) input.value = savedTitle;
+      card.querySelector('[data-plan-title]').textContent = savedTitle;
       const printTitle = card.querySelector('[data-plan-print-title]');
-      if (printTitle) printTitle.textContent = title;
-      if (card === nextCard) root.querySelector('[data-tng-next-title]').textContent = title;
+      if (printTitle) printTitle.textContent = savedTitle;
+      if (card === nextCard) root.querySelector('[data-tng-next-title]').textContent = savedTitle;
+      updatePrepOverview();
       applyFilters();
-      if (status) status.textContent = data.message;
+      if (status) status.textContent = hasNewerEdits ? 'Adventure renamed. Your newer name edit is not saved yet.' : data.message;
     } catch (error) {
       if (status) status.textContent = error.message;
     } finally { button.disabled = false; }
