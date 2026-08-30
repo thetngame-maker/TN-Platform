@@ -359,12 +359,19 @@
     }
   }
 
+  let libraryUpdatePending = false;
   const post = async (fields) => {
-    const body = new URLSearchParams({action:'tng_adventure_library_action',nonce:root.dataset.nonce || '',...fields});
-    const response = await fetch(root.dataset.ajaxUrl,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'},body});
-    const json = await response.json();
-    if (!json.success) throw new Error(json.data?.message || 'Saved Adventures could not update that plan.');
-    return json.data;
+    if (libraryUpdatePending) throw new Error('Another adventure update is still saving. Wait for it to finish, then try this change again.');
+    libraryUpdatePending = true;
+    try {
+      const body = new URLSearchParams({action:'tng_adventure_library_action',nonce:root.dataset.nonce || '',...fields});
+      const response = await fetch(root.dataset.ajaxUrl,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'},body});
+      const json = await response.json();
+      if (!json.success) throw new Error(json.data?.message || 'Saved Adventures could not update that plan.');
+      return json.data;
+    } finally {
+      libraryUpdatePending = false;
+    }
   };
 
   const cleanupPrint = () => {
