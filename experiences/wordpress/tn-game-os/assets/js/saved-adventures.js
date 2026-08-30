@@ -81,6 +81,11 @@
 
   const launchCountFor = (card) => Math.min(10,Math.max(0,Number(card.dataset.planReadyCount || 0) + Number(card.dataset.planPackedCount || 0)));
   const isUpcomingPrepCard = (card) => card.dataset.planState !== 'archived' && card.dataset.planDate >= todayKey;
+  const startMinutesFor = (card) => {
+    const minutes = Number(card.dataset.planStart?.trim() || 600);
+    return Number.isInteger(minutes) && minutes >= 0 && minutes <= 1439 ? minutes : 600;
+  };
+  const comparePlanSchedule = (a, b) => (a.dataset.planDate || '').localeCompare(b.dataset.planDate || '') || startMinutesFor(a) - startMinutesFor(b);
   const launchReadyStatusFor = (card, previousCount, fallback) => {
     if (isUpcomingPrepCard(card) && previousCount < 10 && launchCountFor(card) === 10) {
       const title = card.querySelector('[data-plan-title]')?.textContent?.trim() || 'This adventure';
@@ -97,7 +102,7 @@
     prepOverview.querySelector('[data-tng-prep-upcoming]').textContent = String(upcoming.length);
     prepOverview.querySelector('[data-tng-prep-needed]').textContent = String(needsPrep.length);
     prepOverview.querySelector('[data-tng-prep-ready]').textContent = String(launchReady.length);
-    const priority = [...needsPrep].sort((a,b) => a.dataset.planDate.localeCompare(b.dataset.planDate) || launchCountFor(a)-launchCountFor(b))[0] || null;
+    const priority = [...needsPrep].sort((a,b) => comparePlanSchedule(a,b) || launchCountFor(a)-launchCountFor(b))[0] || null;
     const priorityText = prepOverview.querySelector('[data-tng-prep-priority]');
     if (priority) {
       const title = priority.querySelector('[data-plan-title]')?.textContent?.trim() || 'Your next adventure';
@@ -134,7 +139,7 @@
         const bRank = bUpcoming ? (bLaunch < 10 ? 0 : 1) : (b.dataset.planState === 'archived' ? 3 : 2);
         if (aRank !== bRank) return aRank - bRank;
         if (aRank < 2) {
-          const dateOrder = a.dataset.planDate.localeCompare(b.dataset.planDate);
+          const dateOrder = comparePlanSchedule(a,b);
           if (dateOrder !== 0) return dateOrder;
           if (aRank === 0 && aLaunch !== bLaunch) return aLaunch - bLaunch;
         }
@@ -146,8 +151,8 @@
         const aRank = !aDate ? 2 : (aDate >= todayKey ? 0 : 1);
         const bRank = !bDate ? 2 : (bDate >= todayKey ? 0 : 1);
         if (aRank !== bRank) return aRank - bRank;
-        if (aRank === 0) return aDate.localeCompare(bDate);
-        if (aRank === 1) return bDate.localeCompare(aDate);
+        if (aRank === 0) return comparePlanSchedule(a,b);
+        if (aRank === 1) return comparePlanSchedule(b,a);
       }
       return Number(b.dataset.planUpdated || 0) - Number(a.dataset.planUpdated || 0);
     });
@@ -287,7 +292,7 @@
   window.addEventListener('load', initializeAdventurePacks, {once:true});
 
   const nextBanner = root.querySelector('[data-tng-next-adventure]');
-  nextCard = cards.filter((card) => isUpcomingPrepCard(card)).sort((a, b) => a.dataset.planDate.localeCompare(b.dataset.planDate))[0] || null;
+  nextCard = cards.filter((card) => isUpcomingPrepCard(card)).sort(comparePlanSchedule)[0] || null;
   const updateNextLaunchStatus = () => {
     if (!nextBanner || !nextCard) return;
     const ready = Math.min(4,Math.max(0,Number(nextCard.dataset.planReadyCount || 0)));
