@@ -1,3 +1,14 @@
+TN GAME OS 5.160.0 — SNAPSHOT-SAFE NOTES SAVING
+
+CURRENT MILESTONE
+- Captures the submitted notes before saving so continued typing cannot be mistaken for saved content.
+- Returns sanitized notes only in the authenticated owner's notes-update response and uses that confirmed text in the private print view.
+- Preserves newer textarea edits and labels them Unsaved changes instead of overwriting them or marking them saved.
+- Reflects server normalization in the editor only when no newer edits need preserving; older responses use the submitted snapshot.
+- Marks typing as unsaved and retains existing save-in-progress protection and manual retry behavior.
+- Verifies unchanged notes after a no-op write and rejects failed writes rather than confirming text that was not persisted.
+- Adds no automatic save, new request, storage, public sharing, or calendar disclosure.
+
 TN GAME OS 5.159.0 — SAVE-IN-PROGRESS PROTECTION
 
 CURRENT MILESTONE

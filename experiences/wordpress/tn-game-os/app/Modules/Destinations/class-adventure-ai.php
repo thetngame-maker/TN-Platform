@@ -339,9 +339,16 @@ final class Adventure_AI implements Module_Interface {
             unset($library[$index]['archived_at']);
             $library[$index]['updated_at'] = time();
         } else wp_send_json_error(['message'=>'That plan action is not supported.'], 400);
-        update_user_meta(get_current_user_id(), self::PLAN_LIBRARY_META, array_values($library));
+        $updated = update_user_meta(get_current_user_id(), self::PLAN_LIBRARY_META, array_values($library));
+        if ($operation === 'notes' && $updated === false) {
+            $saved_library = self::library(get_current_user_id());
+            $saved_index = self::plan_index($saved_library, $plan_id);
+            if ($saved_index < 0 || (string)($saved_library[$saved_index]['notes'] ?? '') !== (string)($library[$index]['notes'] ?? '')) wp_send_json_error(['message'=>'Planning notes could not be saved. Your text is still available to try again.'], 500);
+        }
         $messages = ['rename'=>'Adventure renamed.','schedule'=>'Adventure date updated.','readiness'=>'Adventure readiness updated.','packing'=>'Adventure packing list updated.','notes'=>'Planning notes updated.','duplicate'=>'Adventure duplicated.','archive'=>'Adventure archived.','restore'=>'Adventure restored.'];
-        wp_send_json_success(['message'=>$messages[$operation] ?? 'Adventure updated.','url'=>home_url('/adventures/')]);
+        $response = ['message'=>$messages[$operation] ?? 'Adventure updated.','url'=>home_url('/adventures/')];
+        if ($operation === 'notes') $response['notes'] = (string)($library[$index]['notes'] ?? '');
+        wp_send_json_success($response);
     }
 
     private static function library(int $user_id): array {
