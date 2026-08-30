@@ -1,3 +1,13 @@
+TN GAME OS 5.157.0 — START-TIME-AWARE PREP PRIORITY
+
+CURRENT MILESTONE
+- Orders same-day adventures by their saved start time in the private prep overview and Next adventure banner.
+- Uses the same date-and-time comparison for prep-priority and adventure-date sorting.
+- Keeps incomplete plans ahead of launch-ready plans in prep sort; checklist counts break ties only at the same date and time.
+- Retains upcoming-before-past-before-unscheduled date groups, with past adventures ordered most recent first.
+- Uses only owner-rendered plan values, with the existing 10:00 AM default for missing or invalid start times.
+- Adds no request, storage, background task, auto-start, or public output; upcoming scope remains day-based.
+
 TN GAME OS 5.156.0 — SCHEDULE-SAFE PREP SCOPE
 
 CURRENT MILESTONE
