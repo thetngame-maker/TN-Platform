@@ -1,3 +1,12 @@
+TN GAME OS 5.156.0 — SCHEDULE-SAFE PREP SCOPE
+
+CURRENT MILESTONE
+- Centralizes the private rule that decides which saved adventures count as upcoming preparation.
+- Reuses that rule across the prep overview, preparation sort, upcoming filter, next-adventure selection, and launch-ready confirmation.
+- Prevents archived or past scheduled plans from receiving a launch-ready confirmation.
+- Keeps the scope owner-only and derived from already-rendered plan state and date values.
+- Adds no request, storage, background task, notification permission, automatic completion, or public output.
+
 TN GAME OS 5.155.0 — PRIVATE LAUNCH-READY CONFIRMATION
 
 CURRENT MILESTONE
