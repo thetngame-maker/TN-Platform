@@ -43,6 +43,10 @@ function sanitize_textarea_field(string $value): string {
 }
 function absint(mixed $value): int { return abs((int)$value); }
 function home_url(string $path): string { return 'https://tn.example' . $path; }
+function wp_date(string $format): string {
+    notes_expect($format === 'Y-m-d', 'Scheduling uses the existing site-local day format');
+    return '2030-01-01';
+}
 function notes_reset(): void {
     $GLOBALS['notes_fixture'] = [
         'logged_in'=>true, 'nonce_valid'=>true, 'write_success'=>true, 'nonce_checks'=>0, 'reads'=>0, 'writes'=>0, 'sanitizations'=>0,
@@ -242,3 +246,92 @@ foreach (['readiness'=>['route','gear'], 'packing'=>['water','layers']] as $kind
     }
 }
 fwrite(STDOUT, "TN Game OS 5.162.0 private prep checklist endpoint tests passed\n");
+
+function schedule_reset(): void {
+    notes_reset();
+    $GLOBALS['notes_fixture']['meta'][7]['tng_adventure_ai_plan_library'][0] += [
+        'readiness'=>['route'=>1], 'readiness_updated_at'=>12,
+        'packing'=>['water'=>1], 'packing_updated_at'=>34,
+    ];
+}
+foreach (['2030-01-01','2030-01-03',''] as $date) foreach ([true,false] as $write_success) {
+    schedule_reset();
+    $before = notes_saved();
+    $other = $GLOBALS['notes_fixture']['meta'][8];
+    $GLOBALS['notes_fixture']['write_success'] = $write_success;
+    $response = notes_action(['operation'=>'schedule','plan_id'=>'owned-plan','planned_date'=>$date]);
+    notes_expect($response->success === $write_success && $response->status === ($write_success ? 200 : 500), 'Date changes and removal require persistence');
+    if ($write_success) {
+        notes_expect((notes_saved()['planned_date'] ?? '') === $date, 'Date response follows the persisted schedule');
+        foreach (['readiness','readiness_updated_at','packing','packing_updated_at'] as $field) notes_expect(!array_key_exists($field,notes_saved()), 'Changing the date clears checklist state and timestamps');
+        notes_expect(notes_saved()['title'] === $before['title'] && notes_saved()['notes'] === $before['notes'], 'Scheduling leaves names and private notes intact');
+    } else notes_expect(notes_saved() === $before, 'A failed schedule write leaves the old plan intact');
+    notes_expect($GLOBALS['notes_fixture']['writes'] === 1, 'Scheduling never automatically retries');
+    notes_expect($GLOBALS['notes_fixture']['meta'][8] === $other, 'Another owner schedule remains untouched');
+    notes_expect(array_diff(array_keys($response->data), ['message','url']) === [], 'Schedule responses disclose no private plan fields');
+}
+foreach ([true,false] as $write_success) {
+    schedule_reset();
+    $before = notes_saved();
+    $GLOBALS['notes_fixture']['write_success'] = $write_success;
+    $response = notes_action(['operation'=>'schedule','plan_id'=>'owned-plan','planned_date'=>'2030-01-02']);
+    notes_expect($response->success, 'Saving the same date is a valid unchanged schedule');
+    foreach (['planned_date','readiness','readiness_updated_at','packing','packing_updated_at'] as $field) notes_expect(notes_saved()[$field] === $before[$field], 'Same-day saves preserve preparation state');
+}
+notes_reset();
+unset($GLOBALS['notes_fixture']['meta'][7]['tng_adventure_ai_plan_library'][0]['planned_date']);
+$GLOBALS['notes_fixture']['write_success'] = false;
+$response = notes_action(['operation'=>'schedule','plan_id'=>'owned-plan','planned_date'=>'']);
+notes_expect($response->success, 'Clearing an already absent date is a valid no-op');
+
+// A date alone is insufficient: every intended checklist reset must be stored.
+foreach (['readiness','readiness_updated_at','packing','packing_updated_at'] as $leftover) {
+    schedule_reset();
+    $GLOBALS['notes_fixture']['write_success'] = false;
+    $GLOBALS['notes_fixture']['failed_write_hook'] = static function() use ($leftover): void {
+        $plan =& $GLOBALS['notes_fixture']['meta'][7]['tng_adventure_ai_plan_library'][0];
+        $plan['planned_date'] = '2030-01-03';
+        foreach (['readiness','readiness_updated_at','packing','packing_updated_at'] as $field) if ($field !== $leftover) unset($plan[$field]);
+    };
+    $response = notes_action(['operation'=>'schedule','plan_id'=>'owned-plan','planned_date'=>'2030-01-03']);
+    notes_expect(!$response->success && $response->status === 500, 'Incomplete checklist reset cannot confirm the date change');
+}
+schedule_reset();
+$GLOBALS['notes_fixture']['write_success'] = false;
+$GLOBALS['notes_fixture']['failed_write_hook'] = static function(): void {
+    $plan =& $GLOBALS['notes_fixture']['meta'][7]['tng_adventure_ai_plan_library'][0];
+    $plan['planned_date'] = '2030-01-03';
+    unset($plan['readiness'],$plan['readiness_updated_at'],$plan['packing'],$plan['packing_updated_at']);
+};
+$response = notes_action(['operation'=>'schedule','plan_id'=>'owned-plan','planned_date'=>'2030-01-03']);
+notes_expect($response->success, 'A fully verified stored schedule may succeed when update returns false');
+schedule_reset();
+$GLOBALS['notes_fixture']['write_success'] = false;
+$GLOBALS['notes_fixture']['failed_write_hook'] = static function(): void {
+    $GLOBALS['notes_fixture']['meta'][7]['tng_adventure_ai_plan_library'] = [];
+};
+$response = notes_action(['operation'=>'schedule','plan_id'=>'owned-plan','planned_date'=>'']);
+notes_expect(!$response->success && $response->status === 500, 'A disappeared plan is not an unchanged empty schedule');
+
+foreach (['2029-12-31','2030-02-29','2030-04-31','2030-13-01','2030-1-03','not-a-date'] as $date) {
+    schedule_reset();
+    $before = notes_saved();
+    $response = notes_action(['operation'=>'schedule','plan_id'=>'owned-plan','planned_date'=>$date]);
+    notes_expect(!$response->success && $response->status === 400 && $GLOBALS['notes_fixture']['writes'] === 0, 'Past, malformed, and nonexistent dates are rejected');
+    notes_expect(notes_saved() === $before, 'Invalid dates cannot reset preparation');
+}
+schedule_reset();
+$response = notes_action(['operation'=>'schedule','plan_id'=>'owned-plan','planned_date'=>'2032-02-29']);
+notes_expect($response->success && notes_saved()['planned_date'] === '2032-02-29', 'Valid future leap dates remain supported');
+foreach (['archived','other_owner','logged_in','nonce_valid'] as $scenario) foreach (['2030-01-03',''] as $date) {
+    schedule_reset();
+    $fields = ['operation'=>'schedule','plan_id'=>'owned-plan','planned_date'=>$date];
+    if ($scenario === 'archived') { $GLOBALS['notes_fixture']['meta'][7]['tng_adventure_ai_plan_library'][0]['archived_at'] = 1; $expected_status = 409; }
+    if ($scenario === 'other_owner') { $fields['plan_id'] = 'other-plan'; $expected_status = 404; }
+    if ($scenario === 'logged_in' || $scenario === 'nonce_valid') { $GLOBALS['notes_fixture'][$scenario] = false; $expected_status = $scenario === 'logged_in' ? 401 : 403; }
+    $response = notes_action($fields);
+    notes_expect(!$response->success && $response->status === $expected_status && $GLOBALS['notes_fixture']['writes'] === 0, 'Setting and clearing dates preserve access restrictions');
+    notes_expect(array_keys($response->data) === ['message'], 'Denied schedule requests disclose no plan fields');
+    if ($scenario === 'logged_in' || $scenario === 'nonce_valid') notes_expect($GLOBALS['notes_fixture']['reads'] === 0, 'Unauthenticated scheduling accesses no metadata');
+}
+fwrite(STDOUT, "TN Game OS 5.163.0 private schedule endpoint tests passed\n");
