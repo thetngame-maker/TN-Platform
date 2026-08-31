@@ -1,3 +1,14 @@
+TN GAME OS 5.167.0 — UNSAVED ADVENTURE DATE EXIT WARNING
+
+CURRENT MILESTONE
+- Extends the shared name/notes exit warning to date edits, invalid partial date input, and date saves or clears awaiting confirmation.
+- Captures each submitted date and updates its saved baseline only after success, retaining any newer date typed while saving.
+- A successful clear empties the field only if it has not changed since the clear request; newer edits remain protected.
+- Releases the pending-save warning before reloading confirmed schedule state, avoiding warnings caused only by a completed save.
+- Failed saves preserve the existing baseline and input, keep dirty fields protected, and allow manual retry without reloading.
+- Other unsaved names, notes, or dates retain their warning during schedule reloads. If a reload is cancelled, save remaining edits and refresh to update preparation details.
+- Adds no autosave, draft storage, extra request, public data, or background work. Browser warnings remain best-effort, especially on mobile.
+
 TN GAME OS 5.166.0 — UNSAVED ADVENTURE NAME EXIT WARNING
 
 CURRENT MILESTONE

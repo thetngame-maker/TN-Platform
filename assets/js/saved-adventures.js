@@ -26,8 +26,11 @@
   const now = new Date();
   const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
 
-  const adventureDraftFields = [...root.querySelectorAll('[data-tng-plan-notes] textarea[name="notes"], [data-tng-plan-rename] input[name="title"]')];
-  const hasUnsavedAdventureDrafts = () => adventureDraftFields.some((field) => field.value !== field.defaultValue || field.closest('[data-tng-plan-notes],[data-tng-plan-rename]').querySelector('button[type="submit"]')?.disabled);
+  const adventureDraftFields = [...root.querySelectorAll('[data-tng-plan-notes] textarea[name="notes"], [data-tng-plan-rename] input[name="title"], [data-tng-plan-schedule] input[name="planned_date"]')];
+  const hasUnsavedAdventureDrafts = () => adventureDraftFields.some((field) => {
+    const form = field.closest('[data-tng-plan-notes],[data-tng-plan-rename],[data-tng-plan-schedule]');
+    return field.value !== field.defaultValue || field.validity?.badInput || form?.querySelector('button[type="submit"]')?.disabled || form?.querySelector('[data-tng-plan-clear-date]')?.disabled;
+  });
   const warnAboutUnsavedDrafts = (event) => {
     if (!hasUnsavedAdventureDrafts()) return;
     event.preventDefault();
@@ -503,15 +506,21 @@
     const clearDate = event.target.closest('[data-tng-plan-clear-date]');
     if (clearDate) {
       const card = clearDate.closest('[data-plan-id]');
+      const input = clearDate.closest('[data-tng-plan-schedule]').querySelector('input[name="planned_date"]');
+      const submittedDate = input.value;
       clearDate.disabled = true;
+      syncDraftExitWarning();
+      let refreshAfterSave = false;
       try {
         const data = await post({operation:'schedule',plan_id:card.dataset.planId || '',planned_date:''});
-        if (status) status.textContent = data.message;
-        window.location.reload();
+        if (input.value === submittedDate && !input.validity?.badInput) input.value = '';
+        input.defaultValue = '';
+        if (status) status.textContent = data.message + ' If you stay on this page, save other edits and refresh to update preparation details.';
+        refreshAfterSave = true;
       } catch (error) {
-        clearDate.disabled = false;
         if (status) status.textContent = error.message;
-      }
+      } finally { clearDate.disabled = false; syncDraftExitWarning(); }
+      if (refreshAfterSave) window.location.reload();
       return;
     }
     const print = event.target.closest('[data-tng-plan-print]');
@@ -632,16 +641,20 @@
       const card = schedule.closest('[data-plan-id]');
       const input = schedule.querySelector('input[name="planned_date"]');
       const button = schedule.querySelector('button[type="submit"]');
-      if (!input.value) { input.focus(); return; }
+      const submittedDate = input.value;
+      if (!submittedDate) { input.focus(); return; }
       button.disabled = true;
+      syncDraftExitWarning();
+      let refreshAfterSave = false;
       try {
-        const data = await post({operation:'schedule',plan_id:card.dataset.planId || '',planned_date:input.value});
-        if (status) status.textContent = data.message;
-        window.location.reload();
+        const data = await post({operation:'schedule',plan_id:card.dataset.planId || '',planned_date:submittedDate});
+        input.defaultValue = submittedDate;
+        if (status) status.textContent = data.message + ' If you stay on this page, save other edits and refresh to update preparation details.';
+        refreshAfterSave = true;
       } catch (error) {
-        button.disabled = false;
         if (status) status.textContent = error.message;
-      }
+      } finally { button.disabled = false; syncDraftExitWarning(); }
+      if (refreshAfterSave) window.location.reload();
       return;
     }
     const form = event.target.closest('[data-tng-plan-rename]');
