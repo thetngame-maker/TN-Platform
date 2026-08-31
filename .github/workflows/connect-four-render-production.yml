@@ -1,0 +1,46 @@
+name: Connect Four Render Production Build
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'experiences/roku/connect-four/**'
+      - '.github/workflows/connect-four-render-production.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'experiences/roku/connect-four/**'
+      - '.github/workflows/connect-four-render-production.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build Roku package
+        run: |
+          chmod +x experiences/roku/connect-four/build.sh
+          chmod +x experiences/roku/connect-four/build-thin-client-v1.sh
+          chmod +x experiences/roku/connect-four/build-render-production.sh
+          experiences/roku/connect-four/build-render-production.sh
+
+      - name: Verify package
+        run: |
+          ZIP='experiences/roku/connect-four/dist/tn-game-connect-four-v1.0.1-display-sync.zip'
+          test -f "$ZIP"
+          unzip -Z1 "$ZIP" | grep -qx manifest
+          unzip -Z1 "$ZIP" | grep -qx components/DisplayLoopTask.brs
+          ! unzip -p "$ZIP" components/MainScene.brs | grep -q '192\.168\.1\.127'
+          unzip -p "$ZIP" components/MainScene.brs | grep -q 'tn-game-connect-four-server.onrender.com'
+          unzip -p "$ZIP" components/MainScene.brs | grep -q 'v1.0.1 SYNC'
+          unzip -p "$ZIP" components/DisplayLoopTask.brs | grep -q '/tv?t='
+
+      - name: Upload Roku artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tn-game-connect-four-v1.0.1-display-sync
+          path: experiences/roku/connect-four/dist/tn-game-connect-four-v1.0.1-display-sync.zip
+          if-no-files-found: error
