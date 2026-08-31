@@ -1,3 +1,14 @@
+TN GAME OS 5.164.0 — VERIFIED SAVED ADVENTURE ORGANIZATION
+
+CURRENT MILESTONE
+- Verifies archive, restore, and duplicate results when a metadata write returns false.
+- Checks archive state and preserved plan content, allowing an already-correct archive/restore state without requiring fresh timestamps.
+- Looks up the newly generated copy ID and verifies the complete expected copy before confirming duplication.
+- Retains the existing privacy-safe copy rules: no private notes, scheduled date, readiness, packing, or archive state is copied.
+- Uses existing failure recovery to keep the page open and restore action buttons for manual retry.
+- Preserves owner/nonce checks, capacity limits, and the active-adventure archive restriction.
+- Adds no deletion, automatic retry, new client request, public plan fields, browser storage, or cross-tab synchronization.
+
 TN GAME OS 5.163.0 — VERIFIED ADVENTURE SCHEDULING
 
 CURRENT MILESTONE
