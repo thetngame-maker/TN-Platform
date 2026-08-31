@@ -26,19 +26,19 @@
   const now = new Date();
   const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
 
-  const planningNoteFields = [...root.querySelectorAll('[data-tng-plan-notes] textarea[name="notes"]')];
-  const hasUnsavedPlanningNotes = () => planningNoteFields.some((field) => field.value !== field.defaultValue || field.closest('[data-tng-plan-notes]').querySelector('button[type="submit"]')?.disabled);
-  const warnAboutUnsavedNotes = (event) => {
-    if (!hasUnsavedPlanningNotes()) return;
+  const adventureDraftFields = [...root.querySelectorAll('[data-tng-plan-notes] textarea[name="notes"], [data-tng-plan-rename] input[name="title"]')];
+  const hasUnsavedAdventureDrafts = () => adventureDraftFields.some((field) => field.value !== field.defaultValue || field.closest('[data-tng-plan-notes],[data-tng-plan-rename]').querySelector('button[type="submit"]')?.disabled);
+  const warnAboutUnsavedDrafts = (event) => {
+    if (!hasUnsavedAdventureDrafts()) return;
     event.preventDefault();
     event.returnValue = true;
   };
-  const syncNotesExitWarning = () => {
-    if (hasUnsavedPlanningNotes()) window.addEventListener('beforeunload', warnAboutUnsavedNotes);
-    else window.removeEventListener('beforeunload', warnAboutUnsavedNotes);
+  const syncDraftExitWarning = () => {
+    if (hasUnsavedAdventureDrafts()) window.addEventListener('beforeunload', warnAboutUnsavedDrafts);
+    else window.removeEventListener('beforeunload', warnAboutUnsavedDrafts);
   };
-  syncNotesExitWarning();
-  window.addEventListener('pageshow', syncNotesExitWarning);
+  syncDraftExitWarning();
+  window.addEventListener('pageshow', syncDraftExitWarning);
 
   const scheduleWindows = cards.map((card) => {
     if (card.dataset.planState === 'archived' || !card.dataset.planDate || card.dataset.planDate < todayKey) return null;
@@ -192,13 +192,13 @@
 
   search?.addEventListener('input', applyFilters);
   root.addEventListener('input', (event) => {
+    syncDraftExitWarning();
     const notes = event.target.closest('[data-tng-plan-notes] textarea');
     if (!notes) return;
     const count = notes.closest('[data-tng-plan-notes]').querySelector('[data-tng-notes-count]');
     if (count) count.textContent = notes.value.length + ' of 600';
     const notesState = notes.closest('[data-tng-plan-notes-panel]')?.querySelector('[data-tng-notes-state]');
     if (notesState) notesState.textContent = notes.value !== notes.defaultValue ? 'Unsaved changes' : (notes.value.trim() === '' ? 'Optional' : 'Saved');
-    syncNotesExitWarning();
   });
   sort?.addEventListener('change', () => { savePreferences(); applyFilters(); });
   filters.forEach((button) => button.addEventListener('click', () => {
@@ -602,7 +602,7 @@
       const button = notesForm.querySelector('button[type="submit"]');
       const submittedNotes = notes.value;
       button.disabled = true;
-      syncNotesExitWarning();
+      syncDraftExitWarning();
       try {
         const data = await post({operation:'notes',plan_id:card.dataset.planId || '',notes:submittedNotes});
         const savedNotes = typeof data.notes === 'string' ? data.notes : submittedNotes;
@@ -623,7 +623,7 @@
         if (status) status.textContent = hasNewerEdits ? 'Submitted notes saved. Your newer edits are not saved yet.' : data.message;
       } catch (error) {
         if (status) status.textContent = error.message;
-      } finally { button.disabled = false; syncNotesExitWarning(); }
+      } finally { button.disabled = false; syncDraftExitWarning(); }
       return;
     }
     const schedule = event.target.closest('[data-tng-plan-schedule]');
@@ -654,11 +654,13 @@
     const title = submittedTitle.trim();
     if (!title) { input.focus(); return; }
     button.disabled = true;
+    syncDraftExitWarning();
     try {
       const data = await post({operation:'rename',plan_id:card.dataset.planId || '',title});
       const savedTitle = typeof data.title === 'string' && data.title !== '' ? data.title : title;
       const hasNewerEdits = input.value !== submittedTitle && input.value.trim() !== savedTitle;
       if (!hasNewerEdits) input.value = savedTitle;
+      input.defaultValue = savedTitle;
       card.querySelector('[data-plan-title]').textContent = savedTitle;
       const printTitle = card.querySelector('[data-plan-print-title]');
       if (printTitle) printTitle.textContent = savedTitle;
@@ -668,6 +670,6 @@
       if (status) status.textContent = hasNewerEdits ? 'Adventure renamed. Your newer name edit is not saved yet.' : data.message;
     } catch (error) {
       if (status) status.textContent = error.message;
-    } finally { button.disabled = false; }
+    } finally { button.disabled = false; syncDraftExitWarning(); }
   });
 })();
