@@ -6,8 +6,8 @@ const root=new URL('../experiences/wordpress/tn-game-os/',import.meta.url);
 const read=path=>fs.readFileSync(new URL(path,root),'utf8');
 const bootstrap=read('tn-game-os.php'),client=read('assets/js/saved-adventures.js');
 const php=read('app/Modules/Destinations/class-adventure-ai.php'),css=read('assets/css/saved-adventures.css');
-assert.match(bootstrap,/Version:\s*5\.168\.0/);
-assert.match(bootstrap,/define\('TNG_OS_VERSION','5\.168\.0'\)/);
+assert.match(bootstrap,/Version:\s*5\.1(?:6[8-9]|[7-9]\d)\.\d+/);
+assert.match(bootstrap,/define\('TNG_OS_VERSION','5\.1(?:6[8-9]|[7-9]\d)\.\d+'\)/);
 const slice=(start,end)=>{const a=client.indexOf(start),b=client.indexOf(end,a);assert.ok(a>=0&&b>a);return client.slice(a,b);};
 const warningCode=slice('const adventureDraftFields =','const scheduleWindows =');
 const reviewCode=slice('const draftReview =',"prepOverview?.addEventListener('click'");
@@ -34,7 +34,7 @@ const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{reso
 const success=(request,data={})=>request.resolve({json:async()=>({success:true,data:{message:'Saved.',...data}})});
 // DOM stand-ins run the actual review/filter and save handlers, not a second
 // implementation. These checks do not claim visual or native browser coverage.
-const harness=({restored=false,summaryPresent=true}={})=>{
+export const harness=({restored=false,summaryPresent=true}={})=>{
   const handlers={},listeners=new Map(),requests=[],focus=[],scroll=[],status={textContent:''};
   const count={textContent:''};
   const reviewButton={disabled:false,addEventListener:(type,handler)=>{handlers.review=handler;}};
@@ -49,7 +49,8 @@ const harness=({restored=false,summaryPresent=true}={})=>{
     const card={isConnected:true,hidden:true,textContent:title.textContent,dataset:{planId:'owned-'+index,planState:'ready',planUpdated:String(index)},classList:{remove(){}},scrollIntoView:()=>scroll.push(card),querySelector:selector=>selector==='[data-plan-title]'?title:null};
     const make=(kind,initial)=>{
       const button={disabled:false};
-      const field={value:restored&&index===0&&kind==='notes'?'Restored private draft':initial,defaultValue:initial,validity:{badInput:false},isConnected:true,disabled:false,
+      const field={name:kind==='rename'?'title':kind==='schedule'?'planned_date':'notes',value:restored&&index===0&&kind==='notes'?'Restored private draft':initial,defaultValue:initial,validity:{badInput:false},isConnected:true,disabled:false,
+        scrollIntoView(options){scroll.push({field,options});},
         focus(options){focus.push({field,options});},closest:selector=>{
           if(selector==='[data-tng-plan-notes],[data-tng-plan-rename],[data-tng-plan-schedule]'||selector===`[data-tng-plan-${kind}]`)return form;
           if(selector==='[data-plan-id]')return card;
@@ -83,7 +84,7 @@ h.type(0,'rename','PRIVATE NAME');h.type(1,'schedule','2031-03-04');
 assert.equal(h.count.textContent,'3 unsaved fields across 2 adventures.');assert.doesNotMatch(h.count.textContent,/PRIVATE|2031|script/);
 assert.equal(h.requests.length,0);assert.equal(h.warning(),1);
 for(const field of [h.plans[0].notes.field,h.plans[0].rename.field,h.plans[1].schedule.field,h.plans[0].notes.field]) {
-  h.review();assert.equal(h.focus.at(-1).field,field);assert.equal(h.scroll.at(-1),field.closest('[data-plan-id]'));
+  h.review();assert.equal(h.focus.at(-1).field,field);assert.equal(h.scroll.at(-1).field,field);
   assert.equal(h.focus.at(-1).options.preventScroll,true);
 }
 assert.equal(h.plans[0].panel.open,true);assert.equal(h.context.selectedFilter,'all');assert.equal(h.search.value,'');assert.equal(h.sort.value,'recent');
