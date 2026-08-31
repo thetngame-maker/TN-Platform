@@ -1,3 +1,13 @@
+TN GAME OS 5.163.0 — VERIFIED ADVENTURE SCHEDULING
+
+CURRENT MILESTONE
+- Verifies the stored date and related readiness/packing state when a schedule metadata write returns false.
+- Distinguishes unchanged schedules from failed saves when setting or clearing an adventure date.
+- Checks the existing checklist reset, including readiness and packing timestamps, before accepting a verified no-op.
+- Uses the existing failure path to keep the page open, retain the date input, and make manual retry available.
+- Preserves owner/nonce checks, archived-plan restrictions, calendar-date validation, and today-or-future scheduling.
+- Adds no automatic retry, new client request, public response fields, browser storage, or cross-tab synchronization.
+
 TN GAME OS 5.162.0 — VERIFIED PREP CHECKLIST SAVES
 
 CURRENT MILESTONE
