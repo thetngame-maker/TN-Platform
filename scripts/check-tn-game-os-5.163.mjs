@@ -36,11 +36,11 @@ const harness=(kind)=>{
   let reloads=0;
   const status={textContent:''};
   const card={dataset:Object.freeze({planId:'owned-plan',planDate:'2030-01-02',planReadyCount:'4',planPackedCount:'6'})};
-  const input={value:'2030-01-03',focusCalls:0,focus(){this.focusCalls++;}};
-  const button={disabled:false,closest:selector=>selector==='[data-plan-id]'?card:selector==='[data-tng-plan-clear-date]'?button:null};
+  const input={value:'2030-01-03',defaultValue:'2030-01-02',focusCalls:0,focus(){this.focusCalls++;}};
+  const button={disabled:false,closest:selector=>selector==='[data-plan-id]'?card:selector==='[data-tng-plan-schedule]'?form:selector==='[data-tng-plan-clear-date]'?button:null};
   const form={closest:selector=>selector==='[data-tng-plan-schedule]'?form:selector==='[data-plan-id]'?card:null,
     querySelector:selector=>selector==='button[type="submit"]'?button:input};
-  const context={URLSearchParams,status,
+  const context={URLSearchParams,status,syncDraftExitWarning:()=>{},
     root:{dataset:{ajaxUrl:'/wp-admin/admin-ajax.php',nonce:'test-nonce'},addEventListener:(event,handler)=>{handlers[event]=handler;}},
     window:{location:{reload:()=>{reloads++;}}},
     fetch:(url,options)=>{const request=deferred();requests.push({url,options,...request});return request.promise;}};
@@ -79,7 +79,7 @@ for(const kind of ['schedule','clear']) {
     assert.equal(h.requests[1].options.body.get('planned_date'),kind==='clear'?'':'2030-01-04');
     success(h.requests[1]);await saving;
     assert.equal(h.reloads(),1,'Only a successful manual retry reloads confirmed server state');
-    assert.equal(h.status.textContent,'Adventure date updated.');
+    assert.match(h.status.textContent,/Adventure date updated.*refresh/);
   }
   const h=harness(kind);
   const pending=h.post({operation:'notes',plan_id:'other-plan',notes:'Saving'});

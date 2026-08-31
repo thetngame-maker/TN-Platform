@@ -31,13 +31,13 @@ const harness=(initial=['Saved A','Saved B'],restored={})=>{
     const print={hidden:!text,querySelector:()=>printed};
     const panel={classList:{toggle(){}},querySelector:()=>state};
     const card={hidden:false,dataset:{planId:'owned-'+index},querySelector:()=>print};
-    const field={value:restored[index]??text,defaultValue:text,closest:selector=>(selector==='[data-tng-plan-notes]'||selector==='[data-tng-plan-notes],[data-tng-plan-rename]')?form:selector==='[data-tng-plan-notes-panel]'?panel:selector==='[data-tng-plan-notes] textarea'?field:null};
+    const field={value:restored[index]??text,defaultValue:text,closest:selector=>(selector==='[data-tng-plan-notes]'||selector==='[data-tng-plan-notes],[data-tng-plan-rename],[data-tng-plan-schedule]')?form:selector==='[data-tng-plan-notes-panel]'?panel:selector==='[data-tng-plan-notes] textarea'?field:null};
     const form={closest:selector=>selector==='[data-tng-plan-notes]'?form:selector==='[data-plan-id]'?card:selector==='[data-tng-plan-notes-panel]'?panel:null,
       querySelector:selector=>selector==='textarea[name="notes"]'?field:selector==='button[type="submit"]'?button:count};
     return {field,form,card,state,count,button,printed};
   });
   const context={URLSearchParams,status,
-    root:{dataset:{ajaxUrl:'/wp-admin/admin-ajax.php',nonce:'test-nonce'},querySelectorAll:selector=>{assert.equal(selector,'[data-tng-plan-notes] textarea[name="notes"], [data-tng-plan-rename] input[name="title"]');return items.map(x=>x.field);},addEventListener:(type,handler)=>{handlers[type]=handler;}},
+    root:{dataset:{ajaxUrl:'/wp-admin/admin-ajax.php',nonce:'test-nonce'},querySelectorAll:selector=>{assert.equal(selector,'[data-tng-plan-notes] textarea[name="notes"], [data-tng-plan-rename] input[name="title"], [data-tng-plan-schedule] input[name="planned_date"]');return items.map(x=>x.field);},addEventListener:(type,handler)=>{handlers[type]=handler;}},
     window:{addEventListener:(type,handler)=>{if(!listeners.has(type))listeners.set(type,new Set());listeners.get(type).add(handler);},removeEventListener:(type,handler)=>listeners.get(type)?.delete(handler)},
     fetch:(url,options)=>{const request=deferred();requests.push({url,options,...request});return request.promise;}};
   vm.runInNewContext(`${warningCode}\n${inputCode}\n${postCode}\n${submitCode}`,context);

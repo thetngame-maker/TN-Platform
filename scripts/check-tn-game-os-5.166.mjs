@@ -5,8 +5,8 @@ import vm from 'node:vm';
 const root=new URL('../experiences/wordpress/tn-game-os/',import.meta.url);
 const read=path=>fs.readFileSync(new URL(path,root),'utf8');
 const bootstrap=read('tn-game-os.php'),client=read('assets/js/saved-adventures.js');
-assert.match(bootstrap,/Version:\s*5\.166\.0/);
-assert.match(bootstrap,/define\('TNG_OS_VERSION','5\.166\.0'\)/);
+assert.match(bootstrap,/Version:\s*5\.1(?:6[6-9]|[7-9]\d)\.\d+/);
+assert.match(bootstrap,/define\('TNG_OS_VERSION','5\.1(?:6[6-9]|[7-9]\d)\.\d+'\)/);
 const slice=(start,end)=>{
   const a=client.indexOf(start),b=client.indexOf(end,a);
   assert.ok(a>=0 && b>a);
@@ -19,7 +19,7 @@ const submitCode=slice("root.addEventListener('submit'",'\n})();');
 assert.match(warningCode,/textarea\[name="notes"\], \[data-tng-plan-rename\] input\[name="title"\]/);
 assert.match(warningCode,/field\.value !== field\.defaultValue/);
 assert.match(warningCode,/event\.returnValue = true/);
-assert.doesNotMatch(warningCode,/planned_date|fetch\(|post\(|localStorage|sessionStorage|indexedDB|setTimeout|setInterval|sendBeacon|console\.|innerHTML|\.hidden/);
+assert.doesNotMatch(warningCode,/fetch\(|post\(|localStorage|sessionStorage|indexedDB|setTimeout|setInterval|sendBeacon|console\.|innerHTML|\.hidden/);
 assert.match(submitCode,/input\.defaultValue = savedTitle;/);
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});return {promise,resolve,reject};};
 
@@ -35,7 +35,7 @@ const harness=(restored={})=>{
     const makeForm=(kind,initial)=>{
       const button={disabled:false};
       const field={value:restored[index+':'+kind]??initial,defaultValue:initial,focusCalls:0,focus(){this.focusCalls++;},closest:selector=>{
-        if(selector==='[data-tng-plan-notes],[data-tng-plan-rename]' || selector===`[data-tng-plan-${kind}]`)return form;
+        if(selector==='[data-tng-plan-notes],[data-tng-plan-rename],[data-tng-plan-schedule]' || selector===`[data-tng-plan-${kind}]`)return form;
         if(kind==='notes' && selector==='[data-tng-plan-notes] textarea')return field;
         if(kind==='notes' && selector==='[data-tng-plan-notes-panel]')return panel;
         return null;
@@ -48,7 +48,7 @@ const harness=(restored={})=>{
   });
   const context={URLSearchParams,status,nextCard:null,updatePrepOverview:()=>{},applyFilters:()=>{},
     root:{dataset:{ajaxUrl:'/wp-admin/admin-ajax.php',nonce:'test-nonce'},querySelectorAll:selector=>{
-      assert.equal(selector,'[data-tng-plan-notes] textarea[name="notes"], [data-tng-plan-rename] input[name="title"]');
+      assert.equal(selector,'[data-tng-plan-notes] textarea[name="notes"], [data-tng-plan-rename] input[name="title"], [data-tng-plan-schedule] input[name="planned_date"]');
       return plans.flatMap(plan=>[plan.notes.field,plan.rename.field]);
     },addEventListener:(type,handler)=>{handlers[type]=handler;}},
     window:{addEventListener:(type,handler)=>{if(!listeners.has(type))listeners.set(type,new Set());listeners.get(type).add(handler);},removeEventListener:(type,handler)=>listeners.get(type)?.delete(handler)},
