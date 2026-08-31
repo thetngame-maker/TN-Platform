@@ -10,6 +10,7 @@ assert.match(bootstrap,/Version:\s*5\.1(?:6[8-9]|[7-9]\d)\.\d+/);
 assert.match(bootstrap,/define\('TNG_OS_VERSION','5\.1(?:6[8-9]|[7-9]\d)\.\d+'\)/);
 const slice=(start,end)=>{const a=client.indexOf(start),b=client.indexOf(end,a);assert.ok(a>=0&&b>a);return client.slice(a,b);};
 const warningCode=slice('const adventureDraftFields =','const scheduleWindows =');
+const refreshCode=slice('const scheduleRefresh =','const draftReview =');
 const reviewCode=slice('const draftReview =',"prepOverview?.addEventListener('click'");
 const filterCode=slice('const applyFilters =','const refreshPrepViews =');
 const controlsCode=slice('const syncFilterControls =','const updateCardLaunchStatus =');
@@ -35,10 +36,12 @@ const success=(request,data={})=>request.resolve({json:async()=>({success:true,d
 // DOM stand-ins run the actual review/filter and save handlers, not a second
 // implementation. These checks do not claim visual or native browser coverage.
 export const harness=({restored=false,summaryPresent=true}={})=>{
-  const handlers={},listeners=new Map(),requests=[],focus=[],scroll=[],status={textContent:''};
+  const handlers={},listeners=new Map(),requests=[],reloads=[],focus=[],scroll=[],status={textContent:''};
   const count={textContent:''};
   const reviewButton={disabled:false,addEventListener:(type,handler)=>{handlers.review=handler;}};
   const summary={hidden:true,querySelector:selector=>selector==='[data-tng-draft-review-count]'?count:reviewButton};
+  const refreshMessage={textContent:''},refreshButton={disabled:true,addEventListener:(type,handler)=>{handlers.refresh=handler;}};
+  const refreshPanel={hidden:true,querySelector:selector=>selector==='[data-tng-schedule-refresh-message]'?refreshMessage:refreshButton};
   const search={value:'nothing matches'},sort={value:'recent'};
   const control=(key,value)=>({dataset:{[key]:value},attributes:{},setAttribute(name,value){this.attributes[name]=value;}});
   const filters=['all','archived','needs-prep'].map(value=>control('tngAdventureFilter',value));
@@ -67,11 +70,11 @@ export const harness=({restored=false,summaryPresent=true}={})=>{
   });
   const context={URLSearchParams,status,search,sort,filters,prepFilters,nextCard:null,selectedFilter:'archived',planNavigationRequest:7,cards:plans.map(p=>p.card),grid:null,filterStatus:null,filterEmpty:null,
     launchCountFor:()=>0,isUpcomingPrepCard:()=>true,updatePrepOverview(){},
-    root:{dataset:{ajaxUrl:'/wp-admin/admin-ajax.php',nonce:'test-nonce'},querySelector:()=>summaryPresent?summary:null,querySelectorAll:()=>plans.flatMap(p=>[p.schedule.field,p.notes.field,p.rename.field]),addEventListener:(type,handler)=>{handlers[type]=handler;}},
-    window:{addEventListener:(type,handler)=>{if(!listeners.has(type))listeners.set(type,new Set());listeners.get(type).add(handler);},removeEventListener:(type,handler)=>listeners.get(type)?.delete(handler),location:{reload(){}}},
+    root:{dataset:{ajaxUrl:'/wp-admin/admin-ajax.php',nonce:'test-nonce'},querySelector:selector=>selector==='[data-tng-schedule-refresh]'?refreshPanel:summaryPresent?summary:null,querySelectorAll:()=>plans.flatMap(p=>[p.schedule.field,p.notes.field,p.rename.field]),addEventListener:(type,handler)=>{handlers[type]=handler;}},
+    window:{addEventListener:(type,handler)=>{if(!listeners.has(type))listeners.set(type,new Set());listeners.get(type).add(handler);},removeEventListener:(type,handler)=>listeners.get(type)?.delete(handler),location:{reload(){reloads.push({pending:plans.some(p=>p.schedule.button.disabled||p.schedule.clear.disabled||p.notes.button.disabled||p.rename.button.disabled)});}}},
     fetch:(url,options)=>{const request=deferred();requests.push({url,options,...request});return request.promise;}};
-  vm.runInNewContext(`${warningCode}\n${controlsCode}\n${filterCode}\n${reviewCode}\n${inputCode}\n${postCode}\n${clickCode}\n${submitCode}`,context);
-  return {plans,requests,summary,count,reviewButton,search,sort,focus,scroll,context,
+  vm.runInNewContext(`${warningCode}\n${refreshCode}\n${controlsCode}\n${filterCode}\n${reviewCode}\n${inputCode}\n${postCode}\n${clickCode}\n${submitCode}\nglobalThis.testPost = post;`,context);
+  return {plans,requests,reloads,status,refreshPanel,refreshMessage,refreshButton,summary,count,reviewButton,search,sort,focus,scroll,context,refresh:()=>handlers.refresh(),
     type(index,kind,value,badInput=false){const field=plans[index][kind].field;field.value=value;field.validity.badInput=badInput;handlers.input({target:field});},
     submit:(index,kind)=>handlers.submit({target:plans[index][kind].form,preventDefault(){}}),
     clear:(index)=>handlers.click({target:plans[index].schedule.clear}),

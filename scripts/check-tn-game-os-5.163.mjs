@@ -40,7 +40,7 @@ const harness=(kind)=>{
   const button={disabled:false,closest:selector=>selector==='[data-plan-id]'?card:selector==='[data-tng-plan-schedule]'?form:selector==='[data-tng-plan-clear-date]'?button:null};
   const form={closest:selector=>selector==='[data-tng-plan-schedule]'?form:selector==='[data-plan-id]'?card:null,
     querySelector:selector=>selector==='button[type="submit"]'?button:input};
-  const context={URLSearchParams,status,syncDraftExitWarning:()=>{},
+  const context={URLSearchParams,status,syncDraftExitWarning:()=>{},requestScheduleRefresh:()=>{reloads++;},
     root:{dataset:{ajaxUrl:'/wp-admin/admin-ajax.php',nonce:'test-nonce'},addEventListener:(event,handler)=>{handlers[event]=handler;}},
     window:{location:{reload:()=>{reloads++;}}},
     fetch:(url,options)=>{const request=deferred();requests.push({url,options,...request});return request.promise;}};

@@ -70,6 +70,10 @@
 .tng-adventure-library__empty p{margin:0 0 18px;color:var(--tng-muted)}
 .tng-adventure-library__no-results{display:grid;min-height:220px;place-items:center;align-content:center;padding:24px;border:1px dashed var(--tng-border);border-radius:20px;background:#fff;text-align:center}
 .tng-adventure-library__no-results[hidden]{display:none}
+.tng-adventure-library__schedule-refresh{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;padding:18px;border:1px solid var(--tng-border);border-radius:16px;background:#f3f8f4;color:#214b37}
+.tng-adventure-library__schedule-refresh[hidden]{display:none}
+.tng-adventure-library__schedule-refresh>div{flex:1 1 260px;min-width:0}.tng-adventure-library__schedule-refresh p{margin:6px 0;line-height:1.5}.tng-adventure-library__schedule-refresh button{white-space:normal}.tng-adventure-library__schedule-refresh button:disabled{opacity:.6;cursor:not-allowed}
+@media print{.tng-adventure-library__schedule-refresh{display:none!important}}
 .tng-adventure-library__draft-review{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;padding:18px;border:1px solid #cba45c;border-radius:16px;background:#fff9ec;color:#493a20}
 .tng-adventure-library__draft-review[hidden]{display:none}
 .tng-adventure-library__draft-review>div{flex:1 1 260px;min-width:0}.tng-adventure-library__draft-review p{margin:6px 0}.tng-adventure-library__draft-review small{display:block;line-height:1.5}.tng-adventure-library__draft-review button{white-space:normal}.tng-adventure-library__draft-review button:disabled{opacity:.6;cursor:wait}

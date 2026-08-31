@@ -28,6 +28,7 @@
 
   const adventureDraftFields = [...root.querySelectorAll('[data-tng-plan-notes] textarea[name="notes"], [data-tng-plan-rename] input[name="title"], [data-tng-plan-schedule] input[name="planned_date"]')];
   let updateDraftReview;
+  let syncScheduleRefresh;
   const isAdventureDraftChanged = (field) => field.value !== field.defaultValue || Boolean(field.validity?.badInput);
   const isAdventureDraftPending = (field) => {
     const form = field.closest('[data-tng-plan-notes],[data-tng-plan-rename],[data-tng-plan-schedule]');
@@ -43,6 +44,7 @@
     if (hasUnsavedAdventureDrafts()) window.addEventListener('beforeunload', warnAboutUnsavedDrafts);
     else window.removeEventListener('beforeunload', warnAboutUnsavedDrafts);
     updateDraftReview?.();
+    syncScheduleRefresh?.();
   };
   syncDraftExitWarning();
   window.addEventListener('pageshow', syncDraftExitWarning);
@@ -225,6 +227,32 @@
   syncFilterControls();
   applyFilters();
   updatePrepOverview();
+  const scheduleRefresh = root.querySelector('[data-tng-schedule-refresh]');
+  const scheduleRefreshMessage = scheduleRefresh?.querySelector('[data-tng-schedule-refresh-message]');
+  const scheduleRefreshButton = scheduleRefresh?.querySelector('[data-tng-schedule-refresh-button]');
+  let scheduleRefreshNeeded = false;
+  syncScheduleRefresh = () => {
+    if (!scheduleRefresh) return;
+    const hasDrafts = hasUnsavedAdventureDrafts();
+    scheduleRefresh.hidden = !scheduleRefreshNeeded;
+    if (scheduleRefreshButton) scheduleRefreshButton.disabled = hasDrafts;
+    const message = hasDrafts ? 'Save or revert remaining edits, then refresh to update preparation details and calendar exports.' : 'Refresh to use the saved date in preparation details and calendar exports.';
+    if (scheduleRefreshMessage && scheduleRefreshMessage.textContent !== message) scheduleRefreshMessage.textContent = message;
+  };
+  const requestScheduleRefresh = () => {
+    scheduleRefreshNeeded = true;
+    syncScheduleRefresh();
+    if (!hasUnsavedAdventureDrafts()) window.location.reload();
+  };
+  scheduleRefreshButton?.addEventListener('click', () => {
+    syncScheduleRefresh();
+    if (libraryUpdatePending) {
+      if (status) status.textContent = 'Another adventure update is still saving. Wait for it to finish, then refresh.';
+      return;
+    }
+    if (scheduleRefreshNeeded && !hasUnsavedAdventureDrafts()) window.location.reload();
+  });
+  syncScheduleRefresh();
   const draftReview = root.querySelector('[data-tng-draft-review]');
   const draftReviewCount = draftReview?.querySelector('[data-tng-draft-review-count]');
   const draftReviewButton = draftReview?.querySelector('[data-tng-draft-review-next]');
@@ -571,7 +599,7 @@
       } catch (error) {
         if (status) status.textContent = error.message;
       } finally { clearDate.disabled = false; syncDraftExitWarning(); }
-      if (refreshAfterSave) window.location.reload();
+      if (refreshAfterSave) requestScheduleRefresh();
       return;
     }
     const print = event.target.closest('[data-tng-plan-print]');
@@ -705,7 +733,7 @@
       } catch (error) {
         if (status) status.textContent = error.message;
       } finally { button.disabled = false; syncDraftExitWarning(); }
-      if (refreshAfterSave) window.location.reload();
+      if (refreshAfterSave) requestScheduleRefresh();
       return;
     }
     const form = event.target.closest('[data-tng-plan-rename]');

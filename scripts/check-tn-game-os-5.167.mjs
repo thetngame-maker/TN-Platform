@@ -9,6 +9,7 @@ assert.match(bootstrap,/Version:\s*5\.1(?:6[7-9]|[7-9]\d)\.\d+/);
 assert.match(bootstrap,/define\('TNG_OS_VERSION','5\.1(?:6[7-9]|[7-9]\d)\.\d+'\)/);
 const slice=(start,end)=>{const a=client.indexOf(start),b=client.indexOf(end,a);assert.ok(a>=0&&b>a);return client.slice(a,b);};
 const warningCode=slice('const adventureDraftFields =','const scheduleWindows =');
+const refreshCode=slice('const scheduleRefresh =','const draftReview =');
 const inputCode=slice("root.addEventListener('input'","sort?.addEventListener");
 const postCode=slice('let libraryUpdatePending = false;','const cleanupPrint =');
 const clickCode=slice("root.addEventListener('click'","root.addEventListener('submit'");
@@ -44,13 +45,13 @@ const harness=(initial='2030-01-02')=>{
   });
   const exit=()=>{const event={prevented:false,returnValue:'',preventDefault(){this.prevented=true;}};listeners.get('beforeunload')?.forEach(fn=>fn(event));return event;};
   const context={URLSearchParams,status,
-    root:{dataset:{ajaxUrl:'/wp-admin/admin-ajax.php',nonce:'test-nonce'},querySelectorAll:selector=>{
+    root:{dataset:{ajaxUrl:'/wp-admin/admin-ajax.php',nonce:'test-nonce'},querySelector:()=>null,querySelectorAll:selector=>{
       assert.equal(selector,'[data-tng-plan-notes] textarea[name="notes"], [data-tng-plan-rename] input[name="title"], [data-tng-plan-schedule] input[name="planned_date"]');
       return plans.flatMap(plan=>[plan.notes.field,plan.rename.field,plan.schedule.field]);
     },addEventListener:(type,handler)=>{handlers[type]=handler;}},
     window:{addEventListener:(type,handler)=>{if(!listeners.has(type))listeners.set(type,new Set());listeners.get(type).add(handler);},removeEventListener:(type,handler)=>listeners.get(type)?.delete(handler),location:{reload:()=>reloads.push({event:exit(),pending:plans.some(plan=>plan.schedule.button.disabled||plan.schedule.clear.disabled)})}},
     fetch:(url,options)=>{const request=deferred();requests.push({url,options,...request});return request.promise;}};
-  vm.runInNewContext(`${warningCode}\n${inputCode}\n${postCode}\n${clickCode}\n${submitCode}`,context);
+  vm.runInNewContext(`${warningCode}\n${refreshCode}\n${inputCode}\n${postCode}\n${clickCode}\n${submitCode}`,context);
   return {plans,requests,reloads,status,exit,warningCount:()=>listeners.get('beforeunload')?.size??0,
     type(index,kind,value,badInput=false){const field=plans[index][kind].field;field.value=value;field.validity.badInput=badInput;handlers.input({target:field});},
     act:(kind,index=0)=>kind==='clear'?handlers.click({target:plans[index].schedule.clear}):handlers.submit({target:plans[index].schedule.form,preventDefault(){}}),
@@ -80,9 +81,9 @@ for(const kind of ['schedule','clear']) {
   saving=h.act(kind);h.type(0,'schedule','2030-01-04');success(h.requests[0]);await saving;
   assert.equal(h.plans[0].schedule.field.value,'2030-01-04','A newer date edit is never overwritten');
   assert.equal(h.plans[0].schedule.field.defaultValue,kind==='clear'?'':'2030-01-03');
-  assert.equal(h.warningCount(),1);assert.equal(h.reloads[0].event.prevented,true,'The newer date is protected at the reload boundary');
-  assert.equal(h.reloads[0].event.returnValue,true,'No private dates appear in the generic warning');
-  assert.equal(h.reloads[0].pending,false);assert.equal(h.requests.length,1);
+  assert.equal(h.warningCount(),1);assert.equal(h.reloads.length,0,'A newer date prevents the internal reload entirely');
+  assert.equal(h.exit().returnValue,true,'External exits still get a generic warning');
+  assert.equal(h.requests.length,1);
   h.type(0,'schedule',kind==='clear'?'':'2030-01-03');assert.equal(h.warningCount(),0);
 
   for(const failure of ['server','network','invalid-json']) {
@@ -99,7 +100,7 @@ for(const kind of ['schedule','clear']) {
   for(const otherKind of ['rename','notes','schedule']) {
     h=harness();h.plans[1].card.hidden=true;h.type(1,otherKind,otherKind==='schedule'?'2030-02-01':'Hidden draft');
     const saving=h.act(kind);success(h.requests[0]);await saving;
-    assert.equal(h.warningCount(),1);assert.equal(h.reloads[0].event.prevented,true,'Other hidden plan drafts remain protected during date reloads');
+    assert.equal(h.warningCount(),1);assert.equal(h.reloads.length,0,'Other hidden plan drafts defer date reloads');
   }
 }
 h=harness();h.type(0,'schedule','2030-01-03');let saving=h.act('schedule');h.type(0,'schedule','2030-01-02');
@@ -117,5 +118,5 @@ const partial=h.plans[0].schedule.field;let valueWrites=0;
 Object.defineProperty(partial,'value',{get:()=>'',set(){valueWrites++;partial.validity.badInput=false;}});
 success(h.requests[0]);await saving;
 assert.equal(valueWrites,0,'A successful clear must not erase opaque partial date input');
-assert.equal(partial.validity.badInput,true);assert.equal(partial.defaultValue,'');assert.equal(h.reloads[0].event.prevented,true);
+assert.equal(partial.validity.badInput,true);assert.equal(partial.defaultValue,'');assert.equal(h.reloads.length,0);
 console.log('TN Game OS 5.167.0 Unsaved Adventure Date Exit Warning passed');

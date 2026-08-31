@@ -1,3 +1,13 @@
+TN GAME OS 5.170.0 — DRAFT-AWARE SCHEDULE REFRESH
+
+CURRENT MILESTONE
+- Successful date saves and clears refresh immediately only when no unsaved name, notes, date, or pending draft save remains.
+- Otherwise, the page stays open and a persistent reminder offers Refresh saved schedule after remaining edits are saved or reverted.
+- Saving or reverting the last draft enables the button without unexpectedly reloading. Each click rechecks current drafts and in-flight library updates.
+- Failed date saves never request a refresh. Newer input, hidden drafts, and partial invalid dates remain protected without relying on an unload dialog for this internal refresh.
+- Preparation details and calendar exports still require a page refresh to reflect the saved schedule; the reminder says so explicitly.
+- No autosave, draft persistence, new endpoint, extra request, or background work. Existing native warnings remain best-effort for other exits.
+
 TN GAME OS 5.169.0 — GUIDED UNSAVED EDIT REVIEW
 
 CURRENT MILESTONE
