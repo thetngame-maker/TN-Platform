@@ -1,3 +1,14 @@
+TN GAME OS 5.165.0 — UNSAVED PLANNING NOTES EXIT WARNING
+
+CURRENT MILESTONE
+- Requests the browser's generic exit warning only while planning notes differ from confirmed saved text or a notes save is awaiting confirmation.
+- Tracks each notes field independently, including edits on plans hidden by organizer filters.
+- Updates the saved baseline only after successful notes responses; newer edits and failed saves remain protected.
+- Removes the exit handler after all notes are saved or reverted, and restores warning state when the page is shown again.
+- Correctly labels a fully reverted notes field Saved or Optional instead of Unsaved changes.
+- Adds no autosave, browser draft storage, network request, private text in dialogs, or background work.
+- This is a best-effort browser warning, not recovery: mobile app termination may bypass it. Save notes explicitly; names and dates are outside this warning's scope.
+
 TN GAME OS 5.164.0 — VERIFIED SAVED ADVENTURE ORGANIZATION
 
 CURRENT MILESTONE

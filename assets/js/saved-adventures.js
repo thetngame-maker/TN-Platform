@@ -26,6 +26,20 @@
   const now = new Date();
   const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
 
+  const planningNoteFields = [...root.querySelectorAll('[data-tng-plan-notes] textarea[name="notes"]')];
+  const hasUnsavedPlanningNotes = () => planningNoteFields.some((field) => field.value !== field.defaultValue || field.closest('[data-tng-plan-notes]').querySelector('button[type="submit"]')?.disabled);
+  const warnAboutUnsavedNotes = (event) => {
+    if (!hasUnsavedPlanningNotes()) return;
+    event.preventDefault();
+    event.returnValue = true;
+  };
+  const syncNotesExitWarning = () => {
+    if (hasUnsavedPlanningNotes()) window.addEventListener('beforeunload', warnAboutUnsavedNotes);
+    else window.removeEventListener('beforeunload', warnAboutUnsavedNotes);
+  };
+  syncNotesExitWarning();
+  window.addEventListener('pageshow', syncNotesExitWarning);
+
   const scheduleWindows = cards.map((card) => {
     if (card.dataset.planState === 'archived' || !card.dataset.planDate || card.dataset.planDate < todayKey) return null;
     const parts = card.dataset.planDate.split('-').map(Number);
@@ -183,7 +197,8 @@
     const count = notes.closest('[data-tng-plan-notes]').querySelector('[data-tng-notes-count]');
     if (count) count.textContent = notes.value.length + ' of 600';
     const notesState = notes.closest('[data-tng-plan-notes-panel]')?.querySelector('[data-tng-notes-state]');
-    if (notesState) notesState.textContent = 'Unsaved changes';
+    if (notesState) notesState.textContent = notes.value !== notes.defaultValue ? 'Unsaved changes' : (notes.value.trim() === '' ? 'Optional' : 'Saved');
+    syncNotesExitWarning();
   });
   sort?.addEventListener('change', () => { savePreferences(); applyFilters(); });
   filters.forEach((button) => button.addEventListener('click', () => {
@@ -587,6 +602,7 @@
       const button = notesForm.querySelector('button[type="submit"]');
       const submittedNotes = notes.value;
       button.disabled = true;
+      syncNotesExitWarning();
       try {
         const data = await post({operation:'notes',plan_id:card.dataset.planId || '',notes:submittedNotes});
         const savedNotes = typeof data.notes === 'string' ? data.notes : submittedNotes;
@@ -596,6 +612,7 @@
           const count = notesForm.querySelector('[data-tng-notes-count]');
           if (count) count.textContent = notes.value.length + ' of 600';
         }
+        notes.defaultValue = savedNotes;
         panel.classList.toggle('has-notes', savedNotes.trim() !== '');
         panel.querySelector('[data-tng-notes-state]').textContent = hasNewerEdits ? 'Unsaved changes' : (savedNotes.trim() === '' ? 'Optional' : 'Saved');
         const printNotes = card.querySelector('[data-tng-print-notes]');
@@ -606,7 +623,7 @@
         if (status) status.textContent = hasNewerEdits ? 'Submitted notes saved. Your newer edits are not saved yet.' : data.message;
       } catch (error) {
         if (status) status.textContent = error.message;
-      } finally { button.disabled = false; }
+      } finally { button.disabled = false; syncNotesExitWarning(); }
       return;
     }
     const schedule = event.target.closest('[data-tng-plan-schedule]');
