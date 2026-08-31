@@ -230,6 +230,12 @@
   const draftReviewButton = draftReview?.querySelector('[data-tng-draft-review-next]');
   let lastReviewedDraft = null;
   const reviewableDrafts = () => adventureDraftFields.filter((field) => isAdventureDraftChanged(field) && field.isConnected && !field.disabled && field.closest('[data-plan-id]')?.isConnected);
+  const nextDraftReviewTarget = () => {
+    const drafts = reviewableDrafts();
+    if (!drafts.length) return null;
+    const index = (drafts.indexOf(lastReviewedDraft) + 1) % drafts.length;
+    return {field:drafts[index],index,total:drafts.length};
+  };
   updateDraftReview = () => {
     if (!draftReview || !draftReviewCount) return;
     const changed = adventureDraftFields.filter(isAdventureDraftChanged);
@@ -240,14 +246,18 @@
     const message = [edits,saving].filter(Boolean).join(' ');
     if (draftReviewCount.textContent !== message) draftReviewCount.textContent = message;
     draftReview.hidden = !changed.length && !pending;
-    if (draftReviewButton) draftReviewButton.disabled = reviewableDrafts().length === 0;
     if (!changed.length) lastReviewedDraft = null;
+    if (draftReviewButton) {
+      const target = nextDraftReviewTarget();
+      const kind = target ? ({notes:'notes',title:'name',planned_date:'date'}[target.field.name] || 'edit') : '';
+      draftReviewButton.disabled = !target;
+      draftReviewButton.textContent = target ? `Review ${kind} · ${target.index + 1} of ${target.total}` : 'Review unsaved edit';
+    }
   };
   draftReviewButton?.addEventListener('click', () => {
-    const drafts = reviewableDrafts();
-    if (!drafts.length) { updateDraftReview(); return; }
-    const field = drafts[(drafts.indexOf(lastReviewedDraft) + 1) % drafts.length];
-    const card = field.closest('[data-plan-id]');
+    const target = nextDraftReviewTarget();
+    if (!target) { updateDraftReview(); return; }
+    const field = target.field;
     ++planNavigationRequest;
     cards.forEach((item) => item.classList.remove('is-prep-focus'));
     if (search) search.value = '';
@@ -257,8 +267,9 @@
     const notesPanel = field.closest('[data-tng-plan-notes-panel]');
     if (notesPanel) notesPanel.open = true;
     lastReviewedDraft = field;
-    card.scrollIntoView({block:'center'});
     field.focus({preventScroll:true});
+    field.scrollIntoView({block:'center'});
+    updateDraftReview();
   });
   updateDraftReview();
   prepOverview?.addEventListener('click', (event) => {

@@ -1,3 +1,11 @@
+TN GAME OS 5.169.0 — GUIDED UNSAVED EDIT REVIEW
+
+CURRENT MILESTONE
+- Review identifies the next unsaved field by type (date, notes, or name) and its position among currently reviewable edits.
+- After each review, the button advances to the next field and wraps through the remaining edits; saves, reverts, and unavailable fields update the sequence.
+- Opens notes and focuses then scrolls the actual field into view, so edits near the end of a long adventure card are easier to find.
+- Keeps counts and button text free of private names, notes, and dates. No autosave, draft storage, extra requests, or delayed focus work.
+
 TN GAME OS 5.168.0 — PRIVATE UNSAVED EDIT REVIEW
 
 CURRENT MILESTONE
