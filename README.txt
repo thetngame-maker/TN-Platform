@@ -1,3 +1,13 @@
+TN GAME OS 5.168.0 — PRIVATE UNSAVED EDIT REVIEW
+
+CURRENT MILESTONE
+- Adds an owner-only summary of unsaved name, notes, and date fields, including hidden plans and partial invalid dates.
+- Shows save-in-progress counts separately, then updates from confirmed save baselines; failed saves and newer edits remain visible.
+- Review unsaved edit cycles through editable drafts, reveals filtered plans, opens notes, and focuses the field without submitting it.
+- Review clears this page's search/filter only; it preserves sorting and stored organizer preferences and cancels older delayed focus requests.
+- The summary exposes counts, not draft contents, and is hidden when clean and in print. Each field still requires its own Save action.
+- Adds no autosave, draft storage, endpoint, public data, or background work. Existing best-effort exit warnings remain unchanged.
+
 TN GAME OS 5.167.0 — UNSAVED ADVENTURE DATE EXIT WARNING
 
 CURRENT MILESTONE
