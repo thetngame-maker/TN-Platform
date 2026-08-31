@@ -5,20 +5,20 @@ import vm from 'node:vm';
 const root=new URL('../experiences/wordpress/tn-game-os/',import.meta.url);
 const read=path=>fs.readFileSync(new URL(path,root),'utf8');
 const bootstrap=read('tn-game-os.php'),client=read('assets/js/saved-adventures.js');
-assert.match(bootstrap,/Version:\s*5\.165\.0/);
-assert.match(bootstrap,/define\('TNG_OS_VERSION','5\.165\.0'\)/);
+assert.match(bootstrap,/Version:\s*5\.1(?:6[5-9]|[7-9]\d)\.\d+/);
+assert.match(bootstrap,/define\('TNG_OS_VERSION','5\.1(?:6[5-9]|[7-9]\d)\.\d+'\)/);
 const slice=(start,end)=>{
   const a=client.indexOf(start),b=client.indexOf(end,a);
   assert.ok(a>=0 && b>a);
   return client.slice(a,b);
 };
-const warningCode=slice('const planningNoteFields =','const scheduleWindows =');
+const warningCode=slice('const adventureDraftFields =','const scheduleWindows =');
 const inputCode=slice("root.addEventListener('input'","sort?.addEventListener");
 const postCode=slice('let libraryUpdatePending = false;','const cleanupPrint =');
 const submitCode=slice("root.addEventListener('submit'",'\n})();');
 assert.match(warningCode,/textarea\[name="notes"\]/);
-assert.match(warningCode,/window\.removeEventListener\('beforeunload', warnAboutUnsavedNotes\)/);
-assert.match(warningCode,/window\.addEventListener\('pageshow', syncNotesExitWarning\)/);
+assert.match(warningCode,/window\.removeEventListener\('beforeunload', warnAboutUnsavedDrafts\)/);
+assert.match(warningCode,/window\.addEventListener\('pageshow', syncDraftExitWarning\)/);
 assert.match(warningCode,/event\.preventDefault\(\);\s*event\.returnValue = true;/);
 assert.doesNotMatch(warningCode,/fetch\(|post\(|localStorage|sessionStorage|indexedDB|setTimeout|setInterval|sendBeacon|console\.|innerHTML|\.hidden/);
 assert.match(submitCode,/notes\.defaultValue = savedNotes;/);
@@ -31,13 +31,13 @@ const harness=(initial=['Saved A','Saved B'],restored={})=>{
     const print={hidden:!text,querySelector:()=>printed};
     const panel={classList:{toggle(){}},querySelector:()=>state};
     const card={hidden:false,dataset:{planId:'owned-'+index},querySelector:()=>print};
-    const field={value:restored[index]??text,defaultValue:text,closest:selector=>selector==='[data-tng-plan-notes]'?form:selector==='[data-tng-plan-notes-panel]'?panel:selector==='[data-tng-plan-notes] textarea'?field:null};
+    const field={value:restored[index]??text,defaultValue:text,closest:selector=>(selector==='[data-tng-plan-notes]'||selector==='[data-tng-plan-notes],[data-tng-plan-rename]')?form:selector==='[data-tng-plan-notes-panel]'?panel:selector==='[data-tng-plan-notes] textarea'?field:null};
     const form={closest:selector=>selector==='[data-tng-plan-notes]'?form:selector==='[data-plan-id]'?card:selector==='[data-tng-plan-notes-panel]'?panel:null,
       querySelector:selector=>selector==='textarea[name="notes"]'?field:selector==='button[type="submit"]'?button:count};
     return {field,form,card,state,count,button,printed};
   });
   const context={URLSearchParams,status,
-    root:{dataset:{ajaxUrl:'/wp-admin/admin-ajax.php',nonce:'test-nonce'},querySelectorAll:selector=>{assert.equal(selector,'[data-tng-plan-notes] textarea[name="notes"]');return items.map(x=>x.field);},addEventListener:(type,handler)=>{handlers[type]=handler;}},
+    root:{dataset:{ajaxUrl:'/wp-admin/admin-ajax.php',nonce:'test-nonce'},querySelectorAll:selector=>{assert.equal(selector,'[data-tng-plan-notes] textarea[name="notes"], [data-tng-plan-rename] input[name="title"]');return items.map(x=>x.field);},addEventListener:(type,handler)=>{handlers[type]=handler;}},
     window:{addEventListener:(type,handler)=>{if(!listeners.has(type))listeners.set(type,new Set());listeners.get(type).add(handler);},removeEventListener:(type,handler)=>listeners.get(type)?.delete(handler)},
     fetch:(url,options)=>{const request=deferred();requests.push({url,options,...request});return request.promise;}};
   vm.runInNewContext(`${warningCode}\n${inputCode}\n${postCode}\n${submitCode}`,context);
@@ -52,7 +52,7 @@ const harness=(initial=['Saved A','Saved B'],restored={})=>{
 const success=(request,notes)=>request.resolve({json:async()=>({success:true,data:{notes,message:'Planning notes updated.'}})});
 
 let h=harness();assert.equal(h.warningCount(),0);assert.equal(h.exit().prevented,false);
-h.unrelatedInput();assert.equal(h.warningCount(),0,'Search, title, and date inputs do not arm a notes warning');
+h.unrelatedInput();assert.equal(h.warningCount(),0,'Unrelated inputs do not arm a clean-page warning');
 h.type(0,'Draft A');h.type(0,'Draft A again');assert.equal(h.warningCount(),1,'Repeated edits never duplicate the handler');
 let event=h.exit();assert.equal(event.prevented,true);assert.equal(event.returnValue,true,'The warning contains no private notes text');
 h.items[1].card.hidden=true;h.type(1,'Hidden draft');h.type(0,'Saved A');

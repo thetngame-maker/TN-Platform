@@ -44,7 +44,7 @@ const harness=(initial='Old saved notes',withPrint=true)=>{
   const form={closest:selector=>selector==='[data-tng-plan-notes]'?form:selector==='[data-plan-id]'?card:selector==='[data-tng-plan-notes-panel]'?panel:null,
     querySelector:selector=>selector==='textarea[name="notes"]'?notes:selector==='button[type="submit"]'?button:selector==='[data-tng-notes-count]'?count:null};
   const status={textContent:''};
-  const context={root:{addEventListener:(type,callback)=>{handlers[type]=callback;}},status,syncNotesExitWarning:()=>{},
+  const context={root:{addEventListener:(type,callback)=>{handlers[type]=callback;}},status,syncDraftExitWarning:()=>{},
     post:fields=>{const result=deferred();requests.push({fields,...result});return result.promise;}};
   vm.runInNewContext(`${inputCode}\n${submitCode}`,context);
   return {notes,state,count,button,printed,print,status,requests,classes,

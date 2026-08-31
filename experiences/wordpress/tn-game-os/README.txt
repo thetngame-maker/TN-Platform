@@ -1,3 +1,14 @@
+TN GAME OS 5.166.0 — UNSAVED ADVENTURE NAME EXIT WARNING
+
+CURRENT MILESTONE
+- Extends the existing browser exit warning to unsaved adventure names as well as planning notes.
+- Uses one shared warning across fields and plans, including hidden cards and saves awaiting confirmation.
+- Updates each name's saved baseline from the successful canonical rename response, preserving newer edits and keeping failed saves protected.
+- Saving or reverting one field cannot clear the warning for another dirty field or pending notes/name save.
+- Removes the handler when all covered fields are clean and no covered save is pending, and rechecks restored pages.
+- Adds no autosave, browser draft storage, request, private text in dialogs, or background work.
+- Browser warnings remain best-effort, especially on mobile; date edits are not covered. Save names and notes explicitly.
+
 TN GAME OS 5.165.0 — UNSAVED PLANNING NOTES EXIT WARNING
 
 CURRENT MILESTONE

@@ -41,6 +41,7 @@ const harness=({withPrint=true,isNext=true,withOverview=true}={})=>{
   const form={closest:selector=>selector==='[data-tng-plan-rename]'?form:selector==='[data-plan-id]'?card:null,
     querySelector:selector=>selector==='input[name="title"]'?input:selector==='button[type="submit"]'?button:null};
   const context={
+    syncDraftExitWarning:()=>{},
     root:{addEventListener:(type,callback)=>{assert.equal(type,'submit');handler=callback;},querySelector:()=>banner},status,
     post:payload=>{const result=deferred();requests.push({payload,...result});return result.promise;},
     cards:[card],nextCard:isNext?card:null,todayKey:'2026-08-30',priorityPrep:null,prepFocus:null,

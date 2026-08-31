@@ -133,7 +133,7 @@ for (const kind of ['notes','schedule','rename']) {
   },querySelector:selector=>selector==='button[type="submit"]'?button:input};
   h.context.root.addEventListener=(event,callback)=>{assert.equal(event,'submit');onSubmit=callback;};
   h.context.status={textContent:''};
-  h.context.syncNotesExitWarning=()=>{};
+  h.context.syncDraftExitWarning=()=>{};
   vm.runInNewContext(submitCode,h.context);
   await onSubmit({target:form,preventDefault:()=>{prevented+=1;}});
   assert.equal(prevented,1);
