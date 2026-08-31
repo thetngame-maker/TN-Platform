@@ -27,6 +27,7 @@ function get_user_meta(int $user, string $key, bool $single = false): mixed {
 }
 function update_user_meta(int $user, string $key, mixed $value): bool {
     $GLOBALS['notes_fixture']['writes']++;
+    $GLOBALS['notes_fixture']['attempted_value'] = $value;
     if (!$GLOBALS['notes_fixture']['write_success']) {
         if (isset($GLOBALS['notes_fixture']['failed_write_hook'])) ($GLOBALS['notes_fixture']['failed_write_hook'])();
         return false;
@@ -46,6 +47,16 @@ function home_url(string $path): string { return 'https://tn.example' . $path; }
 function wp_date(string $format): string {
     notes_expect($format === 'Y-m-d', 'Scheduling uses the existing site-local day format');
     return '2030-01-01';
+}
+function wp_generate_uuid4(): string {
+    $GLOBALS['notes_fixture']['generated_ids'] = ($GLOBALS['notes_fixture']['generated_ids'] ?? 0) + 1;
+    return sprintf('00000000-0000-4000-8000-%012d', $GLOBALS['notes_fixture']['generated_ids']);
+}
+final class TNG_Trip_Data {
+    public static function progress_summary(int $user): array {
+        notes_expect($user === get_current_user_id(), 'Archive reads only the current owner trip');
+        return ['source'=>$GLOBALS['notes_fixture']['trip_source'] ?? []];
+    }
 }
 function notes_reset(): void {
     $GLOBALS['notes_fixture'] = [
@@ -335,3 +346,106 @@ foreach (['archived','other_owner','logged_in','nonce_valid'] as $scenario) fore
     if ($scenario === 'logged_in' || $scenario === 'nonce_valid') notes_expect($GLOBALS['notes_fixture']['reads'] === 0, 'Unauthenticated scheduling accesses no metadata');
 }
 fwrite(STDOUT, "TN Game OS 5.163.0 private schedule endpoint tests passed\n");
+
+foreach (['archive','restore'] as $operation) {
+    foreach ([true,false] as $write_success) {
+        schedule_reset();
+        if ($operation === 'restore') $GLOBALS['notes_fixture']['meta'][7]['tng_adventure_ai_plan_library'][0]['archived_at'] = 123;
+        $before = notes_saved();
+        $other = $GLOBALS['notes_fixture']['meta'][8];
+        $sibling = ['id'=>'sibling-plan','ids'=>[33],'title'=>'Another owned plan','notes'=>'Sibling secret'];
+        $GLOBALS['notes_fixture']['meta'][7]['tng_adventure_ai_plan_library'][] = $sibling;
+        $GLOBALS['notes_fixture']['write_success'] = $write_success;
+        $response = notes_action(['operation'=>$operation,'plan_id'=>'owned-plan']);
+        notes_expect($response->success === $write_success && $response->status === ($write_success ? 200 : 500), 'Archive/restore must reflect persistence');
+        if ($write_success) {
+            notes_expect(!empty(notes_saved()['archived_at']) === ($operation === 'archive'), 'Stored archive state matches the operation');
+            foreach ($before as $field=>$value) if (!in_array($field,['archived_at','updated_at'],true)) notes_expect(notes_saved()[$field] === $value, 'Organization preserves names, notes, dates, preparation, and stops');
+        } else notes_expect(notes_saved() === $before, 'Failed organization leaves the original plan intact');
+        notes_expect($GLOBALS['notes_fixture']['meta'][7]['tng_adventure_ai_plan_library'][1] === $sibling, 'Other plans in the same library are preserved');
+        notes_expect($GLOBALS['notes_fixture']['meta'][8] === $other, 'Another owner is untouched');
+        notes_expect($GLOBALS['notes_fixture']['writes'] === 1, 'Organization does not automatically retry');
+        notes_expect(array_diff(array_keys($response->data),['message','url']) === [], 'Organization responses disclose no plan fields');
+    }
+    schedule_reset();
+    if ($operation === 'archive') $GLOBALS['notes_fixture']['meta'][7]['tng_adventure_ai_plan_library'][0]['archived_at'] = 123;
+    $GLOBALS['notes_fixture']['write_success'] = false;
+    $response = notes_action(['operation'=>$operation,'plan_id'=>'owned-plan']);
+    notes_expect($response->success, 'An already-correct archive state is a valid no-op despite old timestamps');
+
+    foreach (['content_changed','missing'] as $scenario) {
+        schedule_reset();
+        if ($operation === 'archive') $GLOBALS['notes_fixture']['meta'][7]['tng_adventure_ai_plan_library'][0]['archived_at'] = 123;
+        $GLOBALS['notes_fixture']['write_success'] = false;
+        $GLOBALS['notes_fixture']['failed_write_hook'] = static function() use ($scenario): void {
+            if ($scenario === 'missing') $GLOBALS['notes_fixture']['meta'][7]['tng_adventure_ai_plan_library'] = [];
+            else unset($GLOBALS['notes_fixture']['meta'][7]['tng_adventure_ai_plan_library'][0]['notes']);
+        };
+        $response = notes_action(['operation'=>$operation,'plan_id'=>'owned-plan']);
+        notes_expect(!$response->success && $response->status === 500, 'Correct archive state alone cannot confirm missing or changed plan content');
+    }
+}
+
+foreach ([true,false] as $write_success) foreach ([true,false] as $archived) {
+    schedule_reset();
+    if ($archived) $GLOBALS['notes_fixture']['meta'][7]['tng_adventure_ai_plan_library'][0]['archived_at'] = 123;
+    $before = notes_saved();
+    $other = $GLOBALS['notes_fixture']['meta'][8];
+    $GLOBALS['notes_fixture']['write_success'] = $write_success;
+    $response = notes_action(['operation'=>'duplicate','plan_id'=>'owned-plan']);
+    notes_expect($response->success === $write_success && $response->status === ($write_success ? 200 : 500), 'Copies of active or archived plans require persistence');
+    $library = $GLOBALS['notes_fixture']['meta'][7]['tng_adventure_ai_plan_library'];
+    notes_expect(count($library) === ($write_success ? 2 : 1), 'Failed copies cannot add an unconfirmed plan');
+    if ($write_success) {
+        $copy = $library[0];
+        notes_expect($copy['id'] !== $before['id'] && $copy['title'] === 'Copy of '.$before['title'] && $copy['ids'] === $before['ids'], 'Copies get new IDs and preserve the intended route');
+        foreach (['notes','planned_date','readiness','readiness_updated_at','packing','packing_updated_at','archived_at'] as $field) notes_expect(!array_key_exists($field,$copy), 'Private preparation and archive state must not be copied');
+        notes_expect($library[1] === $before, 'Duplicating never mutates the source');
+    } else notes_expect($library[0] === $before, 'A failed duplicate preserves the source');
+    notes_expect($GLOBALS['notes_fixture']['meta'][8] === $other, 'Duplication does not touch another owner');
+    notes_expect($GLOBALS['notes_fixture']['writes'] === 1 && $GLOBALS['notes_fixture']['generated_ids'] === 1, 'Each request attempts only one copy');
+    notes_expect(array_diff(array_keys($response->data),['message','url']) === [], 'Duplicate responses return no private plan fields');
+}
+foreach (['complete','missing_copy','wrong_id','changed_route','private_notes'] as $scenario) {
+    schedule_reset();
+    $GLOBALS['notes_fixture']['write_success'] = false;
+    $GLOBALS['notes_fixture']['failed_write_hook'] = static function() use ($scenario): void {
+        $library = $GLOBALS['notes_fixture']['attempted_value'];
+        if ($scenario === 'missing_copy') array_shift($library);
+        if ($scenario === 'wrong_id') $library[0]['id'] = 'unrelated-copy';
+        if ($scenario === 'changed_route') $library[0]['ids'] = [999];
+        if ($scenario === 'private_notes') $library[0]['notes'] = 'Unexpected copied notes';
+        $GLOBALS['notes_fixture']['meta'][7]['tng_adventure_ai_plan_library'] = $library;
+    };
+    $response = notes_action(['operation'=>'duplicate','plan_id'=>'owned-plan']);
+    notes_expect($response->success === ($scenario === 'complete'), 'Only the complete expected copy at its generated ID can verify a false-returning write');
+    notes_expect($response->status === ($scenario === 'complete' ? 200 : 500), 'Incomplete duplicate verification fails explicitly');
+}
+
+foreach (['archive','restore','duplicate'] as $operation) {
+    foreach (['other_owner','logged_in','nonce_valid'] as $scenario) {
+        schedule_reset();
+        $fields = ['operation'=>$operation,'plan_id'=>'owned-plan'];
+        if ($scenario === 'other_owner') { $fields['plan_id']='other-plan'; $expected_status=404; }
+        else { $GLOBALS['notes_fixture'][$scenario]=false; $expected_status=$scenario==='logged_in'?401:403; }
+        $response=notes_action($fields);
+        notes_expect(!$response->success && $response->status===$expected_status && $GLOBALS['notes_fixture']['writes']===0, 'Organization preserves ownership, authentication, and nonce checks');
+        notes_expect(array_keys($response->data)===['message'], 'Denied organization discloses no plan fields');
+        if ($scenario!=='other_owner') notes_expect($GLOBALS['notes_fixture']['reads']===0, 'Unauthenticated organization accesses no metadata');
+    }
+    schedule_reset();
+    if ($operation==='restore') $GLOBALS['notes_fixture']['meta'][7]['tng_adventure_ai_plan_library'][0]['archived_at']=123;
+    $needed=$operation==='archive'?24:($operation==='restore'?12:11);
+    for ($i=0;$i<$needed;$i++) {
+        $plan=['id'=>'capacity-'.$i,'ids'=>[50+$i],'title'=>'Capacity fixture'];
+        if ($operation==='archive') $plan['archived_at']=123;
+        $GLOBALS['notes_fixture']['meta'][7]['tng_adventure_ai_plan_library'][]=$plan;
+    }
+    $response=notes_action(['operation'=>$operation,'plan_id'=>'owned-plan']);
+    notes_expect(!$response->success && $response->status===409 && $GLOBALS['notes_fixture']['writes']===0, 'Archive and active-plan capacity limits remain enforced');
+}
+schedule_reset();
+$GLOBALS['notes_fixture']['trip_source']=['kind'=>'saved_adventure','id'=>'owned-plan'];
+$response=notes_action(['operation'=>'archive','plan_id'=>'owned-plan']);
+notes_expect(!$response->success && $response->status===409 && $GLOBALS['notes_fixture']['writes']===0, 'The active adventure cannot be archived');
+fwrite(STDOUT, "TN Game OS 5.164.0 private organization endpoint tests passed\n");

@@ -361,6 +361,21 @@ final class Adventure_AI implements Module_Interface {
             $expected_schedule = array_intersect_key($library[$index], $schedule_fields);
             if ($saved_index < 0 || $saved_schedule != $expected_schedule) wp_send_json_error(['message'=>'Adventure date could not be saved. Try that change again.'], 500);
         }
+        if (in_array($operation, ['archive','restore','duplicate'], true) && $updated === false) {
+            $expected_plan = $operation === 'duplicate' ? $copy : $library[$index];
+            $saved_library = self::library(get_current_user_id());
+            $saved_index = self::plan_index($saved_library, (string)$expected_plan['id']);
+            $saved_plan = $saved_library[$saved_index] ?? [];
+            $archive_state_matches = true;
+            if ($operation !== 'duplicate') {
+                $archive_state_matches = !empty($saved_plan['archived_at']) === ($operation === 'archive');
+                unset($saved_plan['archived_at'], $saved_plan['updated_at'], $expected_plan['archived_at'], $expected_plan['updated_at']);
+            }
+            if ($saved_index < 0 || !$archive_state_matches || $saved_plan != $expected_plan) {
+                $failure_messages = ['archive'=>'Adventure could not be archived. Try that change again.','restore'=>'Adventure could not be restored. Try that change again.','duplicate'=>'Adventure copy could not be saved. Try again when ready.'];
+                wp_send_json_error(['message'=>$failure_messages[$operation]], 500);
+            }
+        }
         $messages = ['rename'=>'Adventure renamed.','schedule'=>'Adventure date updated.','readiness'=>'Adventure readiness updated.','packing'=>'Adventure packing list updated.','notes'=>'Planning notes updated.','duplicate'=>'Adventure duplicated.','archive'=>'Adventure archived.','restore'=>'Adventure restored.'];
         $response = ['message'=>$messages[$operation] ?? 'Adventure updated.','url'=>home_url('/adventures/')];
         if ($operation === 'notes') $response['notes'] = (string)($library[$index]['notes'] ?? '');
