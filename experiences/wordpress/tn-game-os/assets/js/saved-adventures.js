@@ -27,10 +27,13 @@
   const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
 
   const adventureDraftFields = [...root.querySelectorAll('[data-tng-plan-notes] textarea[name="notes"], [data-tng-plan-rename] input[name="title"], [data-tng-plan-schedule] input[name="planned_date"]')];
-  const hasUnsavedAdventureDrafts = () => adventureDraftFields.some((field) => {
+  let updateDraftReview;
+  const isAdventureDraftChanged = (field) => field.value !== field.defaultValue || Boolean(field.validity?.badInput);
+  const isAdventureDraftPending = (field) => {
     const form = field.closest('[data-tng-plan-notes],[data-tng-plan-rename],[data-tng-plan-schedule]');
-    return field.value !== field.defaultValue || field.validity?.badInput || form?.querySelector('button[type="submit"]')?.disabled || form?.querySelector('[data-tng-plan-clear-date]')?.disabled;
-  });
+    return Boolean(form?.querySelector('button[type="submit"]')?.disabled || form?.querySelector('[data-tng-plan-clear-date]')?.disabled);
+  };
+  const hasUnsavedAdventureDrafts = () => adventureDraftFields.some((field) => isAdventureDraftChanged(field) || isAdventureDraftPending(field));
   const warnAboutUnsavedDrafts = (event) => {
     if (!hasUnsavedAdventureDrafts()) return;
     event.preventDefault();
@@ -39,6 +42,7 @@
   const syncDraftExitWarning = () => {
     if (hasUnsavedAdventureDrafts()) window.addEventListener('beforeunload', warnAboutUnsavedDrafts);
     else window.removeEventListener('beforeunload', warnAboutUnsavedDrafts);
+    updateDraftReview?.();
   };
   syncDraftExitWarning();
   window.addEventListener('pageshow', syncDraftExitWarning);
@@ -221,6 +225,42 @@
   syncFilterControls();
   applyFilters();
   updatePrepOverview();
+  const draftReview = root.querySelector('[data-tng-draft-review]');
+  const draftReviewCount = draftReview?.querySelector('[data-tng-draft-review-count]');
+  const draftReviewButton = draftReview?.querySelector('[data-tng-draft-review-next]');
+  let lastReviewedDraft = null;
+  const reviewableDrafts = () => adventureDraftFields.filter((field) => isAdventureDraftChanged(field) && field.isConnected && !field.disabled && field.closest('[data-plan-id]')?.isConnected);
+  updateDraftReview = () => {
+    if (!draftReview || !draftReviewCount) return;
+    const changed = adventureDraftFields.filter(isAdventureDraftChanged);
+    const pending = adventureDraftFields.filter(isAdventureDraftPending).length;
+    const planCount = new Set(changed.map((field) => field.closest('[data-plan-id]'))).size;
+    const edits = changed.length ? `${changed.length} unsaved field${changed.length === 1 ? '' : 's'} across ${planCount} adventure${planCount === 1 ? '' : 's'}.` : '';
+    const saving = pending ? `${pending} save${pending === 1 ? '' : 's'} in progress.` : '';
+    const message = [edits,saving].filter(Boolean).join(' ');
+    if (draftReviewCount.textContent !== message) draftReviewCount.textContent = message;
+    draftReview.hidden = !changed.length && !pending;
+    if (draftReviewButton) draftReviewButton.disabled = reviewableDrafts().length === 0;
+    if (!changed.length) lastReviewedDraft = null;
+  };
+  draftReviewButton?.addEventListener('click', () => {
+    const drafts = reviewableDrafts();
+    if (!drafts.length) { updateDraftReview(); return; }
+    const field = drafts[(drafts.indexOf(lastReviewedDraft) + 1) % drafts.length];
+    const card = field.closest('[data-plan-id]');
+    ++planNavigationRequest;
+    cards.forEach((item) => item.classList.remove('is-prep-focus'));
+    if (search) search.value = '';
+    selectedFilter = 'all';
+    syncFilterControls();
+    applyFilters();
+    const notesPanel = field.closest('[data-tng-plan-notes-panel]');
+    if (notesPanel) notesPanel.open = true;
+    lastReviewedDraft = field;
+    card.scrollIntoView({block:'center'});
+    field.focus({preventScroll:true});
+  });
+  updateDraftReview();
   prepOverview?.addEventListener('click', (event) => {
     const trigger = event.target.closest('[data-tng-prep-filter]');
     if (!trigger) return;

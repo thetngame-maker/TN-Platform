@@ -13,7 +13,8 @@ assert.match(client,/const prepFilters = prepOverview \? \[\.\.\.prepOverview\.q
 assert.match(client,/const syncFilterControls = \(\) =>/);
 assert.match(client,/item\.dataset\.tngAdventureFilter === selectedFilter/);
 assert.match(client,/item\.dataset\.tngPrepFilter === selectedFilter/);
-assert.equal((client.match(/syncFilterControls\(\);/g)||[]).length,5);
+// Draft review is now a sixth navigation path that synchronizes filter state.
+assert.equal((client.match(/syncFilterControls\(\);/g)||[]).length,6);
 assert.match(css,/prep-metrics button\[aria-pressed="true"\]/);
 const helper=client.slice(client.indexOf('const syncFilterControls ='),client.indexOf('const updateCardLaunchStatus ='));
 assert.doesNotMatch(helper,/post\(|fetch\(|localStorage|\.click\(\)/);

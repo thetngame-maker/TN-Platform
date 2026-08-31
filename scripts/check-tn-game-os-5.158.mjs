@@ -10,7 +10,8 @@ assert.match(bootstrap,/Version:\s*5\.1(?:5[8-9]|[6-9]\d)\.\d+/);
 assert.match(bootstrap,/define\('TNG_OS_VERSION','5\.1(?:5[8-9]|[6-9]\d)\.\d+'\)/);
 assert.match(client,/let planNavigationRequest = 0;/);
 assert.equal((client.match(/const request = \+\+planNavigationRequest;/g)||[]).length,2);
-assert.equal((client.match(/if \(search\) search\.value = '';/g)||[]).length,3);
+// Draft review also clears search before revealing an edited plan.
+assert.equal((client.match(/if \(search\) search\.value = '';/g)||[]).length,4);
 assert.match(client,/priorityPrep\?\.card !== target\.card \|\| priorityPrep\?\.checkbox !== target\.checkbox/);
 assert.match(client,/!target\.card\.isConnected \|\| target\.card\.hidden \|\| !target\.checkbox\.isConnected \|\| target\.checkbox\.hidden \|\| target\.checkbox\.disabled \|\| target\.checkbox\.checked/);
 assert.match(client,/document\.activeElement === focusOrigin/);
