@@ -40,11 +40,11 @@ const harness=(initial='Old saved notes',withPrint=true)=>{
   const print={hidden:!initial,querySelector:()=>printed};
   const panel={classList:{toggle:(name,enabled)=>enabled?classes.add(name):classes.delete(name)},querySelector:()=>state};
   const card={dataset:{planId:'owned-plan'},querySelector:selector=>selector==='[data-tng-print-notes]'&&withPrint?print:null};
-  const notes={value:initial,closest:selector=>selector==='[data-tng-plan-notes]'?form:selector==='[data-tng-plan-notes-panel]'?panel:selector==='[data-tng-plan-notes] textarea'?notes:null};
+  const notes={value:initial,defaultValue:initial,closest:selector=>selector==='[data-tng-plan-notes]'?form:selector==='[data-tng-plan-notes-panel]'?panel:selector==='[data-tng-plan-notes] textarea'?notes:null};
   const form={closest:selector=>selector==='[data-tng-plan-notes]'?form:selector==='[data-plan-id]'?card:selector==='[data-tng-plan-notes-panel]'?panel:null,
     querySelector:selector=>selector==='textarea[name="notes"]'?notes:selector==='button[type="submit"]'?button:selector==='[data-tng-notes-count]'?count:null};
   const status={textContent:''};
-  const context={root:{addEventListener:(type,callback)=>{handlers[type]=callback;}},status,
+  const context={root:{addEventListener:(type,callback)=>{handlers[type]=callback;}},status,syncNotesExitWarning:()=>{},
     post:fields=>{const result=deferred();requests.push({fields,...result});return result.promise;}};
   vm.runInNewContext(`${inputCode}\n${submitCode}`,context);
   return {notes,state,count,button,printed,print,status,requests,classes,
