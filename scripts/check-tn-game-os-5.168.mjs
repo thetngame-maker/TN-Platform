@@ -35,8 +35,14 @@ const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{reso
 const success=(request,data={})=>request.resolve({json:async()=>({success:true,data:{message:'Saved.',...data}})});
 // DOM stand-ins run the actual review/filter and save handlers, not a second
 // implementation. These checks do not claim visual or native browser coverage.
-export const harness=({restored=false,summaryPresent=true}={})=>{
-  const handlers={},listeners=new Map(),requests=[],reloads=[],focus=[],scroll=[],status={textContent:''};
+export const harness=({restored=false,summaryPresent=true,refreshPresent=true}={})=>{
+  const handlers={},captureHandlers={},listeners=new Map(),requests=[],reloads=[],focus=[],scroll=[],status={textContent:''};
+  const scheduleDependentSelector='[data-tng-readiness-key],[data-tng-packing-key],[data-tng-prep-focus],[data-tng-next-action],[data-tng-plan-start],[data-tng-plan-calendar],[data-tng-upcoming-calendar],[data-tng-plan-print]';
+  const scheduleControls=scheduleDependentSelector.split(',').map(selector=>{
+    const control={selector,disabled:false,closest:query=>query===scheduleDependentSelector||query===selector?control:null};
+    if(selector==='[data-tng-readiness-key]'||selector==='[data-tng-packing-key]')control.checked=false;
+    return control;
+  });
   const count={textContent:''};
   const reviewButton={disabled:false,addEventListener:(type,handler)=>{handlers.review=handler;}};
   const summary={hidden:true,querySelector:selector=>selector==='[data-tng-draft-review-count]'?count:reviewButton};
@@ -70,11 +76,17 @@ export const harness=({restored=false,summaryPresent=true}={})=>{
   });
   const context={URLSearchParams,status,search,sort,filters,prepFilters,nextCard:null,selectedFilter:'archived',planNavigationRequest:7,cards:plans.map(p=>p.card),grid:null,filterStatus:null,filterEmpty:null,
     launchCountFor:()=>0,isUpcomingPrepCard:()=>true,updatePrepOverview(){},
-    root:{dataset:{ajaxUrl:'/wp-admin/admin-ajax.php',nonce:'test-nonce'},querySelector:selector=>selector==='[data-tng-schedule-refresh]'?refreshPanel:summaryPresent?summary:null,querySelectorAll:()=>plans.flatMap(p=>[p.schedule.field,p.notes.field,p.rename.field]),addEventListener:(type,handler)=>{handlers[type]=handler;}},
+    root:{dataset:{ajaxUrl:'/wp-admin/admin-ajax.php',nonce:'test-nonce'},querySelector:selector=>selector==='[data-tng-schedule-refresh]'?(refreshPresent?refreshPanel:null):summaryPresent?summary:null,querySelectorAll:selector=>selector===scheduleDependentSelector?scheduleControls:plans.flatMap(p=>[p.schedule.field,p.notes.field,p.rename.field]),addEventListener:(type,handler,capture)=>{if(capture){(captureHandlers[type]??=[]).push(handler);}else handlers[type]=handler;}},
     window:{addEventListener:(type,handler)=>{if(!listeners.has(type))listeners.set(type,new Set());listeners.get(type).add(handler);},removeEventListener:(type,handler)=>listeners.get(type)?.delete(handler),location:{reload(){reloads.push({pending:plans.some(p=>p.schedule.button.disabled||p.schedule.clear.disabled||p.notes.button.disabled||p.rename.button.disabled)});}}},
     fetch:(url,options)=>{const request=deferred();requests.push({url,options,...request});return request.promise;}};
   vm.runInNewContext(`${warningCode}\n${refreshCode}\n${controlsCode}\n${filterCode}\n${reviewCode}\n${inputCode}\n${postCode}\n${clickCode}\n${submitCode}\nglobalThis.testPost = post;`,context);
-  return {plans,requests,reloads,status,refreshPanel,refreshMessage,refreshButton,summary,count,reviewButton,search,sort,focus,scroll,context,refresh:()=>handlers.refresh(),
+  const capture=(type,target)=>{
+    const event={type,target,prevented:false,stopped:false,preventDefault(){this.prevented=true;},stopImmediatePropagation(){this.stopped=true;}};
+    for(const handler of captureHandlers[type]??[]){handler(event);if(event.stopped)break;}
+    return event;
+  };
+  return {plans,requests,reloads,status,refreshPanel,refreshMessage,refreshButton,summary,count,reviewButton,search,sort,focus,scroll,context,scheduleControls,capture,
+    async dispatch(type,target){const event=capture(type,target);if(!event.stopped)await handlers[type]?.(event);return event;},refresh:()=>handlers.refresh(),
     type(index,kind,value,badInput=false){const field=plans[index][kind].field;field.value=value;field.validity.badInput=badInput;handlers.input({target:field});},
     submit:(index,kind)=>handlers.submit({target:plans[index][kind].form,preventDefault(){}}),
     clear:(index)=>handlers.click({target:plans[index].schedule.clear}),

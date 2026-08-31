@@ -1,3 +1,13 @@
+TN GAME OS 5.171.0 — REFRESH-REQUIRED PREPARATION PROTECTION
+
+CURRENT MILESTONE
+- Pauses readiness/packing checks, prep focus, next-adventure actions, starts, calendar exports, and printing after a confirmed date change while the page awaits refresh.
+- Disables these controls across the current Saved Adventures page and guards captured click/change events before their existing actions run.
+- A blocked checkbox change restores its prior checked state without sending a request or changing preparation counts.
+- Draft review, name/notes/date editing, manual saves, and guarded refresh remain available. Fresh page loads restore normal server-rendered controls.
+- The persistent refresh reminder explains the pause without exposing private content. Failed or unconfirmed schedule saves do not activate it.
+- Adds no autosave, storage, server endpoint, background request, or public data.
+
 TN GAME OS 5.170.0 — DRAFT-AWARE SCHEDULE REFRESH
 
 CURRENT MILESTONE

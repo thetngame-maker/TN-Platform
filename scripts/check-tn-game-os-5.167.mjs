@@ -46,6 +46,7 @@ const harness=(initial='2030-01-02')=>{
   const exit=()=>{const event={prevented:false,returnValue:'',preventDefault(){this.prevented=true;}};listeners.get('beforeunload')?.forEach(fn=>fn(event));return event;};
   const context={URLSearchParams,status,
     root:{dataset:{ajaxUrl:'/wp-admin/admin-ajax.php',nonce:'test-nonce'},querySelector:()=>null,querySelectorAll:selector=>{
+      if(selector==='[data-tng-readiness-key],[data-tng-packing-key],[data-tng-prep-focus],[data-tng-next-action],[data-tng-plan-start],[data-tng-plan-calendar],[data-tng-upcoming-calendar],[data-tng-plan-print]')return [];
       assert.equal(selector,'[data-tng-plan-notes] textarea[name="notes"], [data-tng-plan-rename] input[name="title"], [data-tng-plan-schedule] input[name="planned_date"]');
       return plans.flatMap(plan=>[plan.notes.field,plan.rename.field,plan.schedule.field]);
     },addEventListener:(type,handler)=>{handlers[type]=handler;}},
