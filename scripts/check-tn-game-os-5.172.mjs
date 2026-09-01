@@ -6,8 +6,8 @@ const root=new URL('../experiences/wordpress/tn-game-os/',import.meta.url);
 const read=path=>fs.readFileSync(new URL(path,root),'utf8');
 const bootstrap=read('tn-game-os.php'),client=read('assets/js/saved-adventures.js');
 const php=read('app/Modules/Destinations/class-adventure-ai.php'),css=read('assets/css/saved-adventures.css');
-assert.match(bootstrap,/Version:\s*5\.172\.0/);
-assert.match(bootstrap,/define\('TNG_OS_VERSION','5\.172\.0'\)/);
+assert.match(bootstrap,/Version:\s*5\.1(?:7[2-9]|[8-9]\d)\.\d+/);
+assert.match(bootstrap,/define\('TNG_OS_VERSION','5\.1(?:7[2-9]|[8-9]\d)\.\d+'\)/);
 const refresh=client.slice(client.indexOf('const scheduleRefresh ='),client.indexOf('const draftReview ='));
 assert.match(refresh,/control\.setAttribute\('aria-disabled','true'\)/);
 assert.match(refresh,/control\.classList\.add\('is-schedule-paused'\)/);
@@ -28,7 +28,7 @@ let child={closest:selector=>control.closest(selector)};
 let event=await h.dispatch('click',child);
 assert.equal(event.stopped,true);assert.equal(event.prevented,true);assert.equal(h.requests.length,1);assert.equal(h.reloads.length,0);
 assert.equal(h.scroll.at(-1).refreshPanel,h.refreshPanel);assert.equal(h.scroll.at(-1).options.block,'nearest');
-assert.equal(h.focus.at(-1).refreshPanel,h.refreshPanel);assert.equal(h.focus.at(-1).options.preventScroll,true);
+assert.equal(h.focus.at(-1).scheduleReviewButton,h.scheduleReviewButton);assert.equal(h.focus.at(-1).options.preventScroll,true);
 assert.doesNotMatch(h.status.textContent,/PRIVATE|2030|Plan/);
 
 // Reverting the last draft makes refresh ready, so a blocked action guides

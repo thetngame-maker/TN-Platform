@@ -1,3 +1,13 @@
+TN GAME OS 5.173.0 — GUIDED SCHEDULE REFRESH DRAFT HANDOFF
+
+CURRENT MILESTONE
+- Adds a Review remaining edit action to the schedule-refresh reminder whenever private drafts prevent refresh.
+- Reuses the existing unsaved-edit reviewer to reveal and focus the next editable field without submitting or copying its contents.
+- Blocked schedule actions focus the review action when a draft can be reviewed, the reminder while only a save is pending, or Refresh saved schedule when ready.
+- Hides the review action as soon as drafts are clean and keeps refresh guarded until every draft or pending update is resolved.
+- Uses generic labels and counts only; private names, notes, and dates never enter the reminder or status guidance.
+- Adds no autosave, storage, endpoint, request, delayed focus, background work, or public data.
+
 TN GAME OS 5.172.0 — ACCESSIBLE PAUSED ACTION GUIDANCE
 
 CURRENT MILESTONE

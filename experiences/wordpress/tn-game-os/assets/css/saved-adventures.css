@@ -73,6 +73,7 @@
 .tng-adventure-library__schedule-refresh{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;padding:18px;border:1px solid var(--tng-border);border-radius:16px;background:#f3f8f4;color:#214b37}
 .tng-adventure-library__schedule-refresh[hidden]{display:none}
 .tng-adventure-library__schedule-refresh>div{flex:1 1 260px;min-width:0}.tng-adventure-library__schedule-refresh p{margin:6px 0;line-height:1.5}.tng-adventure-library__schedule-refresh button{white-space:normal}.tng-adventure-library__schedule-refresh button:disabled{opacity:.6;cursor:not-allowed}
+.tng-adventure-library__schedule-actions{display:flex;flex:0 1 auto!important;flex-wrap:wrap;justify-content:flex-end;gap:10px}.tng-adventure-library__schedule-actions button[hidden]{display:none}
 .tng-adventure-library .is-schedule-paused{opacity:.6;cursor:not-allowed}
 @media print{.tng-adventure-library__schedule-refresh{display:none!important}}
 .tng-adventure-library__draft-review{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;padding:18px;border:1px solid #cba45c;border-radius:16px;background:#fff9ec;color:#493a20}

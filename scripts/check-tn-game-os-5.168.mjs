@@ -46,10 +46,11 @@ export const harness=({restored=false,summaryPresent=true,refreshPresent=true}={
     return control;
   });
   const count={textContent:''};
-  const reviewButton={disabled:false,addEventListener:(type,handler)=>{handlers.review=handler;}};
+  const reviewButton={disabled:false,addEventListener:(type,handler)=>{handlers.review=handler;},click:()=>handlers.review?.()};
   const summary={hidden:true,querySelector:selector=>selector==='[data-tng-draft-review-count]'?count:reviewButton};
-  const refreshMessage={textContent:''},refreshButton={disabled:true,addEventListener:(type,handler)=>{handlers.refresh=handler;}};
-  const refreshPanel={hidden:true,querySelector:selector=>selector==='[data-tng-schedule-refresh-message]'?refreshMessage:refreshButton,
+  const refreshMessage={textContent:''},scheduleReviewButton={hidden:true,disabled:true,textContent:'Review remaining edit',addEventListener:(type,handler)=>{handlers.scheduleReview=handler;},focus:options=>focus.push({scheduleReviewButton,options})};
+  const refreshButton={disabled:true,addEventListener:(type,handler)=>{handlers.refresh=handler;}};
+  const refreshPanel={hidden:true,querySelector:selector=>selector==='[data-tng-schedule-refresh-message]'?refreshMessage:selector==='[data-tng-schedule-review-button]'?scheduleReviewButton:selector==='[data-tng-schedule-refresh-button]'?refreshButton:null,
     scrollIntoView:options=>scroll.push({refreshPanel,options}),focus:options=>focus.push({refreshPanel,options})};
   refreshButton.focus=options=>focus.push({refreshButton,options});
   const search={value:'nothing matches'},sort={value:'recent'};
@@ -89,12 +90,12 @@ export const harness=({restored=false,summaryPresent=true,refreshPresent=true}={
     for(const handler of captureHandlers[type]??[]){handler(event);if(event.stopped)break;}
     return event;
   };
-  return {plans,requests,reloads,status,refreshPanel,refreshMessage,refreshButton,summary,count,reviewButton,search,sort,focus,scroll,context,scheduleControls,capture,
+  return {plans,requests,reloads,status,refreshPanel,refreshMessage,scheduleReviewButton,refreshButton,summary,count,reviewButton,search,sort,focus,scroll,context,scheduleControls,capture,
     async dispatch(type,target){const event=capture(type,target);if(!event.stopped)await handlers[type]?.(event);return event;},refresh:()=>handlers.refresh(),
     type(index,kind,value,badInput=false){const field=plans[index][kind].field;field.value=value;field.validity.badInput=badInput;handlers.input({target:field});},
     submit:(index,kind)=>handlers.submit({target:plans[index][kind].form,preventDefault(){}}),
     clear:(index)=>handlers.click({target:plans[index].schedule.clear}),
-    review:()=>handlers.review?.(),pageshow:()=>listeners.get('pageshow')?.forEach(fn=>fn()),warning:()=>listeners.get('beforeunload')?.size??0};
+    review:()=>handlers.review?.(),scheduleReview:()=>handlers.scheduleReview?.(),pageshow:()=>listeners.get('pageshow')?.forEach(fn=>fn()),warning:()=>listeners.get('beforeunload')?.size??0};
 };
 
 let h=harness();assert.equal(h.summary.hidden,true);assert.equal(h.reviewButton.disabled,true);
