@@ -16,7 +16,7 @@ assert.match(refresh,/if \(libraryUpdatePending\)/);
 assert.match(css,/schedule-refresh\[hidden\]\{display:none\}/);
 assert.match(css,/@media print\{\.tng-adventure-library__schedule-refresh\{display:none!important\}\}/);
 const markup=php.match(/<section class="tng-adventure-library__schedule-refresh"[^]*?<\/section>/)?.[0];
-assert.ok(markup);assert.match(markup,/aria-label="Refresh saved schedule" hidden/);
+assert.ok(markup);assert.match(markup,/aria-label="Refresh saved schedule" (?:tabindex="-1" )?hidden/);
 assert.match(markup,/aria-live="polite" aria-atomic="true"/);
 assert.match(markup,/type="button" data-tng-schedule-refresh-button disabled/);
 assert.doesNotMatch(markup,/<\?php|\$notes|\$plan/);

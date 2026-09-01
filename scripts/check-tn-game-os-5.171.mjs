@@ -5,8 +5,8 @@ import {harness} from './check-tn-game-os-5.168.mjs';
 const root=new URL('../experiences/wordpress/tn-game-os/',import.meta.url);
 const read=path=>fs.readFileSync(new URL(path,root),'utf8');
 const bootstrap=read('tn-game-os.php'),client=read('assets/js/saved-adventures.js');
-assert.match(bootstrap,/Version:\s*5\.171\.0/);
-assert.match(bootstrap,/define\('TNG_OS_VERSION','5\.171\.0'\)/);
+assert.match(bootstrap,/Version:\s*5\.1(?:7[1-9]|[8-9]\d)\.\d+/);
+assert.match(bootstrap,/define\('TNG_OS_VERSION','5\.1(?:7[1-9]|[8-9]\d)\.\d+'\)/);
 const refresh=client.slice(client.indexOf('const scheduleRefresh ='),client.indexOf('const draftReview ='));
 assert.match(refresh,/\['click','change'\]\.forEach\(\(type\) => root\.addEventListener\(type, guardStaleScheduleAction, true\)\)/);
 assert.match(refresh,/event\.preventDefault\(\);\s*event\.stopImmediatePropagation\(\)/);
@@ -29,14 +29,14 @@ for(const kind of ['schedule','clear']) {
     if(kind==='schedule')h.type(0,'schedule','2031-03-04');
     const saving=save(h,kind);assert.ok(h.scheduleControls.every(c=>!c.disabled),'An unconfirmed save does not pause actions');
     success(h.requests[0]);await saving;
-    assert.equal(h.reloads.length,0);assert.ok(h.scheduleControls.every(c=>c.disabled));
+    assert.equal(h.reloads.length,0);assert.ok(h.scheduleControls.every(c=>c.attributes['aria-disabled']==='true'&&c.classList.has('is-schedule-paused')));
     const state=JSON.stringify(h.plans.map(p=>p.card.dataset));
     for(const control of h.scheduleControls) {
       // A nested click or direct event cannot bypass disabled styling.
       control.disabled=false;
       const child={closest:selector=>control.closest(selector)};
       const event=await h.dispatch('click',child);
-      assert.equal(event.prevented,true);assert.equal(event.stopped,true);assert.equal(control.disabled,true);
+      assert.equal(event.prevented,true);assert.equal(event.stopped,true);assert.equal(control.disabled,false);assert.equal(control.attributes['aria-disabled'],'true');
       assert.equal(h.requests.length,1);assert.equal(h.reloads.length,0);
       assert.doesNotMatch(h.status.textContent,/PRIVATE|2031/);
       assert.match(h.status.textContent,/Refresh the saved schedule/);
@@ -56,7 +56,7 @@ for(const kind of ['schedule','clear']) {
     assert.equal(h.capture('click',{closest:()=>null}).stopped,false,'Unrelated navigation is not intercepted');
     h.review();assert.equal(h.focus.at(-1).field,h.plans[1].notes.field);
     const notesSave=h.submit(1,'notes');success(h.requests[1],{notes:'PRIVATE unsaved draft'});await notesSave;
-    assert.equal(h.reloads.length,0);assert.ok(h.scheduleControls.every(c=>c.disabled),'Finishing drafts does not unlock stale schedule actions');
+    assert.equal(h.reloads.length,0);assert.ok(h.scheduleControls.every(c=>c.attributes['aria-disabled']==='true'),'Finishing drafts does not unlock stale schedule actions');
     if(refreshPresent){assert.equal(h.refreshButton.disabled,false);h.refresh();assert.equal(h.reloads.length,1);}
   }
   for(const failure of ['server','network','json']) {
@@ -64,11 +64,11 @@ for(const kind of ['schedule','clear']) {
     if(failure==='server')h.requests[0].resolve({json:async()=>({success:false,data:{message:'Failed.'}})});
     if(failure==='network')h.requests[0].reject(Error('Offline'));
     if(failure==='json')h.requests[0].resolve({json:async()=>{throw Error('Invalid JSON');}});
-    await saving;assert.ok(h.scheduleControls.every(c=>!c.disabled));assert.equal(h.refreshPanel.hidden,true);
+    await saving;assert.ok(h.scheduleControls.every(c=>!c.disabled&&!c.attributes['aria-disabled']));assert.equal(h.refreshPanel.hidden,true);
     for(const c of h.scheduleControls)assert.equal(h.capture('click',c).stopped,false);
   }
 }
 h=harness();const saving=h.clear(0);success(h.requests[0]);await saving;
-assert.equal(h.reloads.length,1);assert.ok(h.scheduleControls.every(c=>c.disabled),'Clean refresh also pauses old controls until navigation completes');
-h=harness();assert.ok(h.scheduleControls.every(c=>!c.disabled),'A fresh page starts without the transient pause');
+assert.equal(h.reloads.length,1);assert.ok(h.scheduleControls.every(c=>c.attributes['aria-disabled']==='true'),'Clean refresh also pauses old controls until navigation completes');
+h=harness();assert.ok(h.scheduleControls.every(c=>!c.disabled&&!c.attributes['aria-disabled']),'A fresh page starts without the transient pause');
 console.log('TN Game OS 5.171.0 Refresh-Required Preparation Protection passed');

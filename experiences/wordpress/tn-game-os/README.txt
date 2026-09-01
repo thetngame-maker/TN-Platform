@@ -1,3 +1,13 @@
+TN GAME OS 5.172.0 — ACCESSIBLE PAUSED ACTION GUIDANCE
+
+CURRENT MILESTONE
+- Keeps refresh-paused preparation, start, calendar, and print controls focusable instead of making them silently unresponsive.
+- Marks paused controls with aria-disabled and a visible paused treatment while capture guards continue preventing stale actions and requests.
+- A blocked action scrolls to the persistent schedule reminder and focuses the reminder when drafts or a save remain, or the refresh button when refresh is ready.
+- Mouse, keyboard-generated clicks, nested button content, and checkbox changes receive the same private-safe guidance.
+- Preserves controls that were already disabled for an in-flight operation and restores normal controls only through a fresh server-rendered page.
+- Adds no autosave, storage, endpoint, request, delayed focus, or public data.
+
 TN GAME OS 5.171.0 — REFRESH-REQUIRED PREPARATION PROTECTION
 
 CURRENT MILESTONE

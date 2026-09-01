@@ -39,7 +39,9 @@ export const harness=({restored=false,summaryPresent=true,refreshPresent=true}={
   const handlers={},captureHandlers={},listeners=new Map(),requests=[],reloads=[],focus=[],scroll=[],status={textContent:''};
   const scheduleDependentSelector='[data-tng-readiness-key],[data-tng-packing-key],[data-tng-prep-focus],[data-tng-next-action],[data-tng-plan-start],[data-tng-plan-calendar],[data-tng-upcoming-calendar],[data-tng-plan-print]';
   const scheduleControls=scheduleDependentSelector.split(',').map(selector=>{
-    const control={selector,disabled:false,closest:query=>query===scheduleDependentSelector||query===selector?control:null};
+    const classes=new Set(),control={selector,disabled:false,attributes:{},classList:{add:value=>classes.add(value)},
+      setAttribute(name,value){this.attributes[name]=value;},closest:query=>query===scheduleDependentSelector||query===selector?control:null};
+    control.classList.has=value=>classes.has(value);
     if(selector==='[data-tng-readiness-key]'||selector==='[data-tng-packing-key]')control.checked=false;
     return control;
   });
@@ -47,7 +49,9 @@ export const harness=({restored=false,summaryPresent=true,refreshPresent=true}={
   const reviewButton={disabled:false,addEventListener:(type,handler)=>{handlers.review=handler;}};
   const summary={hidden:true,querySelector:selector=>selector==='[data-tng-draft-review-count]'?count:reviewButton};
   const refreshMessage={textContent:''},refreshButton={disabled:true,addEventListener:(type,handler)=>{handlers.refresh=handler;}};
-  const refreshPanel={hidden:true,querySelector:selector=>selector==='[data-tng-schedule-refresh-message]'?refreshMessage:refreshButton};
+  const refreshPanel={hidden:true,querySelector:selector=>selector==='[data-tng-schedule-refresh-message]'?refreshMessage:refreshButton,
+    scrollIntoView:options=>scroll.push({refreshPanel,options}),focus:options=>focus.push({refreshPanel,options})};
+  refreshButton.focus=options=>focus.push({refreshButton,options});
   const search={value:'nothing matches'},sort={value:'recent'};
   const control=(key,value)=>({dataset:{[key]:value},attributes:{},setAttribute(name,value){this.attributes[name]=value;}});
   const filters=['all','archived','needs-prep'].map(value=>control('tngAdventureFilter',value));
