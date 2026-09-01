@@ -233,7 +233,10 @@
   let scheduleRefreshNeeded = false;
   const scheduleDependentSelector = '[data-tng-readiness-key],[data-tng-packing-key],[data-tng-prep-focus],[data-tng-next-action],[data-tng-plan-start],[data-tng-plan-calendar],[data-tng-upcoming-calendar],[data-tng-plan-print]';
   syncScheduleRefresh = () => {
-    if (scheduleRefreshNeeded) root.querySelectorAll(scheduleDependentSelector).forEach((control) => { control.disabled = true; });
+    if (scheduleRefreshNeeded) root.querySelectorAll(scheduleDependentSelector).forEach((control) => {
+      control.setAttribute('aria-disabled','true');
+      control.classList.add('is-schedule-paused');
+    });
     if (!scheduleRefresh) return;
     const hasDrafts = hasUnsavedAdventureDrafts();
     scheduleRefresh.hidden = !scheduleRefreshNeeded;
@@ -263,6 +266,9 @@
     if (event.type === 'change' && typeof control.checked === 'boolean') control.checked = !control.checked;
     syncScheduleRefresh();
     if (status) status.textContent = 'Refresh the saved schedule before using preparation actions, starting an adventure, exporting a calendar, or printing. Save or revert remaining edits first.';
+    scheduleRefresh?.scrollIntoView({block:'nearest'});
+    const focusTarget = !hasUnsavedAdventureDrafts() && !libraryUpdatePending ? scheduleRefreshButton : scheduleRefresh;
+    focusTarget?.focus({preventScroll:true});
   };
   ['click','change'].forEach((type) => root.addEventListener(type, guardStaleScheduleAction, true));
   syncScheduleRefresh();
