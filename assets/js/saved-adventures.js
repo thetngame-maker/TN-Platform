@@ -231,12 +231,14 @@
   const scheduleRefreshMessage = scheduleRefresh?.querySelector('[data-tng-schedule-refresh-message]');
   const scheduleRefreshButton = scheduleRefresh?.querySelector('[data-tng-schedule-refresh-button]');
   let scheduleRefreshNeeded = false;
+  const scheduleDependentSelector = '[data-tng-readiness-key],[data-tng-packing-key],[data-tng-prep-focus],[data-tng-next-action],[data-tng-plan-start],[data-tng-plan-calendar],[data-tng-upcoming-calendar],[data-tng-plan-print]';
   syncScheduleRefresh = () => {
+    if (scheduleRefreshNeeded) root.querySelectorAll(scheduleDependentSelector).forEach((control) => { control.disabled = true; });
     if (!scheduleRefresh) return;
     const hasDrafts = hasUnsavedAdventureDrafts();
     scheduleRefresh.hidden = !scheduleRefreshNeeded;
     if (scheduleRefreshButton) scheduleRefreshButton.disabled = hasDrafts;
-    const message = hasDrafts ? 'Save or revert remaining edits, then refresh to update preparation details and calendar exports.' : 'Refresh to use the saved date in preparation details and calendar exports.';
+    const message = (hasDrafts ? 'Save or revert remaining edits, then refresh to update preparation details and calendar exports.' : 'Refresh to use the saved date in preparation details and calendar exports.') + ' Preparation actions, adventure starts, calendar exports, and printing are paused until then.';
     if (scheduleRefreshMessage && scheduleRefreshMessage.textContent !== message) scheduleRefreshMessage.textContent = message;
   };
   const requestScheduleRefresh = () => {
@@ -252,6 +254,17 @@
     }
     if (scheduleRefreshNeeded && !hasUnsavedAdventureDrafts()) window.location.reload();
   });
+  const guardStaleScheduleAction = (event) => {
+    if (!scheduleRefreshNeeded) return;
+    const control = event.target.closest(scheduleDependentSelector);
+    if (!control) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (event.type === 'change' && typeof control.checked === 'boolean') control.checked = !control.checked;
+    syncScheduleRefresh();
+    if (status) status.textContent = 'Refresh the saved schedule before using preparation actions, starting an adventure, exporting a calendar, or printing. Save or revert remaining edits first.';
+  };
+  ['click','change'].forEach((type) => root.addEventListener(type, guardStaleScheduleAction, true));
   syncScheduleRefresh();
   const draftReview = root.querySelector('[data-tng-draft-review]');
   const draftReviewCount = draftReview?.querySelector('[data-tng-draft-review-count]');
