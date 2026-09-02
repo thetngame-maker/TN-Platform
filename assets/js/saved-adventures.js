@@ -229,9 +229,11 @@
   updatePrepOverview();
   const scheduleRefresh = root.querySelector('[data-tng-schedule-refresh]');
   const scheduleRefreshMessage = scheduleRefresh?.querySelector('[data-tng-schedule-refresh-message]');
+  const scheduleReviewButton = scheduleRefresh?.querySelector('[data-tng-schedule-review-button]');
   const scheduleRefreshButton = scheduleRefresh?.querySelector('[data-tng-schedule-refresh-button]');
   let scheduleRefreshNeeded = false;
   const scheduleDependentSelector = '[data-tng-readiness-key],[data-tng-packing-key],[data-tng-prep-focus],[data-tng-next-action],[data-tng-plan-start],[data-tng-plan-calendar],[data-tng-upcoming-calendar],[data-tng-plan-print]';
+  const hasReviewableScheduleDraft = () => adventureDraftFields.some((field) => isAdventureDraftChanged(field) && field.isConnected && !field.disabled && field.closest('[data-plan-id]')?.isConnected);
   syncScheduleRefresh = () => {
     if (scheduleRefreshNeeded) root.querySelectorAll(scheduleDependentSelector).forEach((control) => {
       control.setAttribute('aria-disabled','true');
@@ -239,7 +241,13 @@
     });
     if (!scheduleRefresh) return;
     const hasDrafts = hasUnsavedAdventureDrafts();
+    const canReview = hasReviewableScheduleDraft();
     scheduleRefresh.hidden = !scheduleRefreshNeeded;
+    if (scheduleReviewButton) {
+      scheduleReviewButton.hidden = !scheduleRefreshNeeded || !hasDrafts;
+      scheduleReviewButton.disabled = !canReview;
+      scheduleReviewButton.textContent = canReview ? 'Review remaining edit' : 'Waiting for current save';
+    }
     if (scheduleRefreshButton) scheduleRefreshButton.disabled = hasDrafts;
     const message = (hasDrafts ? 'Save or revert remaining edits, then refresh to update preparation details and calendar exports.' : 'Refresh to use the saved date in preparation details and calendar exports.') + ' Preparation actions, adventure starts, calendar exports, and printing are paused until then.';
     if (scheduleRefreshMessage && scheduleRefreshMessage.textContent !== message) scheduleRefreshMessage.textContent = message;
@@ -267,7 +275,7 @@
     syncScheduleRefresh();
     if (status) status.textContent = 'Refresh the saved schedule before using preparation actions, starting an adventure, exporting a calendar, or printing. Save or revert remaining edits first.';
     scheduleRefresh?.scrollIntoView({block:'nearest'});
-    const focusTarget = !hasUnsavedAdventureDrafts() && !libraryUpdatePending ? scheduleRefreshButton : scheduleRefresh;
+    const focusTarget = !hasUnsavedAdventureDrafts() && !libraryUpdatePending ? scheduleRefreshButton : (hasReviewableScheduleDraft() ? scheduleReviewButton : scheduleRefresh);
     focusTarget?.focus({preventScroll:true});
   };
   ['click','change'].forEach((type) => root.addEventListener(type, guardStaleScheduleAction, true));
@@ -317,6 +325,11 @@
     field.focus({preventScroll:true});
     field.scrollIntoView({block:'center'});
     updateDraftReview();
+  });
+  scheduleReviewButton?.addEventListener('click', () => {
+    if (scheduleReviewButton.disabled || !draftReviewButton || draftReviewButton.disabled) { syncScheduleRefresh(); return; }
+    draftReviewButton.click();
+    syncScheduleRefresh();
   });
   updateDraftReview();
   prepOverview?.addEventListener('click', (event) => {
