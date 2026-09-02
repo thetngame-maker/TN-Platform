@@ -50,7 +50,7 @@ export const harness=({restored=false,summaryPresent=true,refreshPresent=true}={
   const summary={hidden:true,querySelector:selector=>selector==='[data-tng-draft-review-count]'?count:reviewButton};
   const refreshMessage={textContent:''},scheduleReviewButton={hidden:true,disabled:true,textContent:'Review remaining edit',addEventListener:(type,handler)=>{handlers.scheduleReview=handler;},focus:options=>focus.push({scheduleReviewButton,options})};
   const refreshButton={disabled:true,addEventListener:(type,handler)=>{handlers.refresh=handler;}};
-  const refreshPanel={hidden:true,querySelector:selector=>selector==='[data-tng-schedule-refresh-message]'?refreshMessage:selector==='[data-tng-schedule-review-button]'?scheduleReviewButton:selector==='[data-tng-schedule-refresh-button]'?refreshButton:null,
+  const refreshPanel={hidden:true,attributes:{},setAttribute(name,value){this.attributes[name]=value;},querySelector:selector=>selector==='[data-tng-schedule-refresh-message]'?refreshMessage:selector==='[data-tng-schedule-review-button]'?scheduleReviewButton:selector==='[data-tng-schedule-refresh-button]'?refreshButton:null,
     scrollIntoView:options=>scroll.push({refreshPanel,options}),focus:options=>focus.push({refreshPanel,options})};
   refreshButton.focus=options=>focus.push({refreshButton,options});
   const search={value:'nothing matches'},sort={value:'recent'};

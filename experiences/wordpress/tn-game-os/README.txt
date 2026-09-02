@@ -1,3 +1,13 @@
+TN GAME OS 5.174.0 — PRIVATE REFRESH RESOLUTION PROGRESS
+
+CURRENT MILESTONE
+- Shows count-only progress in the schedule-refresh reminder for unsaved fields and saves still in progress.
+- Updates the review action with the current number of dirty fields and uses a generic waiting label when no field is reviewable.
+- Marks the reminder busy while a field save is pending so assistive technology receives the same non-private state.
+- Recalculates from current field values, validity, and save state after typing, saves, failures, reverts, and restored pages.
+- Keeps every label free of private names, notes, and dates while preserving the existing guided review and guarded refresh flow.
+- Adds no autosave, storage, endpoint, request, delayed focus, background work, or public data.
+
 TN GAME OS 5.173.0 — GUIDED SCHEDULE REFRESH DRAFT HANDOFF
 
 CURRENT MILESTONE

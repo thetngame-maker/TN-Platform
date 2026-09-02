@@ -240,16 +240,21 @@
       control.classList.add('is-schedule-paused');
     });
     if (!scheduleRefresh) return;
-    const hasDrafts = hasUnsavedAdventureDrafts();
+    const dirtyCount = adventureDraftFields.filter(isAdventureDraftChanged).length;
+    const pendingCount = adventureDraftFields.filter(isAdventureDraftPending).length;
+    const hasDrafts = dirtyCount > 0 || pendingCount > 0;
     const canReview = hasReviewableScheduleDraft();
     scheduleRefresh.hidden = !scheduleRefreshNeeded;
+    scheduleRefresh.setAttribute('aria-busy',String(scheduleRefreshNeeded && pendingCount > 0));
     if (scheduleReviewButton) {
       scheduleReviewButton.hidden = !scheduleRefreshNeeded || !hasDrafts;
       scheduleReviewButton.disabled = !canReview;
-      scheduleReviewButton.textContent = canReview ? 'Review remaining edit' : 'Waiting for current save';
+      scheduleReviewButton.textContent = canReview ? `Review remaining edit · ${dirtyCount}` : `Waiting for ${pendingCount} save${pendingCount === 1 ? '' : 's'}`;
     }
     if (scheduleRefreshButton) scheduleRefreshButton.disabled = hasDrafts;
-    const message = (hasDrafts ? 'Save or revert remaining edits, then refresh to update preparation details and calendar exports.' : 'Refresh to use the saved date in preparation details and calendar exports.') + ' Preparation actions, adventure starts, calendar exports, and printing are paused until then.';
+    const remaining = [dirtyCount ? `${dirtyCount} unsaved field${dirtyCount === 1 ? '' : 's'}` : '',pendingCount ? `${pendingCount} save${pendingCount === 1 ? '' : 's'} in progress` : ''].filter(Boolean).join(' and ');
+    const remainingVerb = dirtyCount + pendingCount === 1 ? 'remains' : 'remain';
+    const message = (hasDrafts ? `${remaining} ${remainingVerb} on this page. ${dirtyCount ? 'Save or revert remaining edits, then refresh to update preparation details and calendar exports.' : 'Wait for the current save to finish, then refresh preparation details and calendar exports.'}` : 'Refresh to use the saved date in preparation details and calendar exports.') + ' Preparation actions, adventure starts, calendar exports, and printing are paused until then.';
     if (scheduleRefreshMessage && scheduleRefreshMessage.textContent !== message) scheduleRefreshMessage.textContent = message;
   };
   const requestScheduleRefresh = () => {

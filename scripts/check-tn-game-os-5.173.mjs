@@ -6,8 +6,8 @@ const root=new URL('../experiences/wordpress/tn-game-os/',import.meta.url);
 const read=path=>fs.readFileSync(new URL(path,root),'utf8');
 const bootstrap=read('tn-game-os.php'),client=read('assets/js/saved-adventures.js');
 const php=read('app/Modules/Destinations/class-adventure-ai.php'),css=read('assets/css/saved-adventures.css');
-assert.match(bootstrap,/Version:\s*5\.173\.0/);
-assert.match(bootstrap,/define\('TNG_OS_VERSION','5\.173\.0'\)/);
+assert.match(bootstrap,/Version:\s*5\.1(?:7[3-9]|[8-9]\d)\.\d+/);
+assert.match(bootstrap,/define\('TNG_OS_VERSION','5\.1(?:7[3-9]|[8-9]\d)\.\d+'\)/);
 const refresh=client.slice(client.indexOf('const scheduleRefresh ='),client.indexOf('prepOverview?.addEventListener'));
 assert.match(refresh,/const scheduleReviewButton = scheduleRefresh\?\.querySelector\('\[data-tng-schedule-review-button\]'\)/);
 assert.match(refresh,/const hasReviewableScheduleDraft = \(\) => adventureDraftFields\.some/);
@@ -28,7 +28,7 @@ const success=(request,data={})=>request.resolve({json:async()=>({success:true,d
 // existing reviewer. Neither the label nor status exposes draft content.
 let h=harness();h.type(1,'notes','PRIVATE NOTES');let saving=h.clear(0);success(h.requests[0]);await saving;
 assert.equal(h.scheduleReviewButton.hidden,false);assert.equal(h.scheduleReviewButton.disabled,false);
-assert.equal(h.scheduleReviewButton.textContent,'Review remaining edit');assert.equal(h.refreshButton.disabled,true);
+assert.match(h.scheduleReviewButton.textContent,/^Review remaining edit(?: · \d+)?$/);assert.equal(h.refreshButton.disabled,true);
 assert.doesNotMatch(h.refreshMessage.textContent,/PRIVATE|Notes 1|Plan 1/);
 let control=h.scheduleControls.find(c=>c.selector==='[data-tng-plan-start]');
 await h.dispatch('click',control);assert.equal(h.focus.at(-1).scheduleReviewButton,h.scheduleReviewButton);
