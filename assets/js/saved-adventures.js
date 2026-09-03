@@ -292,6 +292,7 @@
   syncScheduleRefresh();
   const draftReview = root.querySelector('[data-tng-draft-review]');
   const draftReviewCount = draftReview?.querySelector('[data-tng-draft-review-count]');
+  const draftReviewTypes = draftReview?.querySelector('[data-tng-draft-review-types]');
   const draftReviewButton = draftReview?.querySelector('[data-tng-draft-review-next]');
   let lastReviewedDraft = null;
   const reviewableDrafts = () => adventureDraftFields.filter((field) => isAdventureDraftChanged(field) && field.isConnected && !field.disabled && field.closest('[data-plan-id]')?.isConnected);
@@ -310,6 +311,16 @@
     const saving = pending ? `${pending} save${pending === 1 ? '' : 's'} in progress.` : '';
     const message = [edits,saving].filter(Boolean).join(' ');
     if (draftReviewCount.textContent !== message) draftReviewCount.textContent = message;
+    if (draftReviewTypes) {
+      const typeCounts = changed.reduce((counts,field) => {
+        const type = ({title:'name',notes:'note',planned_date:'date'}[field.name] || 'edit');
+        counts[type] = (counts[type] || 0) + 1;
+        return counts;
+      },{});
+      const typeSummary = ['name','note','date','edit'].filter((type) => typeCounts[type]).map((type) => `${typeCounts[type]} ${type}${typeCounts[type] === 1 ? '' : 's'}`).join(' · ');
+      draftReviewTypes.textContent = typeSummary;
+      draftReviewTypes.hidden = !typeSummary;
+    }
     draftReview.hidden = !changed.length && !pending;
     if (!changed.length) lastReviewedDraft = null;
     if (draftReviewButton) {
