@@ -293,11 +293,14 @@
   const draftReview = root.querySelector('[data-tng-draft-review]');
   const draftReviewCount = draftReview?.querySelector('[data-tng-draft-review-count]');
   const draftReviewTypes = draftReview?.querySelector('[data-tng-draft-review-types]');
+  const draftReviewTypeActions = draftReview?.querySelector('[data-tng-draft-review-type-actions]');
+  const draftReviewTypeButtons = draftReview ? [...draftReview.querySelectorAll('[data-tng-draft-review-type]')] : [];
   const draftReviewButton = draftReview?.querySelector('[data-tng-draft-review-next]');
   let lastReviewedDraft = null;
+  const draftTypeFor = (field) => ({title:'name',notes:'note',planned_date:'date'}[field.name] || 'edit');
   const reviewableDrafts = () => adventureDraftFields.filter((field) => isAdventureDraftChanged(field) && field.isConnected && !field.disabled && field.closest('[data-plan-id]')?.isConnected);
-  const nextDraftReviewTarget = () => {
-    const drafts = reviewableDrafts();
+  const nextDraftReviewTarget = (fieldName = '') => {
+    const drafts = reviewableDrafts().filter((field) => !fieldName || field.name === fieldName);
     if (!drafts.length) return null;
     const index = (drafts.indexOf(lastReviewedDraft) + 1) % drafts.length;
     return {field:drafts[index],index,total:drafts.length};
@@ -313,7 +316,7 @@
     if (draftReviewCount.textContent !== message) draftReviewCount.textContent = message;
     if (draftReviewTypes) {
       const typeCounts = changed.reduce((counts,field) => {
-        const type = ({title:'name',notes:'note',planned_date:'date'}[field.name] || 'edit');
+        const type = draftTypeFor(field);
         counts[type] = (counts[type] || 0) + 1;
         return counts;
       },{});
@@ -321,6 +324,18 @@
       draftReviewTypes.textContent = typeSummary;
       draftReviewTypes.hidden = !typeSummary;
     }
+    let visibleTypeActions = 0;
+    draftReviewTypeButtons.forEach((button) => {
+      const drafts = reviewableDrafts().filter((field) => field.name === button.dataset.tngDraftReviewType);
+      const type = drafts[0] ? draftTypeFor(drafts[0]) : '';
+      button.hidden = !drafts.length;
+      button.disabled = !drafts.length;
+      if (drafts.length) {
+        button.textContent = `Review ${drafts.length} ${type}${drafts.length === 1 ? '' : 's'}`;
+        visibleTypeActions += 1;
+      }
+    });
+    if (draftReviewTypeActions) draftReviewTypeActions.hidden = visibleTypeActions === 0;
     draftReview.hidden = !changed.length && !pending;
     if (!changed.length) lastReviewedDraft = null;
     if (draftReviewButton) {
@@ -330,8 +345,8 @@
       draftReviewButton.textContent = target ? `Review ${kind} · ${target.index + 1} of ${target.total}` : 'Review unsaved edit';
     }
   };
-  draftReviewButton?.addEventListener('click', () => {
-    const target = nextDraftReviewTarget();
+  const reviewDraft = (fieldName = '') => {
+    const target = nextDraftReviewTarget(fieldName);
     if (!target) { updateDraftReview(); return; }
     const field = target.field;
     ++planNavigationRequest;
@@ -346,7 +361,9 @@
     field.focus({preventScroll:true});
     field.scrollIntoView({block:'center'});
     updateDraftReview();
-  });
+  };
+  draftReviewButton?.addEventListener('click', () => reviewDraft());
+  draftReviewTypeButtons.forEach((button) => button.addEventListener('click', () => reviewDraft(button.dataset.tngDraftReviewType || '')));
   scheduleReviewButton?.addEventListener('click', () => {
     if (scheduleReviewButton.disabled || !draftReviewButton || draftReviewButton.disabled) { syncScheduleRefresh(); return; }
     draftReviewButton.click();
