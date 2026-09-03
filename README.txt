@@ -1,3 +1,13 @@
+TN GAME OS 5.177.0 — PRIVATE DRAFT TYPE REVIEW SHORTCUTS
+
+CURRENT MILESTONE
+- Adds count-only review shortcuts for unsaved adventure names, notes, and dates to the private edit-review panel.
+- Shows only shortcuts that currently have a connected, enabled draft field available for review.
+- Cycles within the chosen field type while keeping the existing all-edit review sequence available.
+- Reveals filtered plans, opens planning notes, and focuses the chosen field without submitting or copying its contents.
+- Recalculates shortcut counts after typing, saves, failures, reverts, and restored pages.
+- Adds no autosave, storage, endpoint, request, delayed focus, background work, or public data.
+
 TN GAME OS 5.176.0 — PRIVATE DRAFT TYPE SUMMARY
 
 CURRENT MILESTONE
