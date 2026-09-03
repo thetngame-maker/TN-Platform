@@ -229,6 +229,7 @@
   updatePrepOverview();
   const scheduleRefresh = root.querySelector('[data-tng-schedule-refresh]');
   const scheduleRefreshMessage = scheduleRefresh?.querySelector('[data-tng-schedule-refresh-message]');
+  const scheduleRefreshMessageId = scheduleRefreshMessage?.id || '';
   const scheduleReviewButton = scheduleRefresh?.querySelector('[data-tng-schedule-review-button]');
   const scheduleRefreshButton = scheduleRefresh?.querySelector('[data-tng-schedule-refresh-button]');
   let scheduleRefreshNeeded = false;
@@ -238,6 +239,10 @@
     if (scheduleRefreshNeeded) root.querySelectorAll(scheduleDependentSelector).forEach((control) => {
       control.setAttribute('aria-disabled','true');
       control.classList.add('is-schedule-paused');
+      if (scheduleRefreshMessageId) {
+        const descriptions = (control.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean);
+        if (!descriptions.includes(scheduleRefreshMessageId)) control.setAttribute('aria-describedby',[...descriptions,scheduleRefreshMessageId].join(' '));
+      }
     });
     if (!scheduleRefresh) return;
     const dirtyCount = adventureDraftFields.filter(isAdventureDraftChanged).length;

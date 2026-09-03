@@ -1,3 +1,13 @@
+TN GAME OS 5.175.0 — ACCESSIBLE PAUSED CONTROL EXPLANATION
+
+CURRENT MILESTONE
+- Connects each focusable refresh-paused control to the persistent schedule explanation with `aria-describedby`.
+- Preserves every existing description, appends the shared explanation once, and avoids duplicate references during repeated synchronization.
+- Uses the same count-only, private-safe reminder already visible on the page; no plan name, notes, date, or hidden draft value enters an attribute.
+- Keeps the capture guard and focus guidance unchanged, including checkbox rollback and missing-reminder fallback behavior.
+- A fresh server-rendered page restores ordinary control semantics after schedule state is current.
+- Adds no autosave, storage, endpoint, request, delayed focus, background work, or public data.
+
 TN GAME OS 5.174.0 — PRIVATE REFRESH RESOLUTION PROGRESS
 
 CURRENT MILESTONE
