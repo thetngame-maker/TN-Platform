@@ -1,3 +1,13 @@
+TN GAME OS 5.176.0 — PRIVATE DRAFT TYPE SUMMARY
+
+CURRENT MILESTONE
+- Adds a count-only breakdown of unsaved adventure names, notes, and dates to the private edit-review panel.
+- Keeps the established total field, adventure, and save-in-progress summary unchanged while adding a separate scannable type line.
+- Recalculates types for hidden plans, partial invalid dates, saves, failures, reverts, and restored pages.
+- Hides the breakdown when no unsaved field remains, including states where only a save is still finishing.
+- Never copies a name, note, date, plan title, or other draft value into the summary.
+- Adds no autosave, storage, endpoint, request, delayed focus, background work, or public data.
+
 TN GAME OS 5.175.0 — ACCESSIBLE PAUSED CONTROL EXPLANATION
 
 CURRENT MILESTONE
