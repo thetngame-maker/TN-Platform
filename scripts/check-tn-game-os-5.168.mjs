@@ -35,12 +35,12 @@ const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{reso
 const success=(request,data={})=>request.resolve({json:async()=>({success:true,data:{message:'Saved.',...data}})});
 // DOM stand-ins run the actual review/filter and save handlers, not a second
 // implementation. These checks do not claim visual or native browser coverage.
-export const harness=({restored=false,summaryPresent=true,refreshPresent=true}={})=>{
+export const harness=({restored=false,summaryPresent=true,refreshPresent=true,refreshMessageId='tng-schedule-refresh-message'}={})=>{
   const handlers={},captureHandlers={},listeners=new Map(),requests=[],reloads=[],focus=[],scroll=[],status={textContent:''};
   const scheduleDependentSelector='[data-tng-readiness-key],[data-tng-packing-key],[data-tng-prep-focus],[data-tng-next-action],[data-tng-plan-start],[data-tng-plan-calendar],[data-tng-upcoming-calendar],[data-tng-plan-print]';
   const scheduleControls=scheduleDependentSelector.split(',').map(selector=>{
     const classes=new Set(),control={selector,disabled:false,attributes:{},classList:{add:value=>classes.add(value)},
-      setAttribute(name,value){this.attributes[name]=value;},closest:query=>query===scheduleDependentSelector||query===selector?control:null};
+      getAttribute(name){return this.attributes[name]??null;},setAttribute(name,value){this.attributes[name]=value;},closest:query=>query===scheduleDependentSelector||query===selector?control:null};
     control.classList.has=value=>classes.has(value);
     if(selector==='[data-tng-readiness-key]'||selector==='[data-tng-packing-key]')control.checked=false;
     return control;
@@ -48,7 +48,7 @@ export const harness=({restored=false,summaryPresent=true,refreshPresent=true}={
   const count={textContent:''};
   const reviewButton={disabled:false,addEventListener:(type,handler)=>{handlers.review=handler;},click:()=>handlers.review?.()};
   const summary={hidden:true,querySelector:selector=>selector==='[data-tng-draft-review-count]'?count:reviewButton};
-  const refreshMessage={textContent:''},scheduleReviewButton={hidden:true,disabled:true,textContent:'Review remaining edit',addEventListener:(type,handler)=>{handlers.scheduleReview=handler;},focus:options=>focus.push({scheduleReviewButton,options})};
+  const refreshMessage={id:refreshMessageId,textContent:''},scheduleReviewButton={hidden:true,disabled:true,textContent:'Review remaining edit',addEventListener:(type,handler)=>{handlers.scheduleReview=handler;},focus:options=>focus.push({scheduleReviewButton,options})};
   const refreshButton={disabled:true,addEventListener:(type,handler)=>{handlers.refresh=handler;}};
   const refreshPanel={hidden:true,attributes:{},setAttribute(name,value){this.attributes[name]=value;},querySelector:selector=>selector==='[data-tng-schedule-refresh-message]'?refreshMessage:selector==='[data-tng-schedule-review-button]'?scheduleReviewButton:selector==='[data-tng-schedule-refresh-button]'?refreshButton:null,
     scrollIntoView:options=>scroll.push({refreshPanel,options}),focus:options=>focus.push({refreshPanel,options})};
