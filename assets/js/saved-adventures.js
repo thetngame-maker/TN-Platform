@@ -326,12 +326,12 @@
     }
     let visibleTypeActions = 0;
     draftReviewTypeButtons.forEach((button) => {
-      const drafts = reviewableDrafts().filter((field) => field.name === button.dataset.tngDraftReviewType);
-      const type = drafts[0] ? draftTypeFor(drafts[0]) : '';
-      button.hidden = !drafts.length;
-      button.disabled = !drafts.length;
-      if (drafts.length) {
-        button.textContent = `Review ${drafts.length} ${type}${drafts.length === 1 ? '' : 's'}`;
+      const target = nextDraftReviewTarget(button.dataset.tngDraftReviewType || '');
+      const type = target ? draftTypeFor(target.field) : '';
+      button.hidden = !target;
+      button.disabled = !target;
+      if (target) {
+        button.textContent = `Review ${type} · ${target.index + 1} of ${target.total}`;
         visibleTypeActions += 1;
       }
     });

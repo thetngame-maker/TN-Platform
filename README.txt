@@ -1,3 +1,13 @@
+TN GAME OS 5.178.0 — GUIDED DRAFT TYPE REVIEW PROGRESS
+
+CURRENT MILESTONE
+- Shows the next position within each unsaved name, note, or date review shortcut.
+- Advances the selected type from first to last and wraps while more than one reviewable draft of that type remains.
+- Recalculates positions when another type is reviewed or a field is saved, reverted, disabled, disconnected, or restored.
+- Keeps the established all-edit review sequence available and reveals the selected private field without submitting it.
+- Uses only a field kind, position, and total; no adventure name, note, date, or other draft value enters a label.
+- Adds no autosave, storage, endpoint, request, delayed focus, background work, or public data.
+
 TN GAME OS 5.177.0 — PRIVATE DRAFT TYPE REVIEW SHORTCUTS
 
 CURRENT MILESTONE
