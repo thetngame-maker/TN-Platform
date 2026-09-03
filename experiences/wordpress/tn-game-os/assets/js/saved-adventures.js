@@ -293,10 +293,14 @@
   const draftReview = root.querySelector('[data-tng-draft-review]');
   const draftReviewCount = draftReview?.querySelector('[data-tng-draft-review-count]');
   const draftReviewTypes = draftReview?.querySelector('[data-tng-draft-review-types]');
+  const draftReviewPosition = draftReview?.querySelector('[data-tng-draft-review-position]');
+  const draftReviewPositionId = draftReviewPosition?.id || '';
   const draftReviewTypeActions = draftReview?.querySelector('[data-tng-draft-review-type-actions]');
   const draftReviewTypeButtons = draftReview ? [...draftReview.querySelectorAll('[data-tng-draft-review-type]')] : [];
   const draftReviewButton = draftReview?.querySelector('[data-tng-draft-review-next]');
   let lastReviewedDraft = null;
+  let describedDraft = null;
+  let lastReviewedDraftScope = '';
   const draftTypeFor = (field) => ({title:'name',notes:'note',planned_date:'date'}[field.name] || 'edit');
   const reviewableDrafts = () => adventureDraftFields.filter((field) => isAdventureDraftChanged(field) && field.isConnected && !field.disabled && field.closest('[data-plan-id]')?.isConnected);
   const nextDraftReviewTarget = (fieldName = '') => {
@@ -304,6 +308,36 @@
     if (!drafts.length) return null;
     const index = (drafts.indexOf(lastReviewedDraft) + 1) % drafts.length;
     return {field:drafts[index],index,total:drafts.length};
+  };
+  const removeDraftReviewDescription = (field) => {
+    if (!field || !draftReviewPositionId) return;
+    const descriptions = (field.getAttribute('aria-describedby') || '').split(/\s+/).filter((id) => id && id !== draftReviewPositionId);
+    if (descriptions.length) field.setAttribute('aria-describedby',descriptions.join(' '));
+    else field.removeAttribute('aria-describedby');
+  };
+  const clearDraftReviewPosition = () => {
+    removeDraftReviewDescription(describedDraft);
+    describedDraft = null;
+    lastReviewedDraftScope = '';
+    if (draftReviewPosition) {
+      draftReviewPosition.textContent = '';
+      draftReviewPosition.hidden = true;
+    }
+  };
+  const syncDraftReviewPosition = () => {
+    if (!describedDraft) { clearDraftReviewPosition(); return; }
+    const drafts = reviewableDrafts().filter((field) => !lastReviewedDraftScope || field.name === lastReviewedDraftScope);
+    const index = drafts.indexOf(describedDraft);
+    if (index < 0) { clearDraftReviewPosition(); return; }
+    if (draftReviewPosition) {
+      const type = draftTypeFor(describedDraft);
+      draftReviewPosition.textContent = `Reviewing ${type} · ${index + 1} of ${drafts.length} in this ${lastReviewedDraftScope ? 'type' : 'page'} review.`;
+      draftReviewPosition.hidden = false;
+    }
+    if (draftReviewPositionId) {
+      const descriptions = (describedDraft.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean);
+      if (!descriptions.includes(draftReviewPositionId)) describedDraft.setAttribute('aria-describedby',[...descriptions,draftReviewPositionId].join(' '));
+    }
   };
   updateDraftReview = () => {
     if (!draftReview || !draftReviewCount) return;
@@ -337,6 +371,7 @@
     });
     if (draftReviewTypeActions) draftReviewTypeActions.hidden = visibleTypeActions === 0;
     draftReview.hidden = !changed.length && !pending;
+    syncDraftReviewPosition();
     if (!changed.length) lastReviewedDraft = null;
     if (draftReviewButton) {
       const target = nextDraftReviewTarget();
@@ -357,7 +392,11 @@
     applyFilters();
     const notesPanel = field.closest('[data-tng-plan-notes-panel]');
     if (notesPanel) notesPanel.open = true;
+    if (describedDraft !== field) removeDraftReviewDescription(describedDraft);
     lastReviewedDraft = field;
+    describedDraft = field;
+    lastReviewedDraftScope = fieldName;
+    syncDraftReviewPosition();
     field.focus({preventScroll:true});
     field.scrollIntoView({block:'center'});
     updateDraftReview();

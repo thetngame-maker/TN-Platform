@@ -1,3 +1,13 @@
+TN GAME OS 5.179.0 — ACCESSIBLE DRAFT REVIEW POSITION
+
+CURRENT MILESTONE
+- Shows a count-only explanation of the private field currently selected by guided review.
+- Connects the focused name, note, or date field to that explanation with `aria-describedby` before focus moves.
+- Preserves every existing field description and removes only the shared review reference when review moves or the field is resolved.
+- Recalculates the position as fields are saved, reverted, disabled, disconnected, or restored.
+- Distinguishes the all-edit page sequence from a type-specific sequence without exposing an adventure name, note, date, or plan title.
+- Adds no autosave, storage, endpoint, request, delayed focus, background work, or public data.
+
 TN GAME OS 5.178.0 — GUIDED DRAFT TYPE REVIEW PROGRESS
 
 CURRENT MILESTONE

@@ -45,10 +45,10 @@ export const harness=({restored=false,summaryPresent=true,refreshPresent=true,re
     if(selector==='[data-tng-readiness-key]'||selector==='[data-tng-packing-key]')control.checked=false;
     return control;
   });
-  const count={textContent:''},types={textContent:'',hidden:true},typeActions={hidden:true};
+  const count={textContent:''},types={textContent:'',hidden:true},position={id:'tng-draft-review-position',textContent:'',hidden:true},typeActions={hidden:true};
   const typeReviewButtons=['title','notes','planned_date'].map(fieldName=>({dataset:{tngDraftReviewType:fieldName},hidden:true,disabled:false,textContent:'',addEventListener:(type,handler)=>{handlers[`review-${fieldName}`]=handler;}}));
   const reviewButton={disabled:false,addEventListener:(type,handler)=>{handlers.review=handler;},click:()=>handlers.review?.()};
-  const summary={hidden:true,querySelector:selector=>selector==='[data-tng-draft-review-count]'?count:selector==='[data-tng-draft-review-types]'?types:selector==='[data-tng-draft-review-type-actions]'?typeActions:reviewButton,querySelectorAll:selector=>selector==='[data-tng-draft-review-type]'?typeReviewButtons:[]};
+  const summary={hidden:true,querySelector:selector=>selector==='[data-tng-draft-review-count]'?count:selector==='[data-tng-draft-review-types]'?types:selector==='[data-tng-draft-review-position]'?position:selector==='[data-tng-draft-review-type-actions]'?typeActions:reviewButton,querySelectorAll:selector=>selector==='[data-tng-draft-review-type]'?typeReviewButtons:[]};
   const refreshMessage={id:refreshMessageId,textContent:''},scheduleReviewButton={hidden:true,disabled:true,textContent:'Review remaining edit',addEventListener:(type,handler)=>{handlers.scheduleReview=handler;},focus:options=>focus.push({scheduleReviewButton,options})};
   const refreshButton={disabled:true,addEventListener:(type,handler)=>{handlers.refresh=handler;}};
   const refreshPanel={hidden:true,attributes:{},setAttribute(name,value){this.attributes[name]=value;},querySelector:selector=>selector==='[data-tng-schedule-refresh-message]'?refreshMessage:selector==='[data-tng-schedule-review-button]'?scheduleReviewButton:selector==='[data-tng-schedule-refresh-button]'?refreshButton:null,
@@ -64,9 +64,10 @@ export const harness=({restored=false,summaryPresent=true,refreshPresent=true,re
     const card={isConnected:true,hidden:true,textContent:title.textContent,dataset:{planId:'owned-'+index,planState:'ready',planUpdated:String(index)},classList:{remove(){}},scrollIntoView:()=>scroll.push(card),querySelector:selector=>selector==='[data-plan-title]'?title:null};
     const make=(kind,initial)=>{
       const button={disabled:false};
-      const field={name:kind==='rename'?'title':kind==='schedule'?'planned_date':'notes',value:restored&&index===0&&kind==='notes'?'Restored private draft':initial,defaultValue:initial,validity:{badInput:false},isConnected:true,disabled:false,
+      const field={name:kind==='rename'?'title':kind==='schedule'?'planned_date':'notes',value:restored&&index===0&&kind==='notes'?'Restored private draft':initial,defaultValue:initial,validity:{badInput:false},isConnected:true,disabled:false,attributes:{},
+        getAttribute(name){return this.attributes[name]??null;},setAttribute(name,value){this.attributes[name]=value;},removeAttribute(name){delete this.attributes[name];},
         scrollIntoView(options){scroll.push({field,options});},
-        focus(options){focus.push({field,options});},closest:selector=>{
+        focus(options){focus.push({field,options,describedBy:field.getAttribute('aria-describedby')});},closest:selector=>{
           if(selector==='[data-tng-plan-notes],[data-tng-plan-rename],[data-tng-plan-schedule]'||selector===`[data-tng-plan-${kind}]`)return form;
           if(selector==='[data-plan-id]')return card;
           if(selector==='[data-tng-plan-notes-panel]'&&kind==='notes')return panel;
@@ -91,7 +92,7 @@ export const harness=({restored=false,summaryPresent=true,refreshPresent=true,re
     for(const handler of captureHandlers[type]??[]){handler(event);if(event.stopped)break;}
     return event;
   };
-  return {plans,requests,reloads,status,refreshPanel,refreshMessage,scheduleReviewButton,refreshButton,summary,count,types,typeActions,typeReviewButtons,reviewButton,search,sort,focus,scroll,context,scheduleControls,capture,
+  return {plans,requests,reloads,status,refreshPanel,refreshMessage,scheduleReviewButton,refreshButton,summary,count,types,position,typeActions,typeReviewButtons,reviewButton,search,sort,focus,scroll,context,scheduleControls,capture,
     async dispatch(type,target){const event=capture(type,target);if(!event.stopped)await handlers[type]?.(event);return event;},refresh:()=>handlers.refresh(),
     type(index,kind,value,badInput=false){const field=plans[index][kind].field;field.value=value;field.validity.badInput=badInput;handlers.input({target:field});},
     submit:(index,kind)=>handlers.submit({target:plans[index][kind].form,preventDefault(){}}),
