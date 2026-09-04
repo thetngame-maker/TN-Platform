@@ -36,7 +36,7 @@ const success=(request,data={})=>request.resolve({json:async()=>({success:true,d
 // DOM stand-ins run the actual review/filter and save handlers, not a second
 // implementation. These checks do not claim visual or native browser coverage.
 export const harness=({restored=false,summaryPresent=true,refreshPresent=true,refreshMessageId='tng-schedule-refresh-message'}={})=>{
-  const handlers={},captureHandlers={},listeners=new Map(),requests=[],reloads=[],focus=[],scroll=[],status={textContent:''};
+  const handlers={},captureHandlers={},listeners=new Map(),requests=[],reloads=[],focus=[],scroll=[],status={textContent:'',focus:options=>focus.push({status,options})};
   const scheduleDependentSelector='[data-tng-readiness-key],[data-tng-packing-key],[data-tng-prep-focus],[data-tng-next-action],[data-tng-plan-start],[data-tng-plan-calendar],[data-tng-upcoming-calendar],[data-tng-plan-print]';
   const scheduleControls=scheduleDependentSelector.split(',').map(selector=>{
     const classes=new Set(),control={selector,disabled:false,attributes:{},classList:{add:value=>classes.add(value)},

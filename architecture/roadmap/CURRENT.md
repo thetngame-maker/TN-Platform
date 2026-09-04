@@ -2,7 +2,7 @@
 
 Last reviewed: 2026-09-03
 
-This file reconciles the original architecture milestones with the TN Game OS 5.101–5.181 release train. It records delivery sequence and launch gates; it does not assign future version numbers before a candidate is scoped and validated.
+This file reconciles the original architecture milestones with the TN Game OS 5.101–5.182 release train. It records delivery sequence and launch gates; it does not assign future version numbers before a candidate is scoped and validated.
 
 ## Delivered foundations
 
@@ -14,7 +14,7 @@ This file reconciles the original architecture milestones with the TN Game OS 5.
 
 ## Current release train
 
-6. **Private Saved Adventure editing and recovery** — finish the owner-only editing workflow with count-only review, safe schedule refresh, keyboard and assistive-technology guidance, and failure-safe manual recovery. TN Game OS 5.181 adds an explicit, request-free dismissal action to the generic current-page draft-resolution confirmation while allowing later edit cycles to confirm again.
+6. **Private Saved Adventure editing and recovery** — finish the owner-only editing workflow with count-only review, safe schedule refresh, keyboard and assistive-technology guidance, and failure-safe manual recovery. TN Game OS 5.182 gives the request-free completion dismissal an accessible focus and status handoff without exposing any draft value.
 
 ## Remaining launch gates
 
