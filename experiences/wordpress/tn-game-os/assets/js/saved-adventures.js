@@ -291,6 +291,7 @@
   ['click','change'].forEach((type) => root.addEventListener(type, guardStaleScheduleAction, true));
   syncScheduleRefresh();
   const draftReview = root.querySelector('[data-tng-draft-review]');
+  const draftReviewComplete = root.querySelector('[data-tng-draft-review-complete]');
   const draftReviewCount = draftReview?.querySelector('[data-tng-draft-review-count]');
   const draftReviewTypes = draftReview?.querySelector('[data-tng-draft-review-types]');
   const draftReviewPosition = draftReview?.querySelector('[data-tng-draft-review-position]');
@@ -301,6 +302,7 @@
   let lastReviewedDraft = null;
   let describedDraft = null;
   let lastReviewedDraftScope = '';
+  let hadDraftReviewActivity = false;
   const draftTypeFor = (field) => ({title:'name',notes:'note',planned_date:'date'}[field.name] || 'edit');
   const reviewableDrafts = () => adventureDraftFields.filter((field) => isAdventureDraftChanged(field) && field.isConnected && !field.disabled && field.closest('[data-plan-id]')?.isConnected);
   const nextDraftReviewTarget = (fieldName = '') => {
@@ -340,9 +342,23 @@
     }
   };
   updateDraftReview = () => {
-    if (!draftReview || !draftReviewCount) return;
     const changed = adventureDraftFields.filter(isAdventureDraftChanged);
     const pending = adventureDraftFields.filter(isAdventureDraftPending).length;
+    const hasDraftActivity = changed.length > 0 || pending > 0;
+    if (hasDraftActivity) {
+      hadDraftReviewActivity = true;
+      if (draftReviewComplete) {
+        draftReviewComplete.textContent = '';
+        draftReviewComplete.hidden = true;
+      }
+    } else if (hadDraftReviewActivity) {
+      if (draftReviewComplete) {
+        draftReviewComplete.textContent = 'All edits on this page are saved.';
+        draftReviewComplete.hidden = false;
+      }
+      hadDraftReviewActivity = false;
+    }
+    if (!draftReview || !draftReviewCount) return;
     const planCount = new Set(changed.map((field) => field.closest('[data-plan-id]'))).size;
     const edits = changed.length ? `${changed.length} unsaved field${changed.length === 1 ? '' : 's'} across ${planCount} adventure${planCount === 1 ? '' : 's'}.` : '';
     const saving = pending ? `${pending} save${pending === 1 ? '' : 's'} in progress.` : '';

@@ -22,7 +22,7 @@ assert.doesNotMatch(reviewCode,/fetch\(|post\(|savePreferences|localStorage|sess
 assert.match(reviewCode,/\+\+planNavigationRequest/);
 assert.match(reviewCode,/field\.focus\(\{preventScroll:true\}\)/);
 assert.match(css,/draft-review\[hidden\]\{display:none\}/);
-assert.match(css,/@media print\{\.tng-adventure-library__draft-review\{display:none!important\}\}/);
+assert.match(css,/@media print\{\.tng-adventure-library__draft-review(?:,\.tng-adventure-library__draft-complete)?\{display:none!important\}\}/);
 const markup=php.match(/<section class="tng-adventure-library__draft-review"[^]*?<\/section>/)?.[0];
 assert.ok(markup);assert.match(markup,/aria-label="Unsaved adventure edits" hidden/);
 assert.match(markup,/aria-live="polite" aria-atomic="true"/);
@@ -45,7 +45,7 @@ export const harness=({restored=false,summaryPresent=true,refreshPresent=true,re
     if(selector==='[data-tng-readiness-key]'||selector==='[data-tng-packing-key]')control.checked=false;
     return control;
   });
-  const count={textContent:''},types={textContent:'',hidden:true},position={id:'tng-draft-review-position',textContent:'',hidden:true},typeActions={hidden:true};
+  const count={textContent:''},types={textContent:'',hidden:true},position={id:'tng-draft-review-position',textContent:'',hidden:true},completion={textContent:'',hidden:true},typeActions={hidden:true};
   const typeReviewButtons=['title','notes','planned_date'].map(fieldName=>({dataset:{tngDraftReviewType:fieldName},hidden:true,disabled:false,textContent:'',addEventListener:(type,handler)=>{handlers[`review-${fieldName}`]=handler;}}));
   const reviewButton={disabled:false,addEventListener:(type,handler)=>{handlers.review=handler;},click:()=>handlers.review?.()};
   const summary={hidden:true,querySelector:selector=>selector==='[data-tng-draft-review-count]'?count:selector==='[data-tng-draft-review-types]'?types:selector==='[data-tng-draft-review-position]'?position:selector==='[data-tng-draft-review-type-actions]'?typeActions:reviewButton,querySelectorAll:selector=>selector==='[data-tng-draft-review-type]'?typeReviewButtons:[]};
@@ -83,7 +83,7 @@ export const harness=({restored=false,summaryPresent=true,refreshPresent=true,re
   });
   const context={URLSearchParams,status,search,sort,filters,prepFilters,nextCard:null,selectedFilter:'archived',planNavigationRequest:7,cards:plans.map(p=>p.card),grid:null,filterStatus:null,filterEmpty:null,
     launchCountFor:()=>0,isUpcomingPrepCard:()=>true,updatePrepOverview(){},
-    root:{dataset:{ajaxUrl:'/wp-admin/admin-ajax.php',nonce:'test-nonce'},querySelector:selector=>selector==='[data-tng-schedule-refresh]'?(refreshPresent?refreshPanel:null):summaryPresent?summary:null,querySelectorAll:selector=>selector===scheduleDependentSelector?scheduleControls:plans.flatMap(p=>[p.schedule.field,p.notes.field,p.rename.field]),addEventListener:(type,handler,capture)=>{if(capture){(captureHandlers[type]??=[]).push(handler);}else handlers[type]=handler;}},
+    root:{dataset:{ajaxUrl:'/wp-admin/admin-ajax.php',nonce:'test-nonce'},querySelector:selector=>selector==='[data-tng-schedule-refresh]'?(refreshPresent?refreshPanel:null):selector==='[data-tng-draft-review-complete]'?completion:summaryPresent?summary:null,querySelectorAll:selector=>selector===scheduleDependentSelector?scheduleControls:plans.flatMap(p=>[p.schedule.field,p.notes.field,p.rename.field]),addEventListener:(type,handler,capture)=>{if(capture){(captureHandlers[type]??=[]).push(handler);}else handlers[type]=handler;}},
     window:{addEventListener:(type,handler)=>{if(!listeners.has(type))listeners.set(type,new Set());listeners.get(type).add(handler);},removeEventListener:(type,handler)=>listeners.get(type)?.delete(handler),location:{reload(){reloads.push({pending:plans.some(p=>p.schedule.button.disabled||p.schedule.clear.disabled||p.notes.button.disabled||p.rename.button.disabled)});}}},
     fetch:(url,options)=>{const request=deferred();requests.push({url,options,...request});return request.promise;}};
   vm.runInNewContext(`${warningCode}\n${refreshCode}\n${controlsCode}\n${filterCode}\n${reviewCode}\n${inputCode}\n${postCode}\n${clickCode}\n${submitCode}\nglobalThis.testPost = post;`,context);
@@ -92,7 +92,7 @@ export const harness=({restored=false,summaryPresent=true,refreshPresent=true,re
     for(const handler of captureHandlers[type]??[]){handler(event);if(event.stopped)break;}
     return event;
   };
-  return {plans,requests,reloads,status,refreshPanel,refreshMessage,scheduleReviewButton,refreshButton,summary,count,types,position,typeActions,typeReviewButtons,reviewButton,search,sort,focus,scroll,context,scheduleControls,capture,
+  return {plans,requests,reloads,status,refreshPanel,refreshMessage,scheduleReviewButton,refreshButton,summary,count,types,position,completion,typeActions,typeReviewButtons,reviewButton,search,sort,focus,scroll,context,scheduleControls,capture,
     async dispatch(type,target){const event=capture(type,target);if(!event.stopped)await handlers[type]?.(event);return event;},refresh:()=>handlers.refresh(),
     type(index,kind,value,badInput=false){const field=plans[index][kind].field;field.value=value;field.validity.badInput=badInput;handlers.input({target:field});},
     submit:(index,kind)=>handlers.submit({target:plans[index][kind].form,preventDefault(){}}),

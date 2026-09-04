@@ -1,3 +1,13 @@
+TN GAME OS 5.180.0 — PRIVATE DRAFT RESOLUTION CONFIRMATION
+
+CURRENT MILESTONE
+- Confirms when all private edits and saves in progress on the current Saved Adventures page are resolved.
+- Shows the confirmation only after actual draft activity, never on an untouched clean page.
+- Treats explicit reverts, confirmed saves, date clears, and restored-page changes through the same shared state calculation.
+- Hides the confirmation when a new edit or save begins and keeps it out of printed adventure briefs.
+- Uses one generic sentence without an adventure name, note, date, plan title, or other private value.
+- Adds no autosave, storage, endpoint, request, timer, background work, or public data.
+
 TN GAME OS 5.179.0 — ACCESSIBLE DRAFT REVIEW POSITION
 
 CURRENT MILESTONE
