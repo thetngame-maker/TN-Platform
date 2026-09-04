@@ -1,3 +1,13 @@
+TN GAME OS 5.181.0 — DISMISSIBLE DRAFT RESOLUTION CONFIRMATION
+
+CURRENT MILESTONE
+- Adds an explicit Dismiss action to the private confirmation shown after every edit and pending save is resolved.
+- Keeps the confirmation visible until the owner dismisses it or begins another edit cycle.
+- Allows keyboard and pointer dismissal without changing a field, submitting a form, or sending a request.
+- Shows a fresh confirmation after later draft activity resolves, even when an earlier confirmation was dismissed.
+- Keeps the generic message and action out of printed adventure briefs and exposes no private draft value.
+- Adds no timer, autosave, storage, endpoint, request, background work, or public data.
+
 TN GAME OS 5.180.0 — PRIVATE DRAFT RESOLUTION CONFIRMATION
 
 CURRENT MILESTONE
