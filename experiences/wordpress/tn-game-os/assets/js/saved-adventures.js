@@ -292,6 +292,8 @@
   syncScheduleRefresh();
   const draftReview = root.querySelector('[data-tng-draft-review]');
   const draftReviewComplete = root.querySelector('[data-tng-draft-review-complete]');
+  const draftReviewCompleteMessage = draftReviewComplete?.querySelector('[data-tng-draft-review-complete-message]');
+  const draftReviewCompleteDismiss = draftReviewComplete?.querySelector('[data-tng-draft-review-complete-dismiss]');
   const draftReviewCount = draftReview?.querySelector('[data-tng-draft-review-count]');
   const draftReviewTypes = draftReview?.querySelector('[data-tng-draft-review-types]');
   const draftReviewPosition = draftReview?.querySelector('[data-tng-draft-review-position]');
@@ -348,12 +350,12 @@
     if (hasDraftActivity) {
       hadDraftReviewActivity = true;
       if (draftReviewComplete) {
-        draftReviewComplete.textContent = '';
+        if (draftReviewCompleteMessage) draftReviewCompleteMessage.textContent = '';
         draftReviewComplete.hidden = true;
       }
     } else if (hadDraftReviewActivity) {
       if (draftReviewComplete) {
-        draftReviewComplete.textContent = 'All edits on this page are saved.';
+        if (draftReviewCompleteMessage) draftReviewCompleteMessage.textContent = 'All edits on this page are saved.';
         draftReviewComplete.hidden = false;
       }
       hadDraftReviewActivity = false;
@@ -417,6 +419,10 @@
     field.scrollIntoView({block:'center'});
     updateDraftReview();
   };
+  draftReviewCompleteDismiss?.addEventListener('click', () => {
+    if (draftReviewCompleteMessage) draftReviewCompleteMessage.textContent = '';
+    if (draftReviewComplete) draftReviewComplete.hidden = true;
+  });
   draftReviewButton?.addEventListener('click', () => reviewDraft());
   draftReviewTypeButtons.forEach((button) => button.addEventListener('click', () => reviewDraft(button.dataset.tngDraftReviewType || '')));
   scheduleReviewButton?.addEventListener('click', () => {

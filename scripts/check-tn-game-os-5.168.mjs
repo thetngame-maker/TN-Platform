@@ -45,7 +45,8 @@ export const harness=({restored=false,summaryPresent=true,refreshPresent=true,re
     if(selector==='[data-tng-readiness-key]'||selector==='[data-tng-packing-key]')control.checked=false;
     return control;
   });
-  const count={textContent:''},types={textContent:'',hidden:true},position={id:'tng-draft-review-position',textContent:'',hidden:true},completion={textContent:'',hidden:true},typeActions={hidden:true};
+  const count={textContent:''},types={textContent:'',hidden:true},position={id:'tng-draft-review-position',textContent:'',hidden:true},completionMessage={textContent:''},completionDismiss={addEventListener:(type,handler)=>{handlers.dismissCompletion=handler;}},typeActions={hidden:true};
+  const completion={hidden:true,querySelector:selector=>selector==='[data-tng-draft-review-complete-message]'?completionMessage:selector==='[data-tng-draft-review-complete-dismiss]'?completionDismiss:null,get textContent(){return completionMessage.textContent;},set textContent(value){completionMessage.textContent=value;}};
   const typeReviewButtons=['title','notes','planned_date'].map(fieldName=>({dataset:{tngDraftReviewType:fieldName},hidden:true,disabled:false,textContent:'',addEventListener:(type,handler)=>{handlers[`review-${fieldName}`]=handler;}}));
   const reviewButton={disabled:false,addEventListener:(type,handler)=>{handlers.review=handler;},click:()=>handlers.review?.()};
   const summary={hidden:true,querySelector:selector=>selector==='[data-tng-draft-review-count]'?count:selector==='[data-tng-draft-review-types]'?types:selector==='[data-tng-draft-review-position]'?position:selector==='[data-tng-draft-review-type-actions]'?typeActions:reviewButton,querySelectorAll:selector=>selector==='[data-tng-draft-review-type]'?typeReviewButtons:[]};
@@ -92,12 +93,12 @@ export const harness=({restored=false,summaryPresent=true,refreshPresent=true,re
     for(const handler of captureHandlers[type]??[]){handler(event);if(event.stopped)break;}
     return event;
   };
-  return {plans,requests,reloads,status,refreshPanel,refreshMessage,scheduleReviewButton,refreshButton,summary,count,types,position,completion,typeActions,typeReviewButtons,reviewButton,search,sort,focus,scroll,context,scheduleControls,capture,
+  return {plans,requests,reloads,status,refreshPanel,refreshMessage,scheduleReviewButton,refreshButton,summary,count,types,position,completion,completionMessage,completionDismiss,typeActions,typeReviewButtons,reviewButton,search,sort,focus,scroll,context,scheduleControls,capture,
     async dispatch(type,target){const event=capture(type,target);if(!event.stopped)await handlers[type]?.(event);return event;},refresh:()=>handlers.refresh(),
     type(index,kind,value,badInput=false){const field=plans[index][kind].field;field.value=value;field.validity.badInput=badInput;handlers.input({target:field});},
     submit:(index,kind)=>handlers.submit({target:plans[index][kind].form,preventDefault(){}}),
     clear:(index)=>handlers.click({target:plans[index].schedule.clear}),
-    review:()=>handlers.review?.(),reviewType:fieldName=>handlers[`review-${fieldName}`]?.(),scheduleReview:()=>handlers.scheduleReview?.(),pageshow:()=>listeners.get('pageshow')?.forEach(fn=>fn()),warning:()=>listeners.get('beforeunload')?.size??0};
+    review:()=>handlers.review?.(),reviewType:fieldName=>handlers[`review-${fieldName}`]?.(),dismissCompletion:()=>handlers.dismissCompletion?.(),scheduleReview:()=>handlers.scheduleReview?.(),pageshow:()=>listeners.get('pageshow')?.forEach(fn=>fn()),warning:()=>listeners.get('beforeunload')?.size??0};
 };
 
 let h=harness();assert.equal(h.summary.hidden,true);assert.equal(h.reviewButton.disabled,true);
