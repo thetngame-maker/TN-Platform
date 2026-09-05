@@ -305,6 +305,8 @@
   let describedDraft = null;
   let lastReviewedDraftScope = '';
   let hadDraftReviewActivity = false;
+  let statusBeforeDraftDismissal = null;
+  const draftDismissedMessage = 'Edit confirmation dismissed.';
   const draftTypeFor = (field) => ({title:'name',notes:'note',planned_date:'date'}[field.name] || 'edit');
   const reviewableDrafts = () => adventureDraftFields.filter((field) => isAdventureDraftChanged(field) && field.isConnected && !field.disabled && field.closest('[data-plan-id]')?.isConnected);
   const nextDraftReviewTarget = (fieldName = '') => {
@@ -348,6 +350,10 @@
     const pending = adventureDraftFields.filter(isAdventureDraftPending).length;
     const hasDraftActivity = changed.length > 0 || pending > 0;
     if (hasDraftActivity) {
+      if (statusBeforeDraftDismissal !== null) {
+        if (status?.textContent === draftDismissedMessage) status.textContent = statusBeforeDraftDismissal;
+        statusBeforeDraftDismissal = null;
+      }
       hadDraftReviewActivity = true;
       if (draftReviewComplete) {
         if (draftReviewCompleteMessage) draftReviewCompleteMessage.textContent = '';
@@ -423,7 +429,8 @@
     if (draftReviewCompleteMessage) draftReviewCompleteMessage.textContent = '';
     if (draftReviewComplete) draftReviewComplete.hidden = true;
     if (status) {
-      status.textContent = 'Edit confirmation dismissed.';
+      statusBeforeDraftDismissal = status.textContent;
+      status.textContent = draftDismissedMessage;
       status.focus({preventScroll:true});
     }
   });
