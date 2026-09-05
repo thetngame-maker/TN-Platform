@@ -1,3 +1,13 @@
+TN GAME OS 5.182.0 — ACCESSIBLE CONFIRMATION DISMISSAL HANDOFF
+
+CURRENT MILESTONE
+- Moves focus from the disappearing Dismiss button to the stable private Saved Adventures status.
+- Announces a generic dismissal result through the existing polite status region.
+- Prevents an activated control from retaining focus inside a newly hidden confirmation.
+- Uses no adventure name, note, date, plan title, or other private draft value.
+- Keeps later edit cycles and their fresh completion confirmations unchanged.
+- Adds no timer, autosave, storage, endpoint, request, background work, or public data.
+
 TN GAME OS 5.181.0 — DISMISSIBLE DRAFT RESOLUTION CONFIRMATION
 
 CURRENT MILESTONE

@@ -422,6 +422,10 @@
   draftReviewCompleteDismiss?.addEventListener('click', () => {
     if (draftReviewCompleteMessage) draftReviewCompleteMessage.textContent = '';
     if (draftReviewComplete) draftReviewComplete.hidden = true;
+    if (status) {
+      status.textContent = 'Edit confirmation dismissed.';
+      status.focus({preventScroll:true});
+    }
   });
   draftReviewButton?.addEventListener('click', () => reviewDraft());
   draftReviewTypeButtons.forEach((button) => button.addEventListener('click', () => reviewDraft(button.dataset.tngDraftReviewType || '')));
