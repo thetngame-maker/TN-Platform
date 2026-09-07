@@ -2,7 +2,7 @@
 
 Last reviewed: 2026-09-03
 
-This file reconciles the original architecture milestones with the TN Game OS 5.101–5.185 release train. It records delivery sequence and launch gates; it does not assign future version numbers before a candidate is scoped and validated.
+This file reconciles the original architecture milestones with the TN Game OS 5.101–5.186 release train. It records delivery sequence and launch gates; it does not assign future version numbers before a candidate is scoped and validated.
 
 ## Delivered foundations
 
@@ -14,7 +14,7 @@ This file reconciles the original architecture milestones with the TN Game OS 5.
 
 ## Current release train
 
-6. **Private Saved Adventure editing and recovery** — finish the owner-only editing workflow with count-only review, safe schedule refresh, keyboard and assistive-technology guidance, and failure-safe manual recovery. TN Game OS 5.185 makes the scoped Escape dismissal discoverable to assistive technology without adding visible clutter or private content.
+6. **Private Saved Adventure editing and recovery** — finish the owner-only editing workflow with count-only review, safe schedule refresh, keyboard and assistive-technology guidance, and failure-safe manual recovery. TN Game OS 5.186 gives the programmatic dismissal focus a clear, non-layout-shifting visual indicator without adding motion or private content.
 
 ## Remaining launch gates
 
