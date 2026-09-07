@@ -425,7 +425,7 @@
     field.scrollIntoView({block:'center'});
     updateDraftReview();
   };
-  draftReviewCompleteDismiss?.addEventListener('click', () => {
+  const dismissDraftReviewComplete = () => {
     if (draftReviewCompleteMessage) draftReviewCompleteMessage.textContent = '';
     if (draftReviewComplete) draftReviewComplete.hidden = true;
     if (status) {
@@ -433,6 +433,12 @@
       status.textContent = draftDismissedMessage;
       status.focus({preventScroll:true});
     }
+  };
+  draftReviewCompleteDismiss?.addEventListener('click', dismissDraftReviewComplete);
+  draftReviewComplete?.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || event.isComposing || draftReviewComplete.hidden) return;
+    event.preventDefault();
+    dismissDraftReviewComplete();
   });
   draftReviewButton?.addEventListener('click', () => reviewDraft());
   draftReviewTypeButtons.forEach((button) => button.addEventListener('click', () => reviewDraft(button.dataset.tngDraftReviewType || '')));

@@ -46,7 +46,7 @@ export const harness=({restored=false,summaryPresent=true,refreshPresent=true,re
     return control;
   });
   const count={textContent:''},types={textContent:'',hidden:true},position={id:'tng-draft-review-position',textContent:'',hidden:true},completionMessage={textContent:''},completionDismiss={addEventListener:(type,handler)=>{handlers.dismissCompletion=handler;}},typeActions={hidden:true};
-  const completion={hidden:true,querySelector:selector=>selector==='[data-tng-draft-review-complete-message]'?completionMessage:selector==='[data-tng-draft-review-complete-dismiss]'?completionDismiss:null,get textContent(){return completionMessage.textContent;},set textContent(value){completionMessage.textContent=value;}};
+  const completion={hidden:true,addEventListener:(type,handler)=>{handlers[`completion-${type}`]=handler;},querySelector:selector=>selector==='[data-tng-draft-review-complete-message]'?completionMessage:selector==='[data-tng-draft-review-complete-dismiss]'?completionDismiss:null,get textContent(){return completionMessage.textContent;},set textContent(value){completionMessage.textContent=value;}};
   const typeReviewButtons=['title','notes','planned_date'].map(fieldName=>({dataset:{tngDraftReviewType:fieldName},hidden:true,disabled:false,textContent:'',addEventListener:(type,handler)=>{handlers[`review-${fieldName}`]=handler;}}));
   const reviewButton={disabled:false,addEventListener:(type,handler)=>{handlers.review=handler;},click:()=>handlers.review?.()};
   const summary={hidden:true,querySelector:selector=>selector==='[data-tng-draft-review-count]'?count:selector==='[data-tng-draft-review-types]'?types:selector==='[data-tng-draft-review-position]'?position:selector==='[data-tng-draft-review-type-actions]'?typeActions:reviewButton,querySelectorAll:selector=>selector==='[data-tng-draft-review-type]'?typeReviewButtons:[]};
@@ -98,7 +98,9 @@ export const harness=({restored=false,summaryPresent=true,refreshPresent=true,re
     type(index,kind,value,badInput=false){const field=plans[index][kind].field;field.value=value;field.validity.badInput=badInput;handlers.input({target:field});},
     submit:(index,kind)=>handlers.submit({target:plans[index][kind].form,preventDefault(){}}),
     clear:(index)=>handlers.click({target:plans[index].schedule.clear}),
-    review:()=>handlers.review?.(),reviewType:fieldName=>handlers[`review-${fieldName}`]?.(),dismissCompletion:()=>handlers.dismissCompletion?.(),scheduleReview:()=>handlers.scheduleReview?.(),pageshow:()=>listeners.get('pageshow')?.forEach(fn=>fn()),warning:()=>listeners.get('beforeunload')?.size??0};
+    review:()=>handlers.review?.(),reviewType:fieldName=>handlers[`review-${fieldName}`]?.(),dismissCompletion:()=>handlers.dismissCompletion?.(),
+    keydownCompletion(key,isComposing=false){const event={key,isComposing,prevented:false,preventDefault(){this.prevented=true;}};handlers['completion-keydown']?.(event);return event;},
+    scheduleReview:()=>handlers.scheduleReview?.(),pageshow:()=>listeners.get('pageshow')?.forEach(fn=>fn()),warning:()=>listeners.get('beforeunload')?.size??0};
 };
 
 let h=harness();assert.equal(h.summary.hidden,true);assert.equal(h.reviewButton.disabled,true);
