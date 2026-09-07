@@ -1,3 +1,13 @@
+TN GAME OS 5.187.0 — COMPLETE DISMISSAL ANNOUNCEMENT
+
+CURRENT MILESTONE
+- Makes the private library status explicitly atomic for assistive technology.
+- Ensures the complete generic dismissal result is presented as one polite status update.
+- Keeps programmatic focus, its visible outline, and the ordinary Tab order unchanged.
+- Adds no field change, endpoint, request, timer, background work, or stored value.
+- Copies no adventure name, note, date, plan title, or other private draft value.
+- Preserves button and Escape dismissal, status restoration, and later edit cycles.
+
 TN GAME OS 5.186.0 — VISIBLE DISMISSAL FOCUS
 
 CURRENT MILESTONE
