@@ -7,7 +7,7 @@ const module=read('app/Modules/Destinations/class-adventure-ai.php');
 const client=read('assets/js/saved-adventures.js');
 assert.match(bootstrap,/Version:\s*5\.1(?:5[5-9]|[6-9]\d)\.\d+/);
 assert.match(bootstrap,/define\('TNG_OS_VERSION','5\.1(?:5[5-9]|[6-9]\d)\.\d+'\)/);
-assert.match(module,/data-tng-library-status aria-live="polite"/);
+assert.match(module,/data-tng-library-status(?: role="status")? aria-live="polite"/);
 assert.match(client,/const launchReadyStatusFor = \(card, previousCount, fallback\) =>/);
 assert.match(client,/previousCount < 10 && launchCountFor\(card\) === 10/);
 assert.match(client,/All 10 preparation checks are complete/);

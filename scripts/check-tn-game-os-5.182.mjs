@@ -12,7 +12,7 @@ const review=client.slice(client.indexOf('const draftReview ='),client.indexOf("
 assert.match(review,/const dismissDraftReviewComplete = \(\) => \{[^]*?draftReviewComplete\.hidden = true[^]*?status\.textContent = draftDismissedMessage[^]*?status\.focus\(\{preventScroll:true\}\)/);
 assert.match(review,/draftReviewCompleteDismiss\?\.addEventListener\('click', dismissDraftReviewComplete\)/);
 assert.doesNotMatch(review,/fetch\(|post\(|localStorage|sessionStorage|indexedDB|setTimeout|setInterval|sendBeacon|innerHTML|\.submit\(/);
-assert.match(php,/<p class="tng-adventure-library__status" data-tng-library-status aria-live="polite"(?: aria-atomic="true")? tabindex="-1">/);
+assert.match(php,/<p class="tng-adventure-library__status" data-tng-library-status(?: role="status")? aria-live="polite"(?: aria-atomic="true")? tabindex="-1">/);
 const completeMarkup=php.match(/<section class="tng-adventure-library__draft-complete"[^]*?<\/section>/)?.[0];
 assert.ok(completeMarkup);
 assert.match(completeMarkup,/type="button" data-tng-draft-review-complete-dismiss[^>]*>Dismiss<\/button>/);

@@ -2,7 +2,7 @@
 
 Last reviewed: 2026-09-07
 
-This file reconciles the original architecture milestones with the TN Game OS 5.101–5.187 release train. It records delivery sequence and launch gates; it does not assign future version numbers before a candidate is scoped and validated.
+This file reconciles the original architecture milestones with the TN Game OS 5.101–5.188 release train. It records delivery sequence and launch gates; it does not assign future version numbers before a candidate is scoped and validated.
 
 ## Delivered foundations
 
@@ -14,7 +14,7 @@ This file reconciles the original architecture milestones with the TN Game OS 5.
 
 ## Current release train
 
-6. **Private Saved Adventure editing and recovery** — finish the owner-only editing workflow with count-only review, safe schedule refresh, keyboard and assistive-technology guidance, and failure-safe manual recovery. TN Game OS 5.187 makes the existing polite dismissal status explicitly atomic so assistive technology receives the complete generic update without adding requests or private content.
+6. **Private Saved Adventure editing and recovery** — finish the owner-only editing workflow with count-only review, safe schedule refresh, keyboard and assistive-technology guidance, and failure-safe manual recovery. TN Game OS 5.188 gives the atomic polite dismissal update explicit status semantics without adding requests, storage, or private content.
 
 ## Remaining launch gates
 
