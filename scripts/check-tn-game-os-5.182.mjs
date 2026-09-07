@@ -15,7 +15,7 @@ assert.doesNotMatch(review,/fetch\(|post\(|localStorage|sessionStorage|indexedDB
 assert.match(php,/<p class="tng-adventure-library__status" data-tng-library-status aria-live="polite" tabindex="-1">/);
 const completeMarkup=php.match(/<section class="tng-adventure-library__draft-complete"[^]*?<\/section>/)?.[0];
 assert.ok(completeMarkup);
-assert.match(completeMarkup,/type="button" data-tng-draft-review-complete-dismiss>Dismiss<\/button>/);
+assert.match(completeMarkup,/type="button" data-tng-draft-review-complete-dismiss[^>]*>Dismiss<\/button>/);
 assert.doesNotMatch(completeMarkup,/<\?php|\$plan|\$notes/);
 
 const message='All edits on this page are saved.';

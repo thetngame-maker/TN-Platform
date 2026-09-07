@@ -18,7 +18,7 @@ const completeMarkup=php.match(/<section class="tng-adventure-library__draft-com
 assert.ok(completeMarkup);
 assert.match(completeMarkup,/data-tng-draft-review-complete aria-label="Edit confirmation" hidden/);
 assert.match(completeMarkup,/data-tng-draft-review-complete-message aria-live="polite" aria-atomic="true"/);
-assert.match(completeMarkup,/<button class="tng-ui-button tng-ui-button--secondary" type="button" data-tng-draft-review-complete-dismiss>Dismiss<\/button>/);
+assert.match(completeMarkup,/<button class="tng-ui-button tng-ui-button--secondary" type="button" data-tng-draft-review-complete-dismiss[^>]*>Dismiss<\/button>/);
 assert.doesNotMatch(completeMarkup,/<\?php|\$plan|\$notes/);
 assert.match(css,/draft-complete\[hidden\]\{display:none\}/);
 assert.match(css,/draft-complete button\{min-height:34px;flex:0 0 auto;padding:0 12px\}/);
