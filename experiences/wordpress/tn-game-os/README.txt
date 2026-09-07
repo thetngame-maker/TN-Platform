@@ -1,3 +1,13 @@
+TN GAME OS 5.189.0 — REPEAT-SAFE DISMISSAL HANDOFF
+
+CURRENT MILESTONE
+- Ignores repeated dismissal events after the private edit confirmation is already hidden.
+- Preserves the original library status snapshot for restoration during the next edit cycle.
+- Prevents duplicate focus movement and leaves the generic dismissal result unchanged.
+- Adds no field change, endpoint, request, timer, background work, or stored value.
+- Copies no adventure name, note, date, plan title, or other private draft value.
+- Preserves button and Escape dismissal, atomic status semantics, and later confirmations.
+
 TN GAME OS 5.188.0 — SEMANTIC DISMISSAL STATUS
 
 CURRENT MILESTONE

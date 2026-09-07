@@ -426,6 +426,7 @@
     updateDraftReview();
   };
   const dismissDraftReviewComplete = () => {
+    if (!draftReviewComplete || draftReviewComplete.hidden) return;
     if (draftReviewCompleteMessage) draftReviewCompleteMessage.textContent = '';
     if (draftReviewComplete) draftReviewComplete.hidden = true;
     if (status) {
