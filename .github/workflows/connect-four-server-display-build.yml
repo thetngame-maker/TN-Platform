@@ -1,0 +1,30 @@
+name: Connect Four Server Display Build
+
+on:
+  push:
+    branches:
+      - feature/connect-four-server-display-v0.4.0
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build Roku package
+        run: |
+          chmod +x experiences/roku/connect-four/build.sh
+          chmod +x experiences/roku/connect-four/build-server-display.sh
+          experiences/roku/connect-four/build-server-display.sh
+
+      - name: Upload Roku ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: tn-game-connect-four-v0.4.0-server-display
+          path: experiences/roku/connect-four/dist/tn-game-connect-four-v0.4.0-server-display.zip
+          if-no-files-found: error
